@@ -14,7 +14,7 @@ if (file_exists(__DIR__ . '/../.env') && !isset($_ENV['APP_ENV'])) {
 define('APP_NAME', $_ENV['APP_NAME'] ?? 'Sistema B2B AnimalsCenter');
 define('APP_ENV', $_ENV['APP_ENV'] ?? 'production');
 define('APP_DEBUG', filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN));
-define('APP_URL', $_ENV['APP_URL'] ?? 'http://localhost/b2b');
+define('APP_URL', 'http://localhost:8080');
 
 // Configuración de sesiones
 define('SESSION_LIFETIME', intval($_ENV['SESSION_LIFETIME'] ?? 120));

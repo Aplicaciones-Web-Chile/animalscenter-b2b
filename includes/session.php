@@ -6,9 +6,18 @@
 
 // Iniciar sesión si no está iniciada
 function startSession() {
-    if (session_status() == PHP_SESSION_NONE) {
-        session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        // Configurar opciones de sesión
+        $options = [
+            'cookie_path' => '/',
+            'cookie_httponly' => true,
+            'cookie_samesite' => 'Lax'
+        ];
+        
+        session_start($options);
+        return true;
     }
+    return false;
 }
 
 /**
@@ -21,7 +30,9 @@ function login($user) {
     startSession();
     
     // Generar un nuevo ID de sesión para prevenir ataques de fijación de sesión
-    session_regenerate_id(true);
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_regenerate_id(true);
+    }
     
     // Almacenar información del usuario en la sesión
     $_SESSION['user'] = [
@@ -67,8 +78,10 @@ function logout() {
         );
     }
     
-    // Destruir la sesión
-    session_destroy();
+    // Destruir la sesión si está activa
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_destroy();
+    }
 }
 
 /**
@@ -78,7 +91,7 @@ function logout() {
  */
 function isAuthenticated() {
     startSession();
-    return isset($_SESSION['user']) && !sessionExpired();
+    return isset($_SESSION['user']) && isset($_SESSION['user']['id']);
 }
 
 /**
@@ -176,7 +189,7 @@ function registerLogoutActivity($userId) {
  */
 function requireLogin() {
     if (!isAuthenticated()) {
-        header('Location: ' . APP_URL . '/login.php');
+        header('Location: login.php');
         exit;
     }
 }
@@ -186,7 +199,7 @@ function requireLogin() {
  */
 function redirectIfAuthenticated() {
     if (isAuthenticated()) {
-        header('Location: ' . APP_URL . '/dashboard.php');
+        header('Location: dashboard.php');
         exit;
     }
 }
@@ -199,7 +212,7 @@ function requireAdmin() {
     
     if (!isAdmin()) {
         // El usuario está autenticado pero no es admin
-        header('Location: ' . APP_URL . '/unauthorized.php');
+        header('Location: unauthorized.php');
         exit;
     }
 }

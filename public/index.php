@@ -4,6 +4,9 @@
  * Redirige a login o dashboard según estado de autenticación
  */
 
+// Incluir manejador de errores (debe ser lo primero)
+require_once __DIR__ . '/../includes/ErrorHandler.php';
+
 // Cargar dependencias
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../config/app.php';

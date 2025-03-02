@@ -3,6 +3,12 @@
  * Plantilla de encabezado para todas las páginas
  */
 
+// Iniciar sesión si no está iniciada
+session_start();
+
+// Incluir archivos necesarios
+require_once __DIR__ . '/../includes/session.php';
+
 // Si no está definido el título, asignar uno por defecto
 $pageTitle = $pageTitle ?? 'Sistema B2B';
 ?>

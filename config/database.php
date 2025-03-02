@@ -4,6 +4,9 @@
  * Este archivo gestiona la conexión a la base de datos MySQL
  */
 
+// Cargar autoloader de Composer primero
+require_once __DIR__ . '/../vendor/autoload.php';
+
 // Cargar variables de entorno
 if (file_exists(__DIR__ . '/../.env')) {
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');

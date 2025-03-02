@@ -1,10 +1,13 @@
-# **Documento Técnico \- Desarrollo del Sistema B2B**
+# **Documento Técnico - Desarrollo del Sistema B2B**
 
-## **1\. Introducción**
+## **1. Introducción**
 
 Este documento detalla la arquitectura, tecnologías, y especificaciones técnicas necesarias para la implementación del sistema B2B. Su propósito es proporcionar directrices claras para su desarrollo de manera profesional y eficiente.
 
-## **2\. Tecnologías y Lenguajes**
+El sistema B2B debe ser desarrollado utilizando un enfoque de arquitectura limpia y modularidad.
+
+
+## **2. Tecnologías y Lenguajes**
 
 * **Backend:** PHP puro  
 * **Base de datos:** MySQL  
@@ -14,9 +17,9 @@ Este documento detalla la arquitectura, tecnologías, y especificaciones técnic
 * **Autenticación:** Sesiones en PHP  
 * **Hosting:** Servidor propio en la empresa  
 * **Seguridad:** SSL, validaciones contra SQL Injection, XSS, CSRF, firewall y restricciones por IP  
-* **Gestión de dependencias:** Uso de Composer para librerías, incluyendo la generación de reportes en Excel
+* **Gestión de dependencias:** Uso de Composer para librerías, incluyendo la generación de reportes en Excel (PhpSpreadsheet)
 
-## **3\. Arquitectura del Sistema**
+## **3. Arquitectura del Sistema**
 
 ### **3.1. Estructura de Usuarios**
 
@@ -30,25 +33,25 @@ Este documento detalla la arquitectura, tecnologías, y especificaciones técnic
 
 CREATE TABLE usuarios (
 
-    id INT AUTO\_INCREMENT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
 
     nombre VARCHAR(100) NOT NULL,
 
     email VARCHAR(100) UNIQUE NOT NULL,
 
-    password\_hash VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
 
     rol ENUM('admin', 'proveedor') NOT NULL,
 
     rut VARCHAR(12) UNIQUE NOT NULL,
 
-    fecha\_creacion TIMESTAMP DEFAULT CURRENT\_TIMESTAMP
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 );
 
 CREATE TABLE productos (
 
-    id INT AUTO\_INCREMENT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
 
     nombre VARCHAR(255) NOT NULL,
 
@@ -58,51 +61,51 @@ CREATE TABLE productos (
 
     precio DECIMAL(10,2) NOT NULL,
 
-    proveedor\_rut VARCHAR(12) NOT NULL,
+    proveedor_rut VARCHAR(12) NOT NULL,
 
-    FOREIGN KEY (proveedor\_rut) REFERENCES usuarios(rut) ON DELETE CASCADE
+    FOREIGN KEY (proveedor_rut) REFERENCES usuarios(rut) ON DELETE CASCADE
 
 );
 
 CREATE TABLE ventas (
 
-    id INT AUTO\_INCREMENT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
 
-    producto\_id INT NOT NULL,
+    producto_id INT NOT NULL,
 
     cantidad INT NOT NULL,
 
-    fecha TIMESTAMP DEFAULT CURRENT\_TIMESTAMP,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    proveedor\_rut VARCHAR(12) NOT NULL,
+    proveedor_rut VARCHAR(12) NOT NULL,
 
-    FOREIGN KEY (producto\_id) REFERENCES productos(id) ON DELETE CASCADE,
+    FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE,
 
-    FOREIGN KEY (proveedor\_rut) REFERENCES usuarios(rut) ON DELETE CASCADE
+    FOREIGN KEY (proveedor_rut) REFERENCES usuarios(rut) ON DELETE CASCADE
 
 );
 
 CREATE TABLE facturas (
 
-    id INT AUTO\_INCREMENT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
 
-    venta\_id INT NOT NULL,
+    venta_id INT NOT NULL,
 
     monto DECIMAL(10,2) NOT NULL,
 
     estado ENUM('pendiente', 'pagada', 'vencida') NOT NULL,
 
-    fecha TIMESTAMP DEFAULT CURRENT\_TIMESTAMP,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    proveedor\_rut VARCHAR(12) NOT NULL,
+    proveedor_rut VARCHAR(12) NOT NULL,
 
-    FOREIGN KEY (venta\_id) REFERENCES ventas(id) ON DELETE CASCADE,
+    FOREIGN KEY (venta_id) REFERENCES ventas(id) ON DELETE CASCADE,
 
-    FOREIGN KEY (proveedor\_rut) REFERENCES usuarios(rut) ON DELETE CASCADE
+    FOREIGN KEY (proveedor_rut) REFERENCES usuarios(rut) ON DELETE CASCADE
 
 );
 
-## **4\. API REST para Integración con ERP**
+## **4. API REST para Integración con ERP**
 
 ### **4.1. Consideraciones**
 
@@ -136,11 +139,11 @@ CREATE TABLE facturas (
 * `GET /api/facturas` → Lista facturas asociadas al usuario  
 * `GET /api/facturas/{id}` → Obtiene detalles de una factura
 
-## **5\. Estructura de Archivos**
+## **5. Estructura de Archivos**
 
 b2b-system/
 
-├── public/                   \# Archivos públicos (CSS, JS, imágenes, etc.)
+├── public/                   # Archivos públicos (CSS, JS, imágenes, etc.)
 
 │   ├── css/
 
@@ -150,65 +153,67 @@ b2b-system/
 
 │   ├── js/
 
-│   │   ├── app.js            \# Funciones JS generales
+│   │   ├── app.js            # Funciones JS generales
 
-│   │   ├── ajax.js           \# Manejo de peticiones AJAX
+│   │   ├── ajax.js           # Manejo de peticiones AJAX
 
-│   ├── index.php             \# Página principal del sistema
+│   ├── index.php             # Página principal del sistema
 
-│   ├── login.php             \# Página de login
+│   ├── login.php             # Página de login
 
-│   ├── dashboard.php         \# Dashboard de métricas
+│   ├── dashboard.php         # Dashboard de métricas
 
-│   ├── productos.php         \# Listado de productos
+│   ├── productos.php         # Listado de productos
 
-│   ├── ventas.php            \# Listado de ventas
+│   ├── ventas.php            # Listado de ventas
 
-│   ├── facturas.php          \# Listado de facturas
+│   ├── facturas.php          # Listado de facturas
 
-│   ├── exportar.php          \# Genera exportaciones Excel
+│   ├── exportar.php          # Genera exportaciones Excel
 
-│   ├── header.php            \# Plantilla de encabezado
+│   ├── header.php            # Plantilla de encabezado
 
-│   ├── footer.php            \# Plantilla de pie de página
-
-│
-
-├── api/                      \# Endpoints de la API REST
-
-│   ├── api.php               \# Controlador principal de API
-
-│   ├── auth.php              \# Autenticación
-
-│   ├── productos.php         \# Endpoints de productos
-
-│   ├── ventas.php            \# Endpoints de ventas
-
-│   ├── facturas.php          \# Endpoints de facturas
+│   ├── footer.php            # Plantilla de pie de página
 
 │
 
-├── config/                   \# Configuración del sistema
+├── api/                      # Endpoints de la API REST
 
-│   ├── database.php          \# Conexión a MySQL
+│   ├── api.php               # Controlador principal de API
 
-│   ├── config.php            \# Variables globales
+│   ├── auth.php              # Autenticación
 
-│
+│   ├── productos.php         # Endpoints de productos
 
-├── includes/                 \# Funciones reutilizables
+│   ├── ventas.php            # Endpoints de ventas
 
-│   ├── session.php           \# Manejo de sesiones
-
-│   ├── security.php          \# Funciones de seguridad
+│   ├── facturas.php          # Endpoints de facturas
 
 │
 
-├── vendor/                   \# Librerías gestionadas por Composer
+├── config/                   # Configuración del sistema
+
+│   ├── database.php          # Conexión a MySQL
+
+│   ├── config.php            # Variables globales
 
 │
 
-├── logs/                     \# Registros de eventos
+├── includes/                 # Funciones reutilizables
+
+│   ├── session.php           # Manejo de sesiones
+
+│   ├── security.php          # Funciones de seguridad
+
+│   ├── excel_export.php      # Funciones para generar reportes Excel
+
+│
+
+├── vendor/                   # Librerías gestionadas por Composer
+
+│
+
+├── logs/                     # Registros de eventos
 
 │   ├── access.log
 
@@ -216,13 +221,11 @@ b2b-system/
 
 │
 
-├── backups/                  \# Carpeta para backups de BD
+├── backups/                  # Carpeta para backups de BD
 
 │
 
-└── README.md                 \# Documentación del sistema
-
-## **5.1. Descripción del Funcionamiento de Cada Archivo**
+└── README.md                 # Documentación del sistema
 
 ## **5.1. Descripción del Funcionamiento de Cada Archivo**
 
@@ -235,7 +238,7 @@ b2b-system/
 * **productos.php:** Página que muestra el listado de productos disponibles.  
 * **ventas.php:** Página que muestra el historial de ventas del proveedor logueado.  
 * **facturas.php:** Página que muestra el estado de las facturas.  
-* **exportar.php:** Archivo que genera reportes en formato Excel usando una librería de Composer.
+* **exportar.php:** Archivo que genera reportes en formato Excel usando PhpSpreadsheet.
 
 ### **API (Comunicación con el ERP y Backend)**
 
@@ -251,6 +254,7 @@ b2b-system/
 * **config/config.php:** Variables de configuración globales.  
 * **includes/session.php:** Manejo de sesiones en PHP.  
 * **includes/security.php:** Validaciones de seguridad contra SQL Injection, XSS y CSRF.  
+* **includes/excel_export.php:** Funciones para generar reportes Excel con PhpSpreadsheet.
 * **vendor/** Carpeta donde Composer almacena las librerías externas.
 
 ### **Otros Archivos y Directorios**
@@ -262,19 +266,57 @@ b2b-system/
 * **backups/** Carpeta donde se almacenan backups de la base de datos.  
 * **README.md:** Documentación general del sistema.
 
-## **6\. Infraestructura y Despliegue**
+## **6. Funcionalidades de Exportación a Excel**
+
+### **6.1. Descripción del Informe B2B**
+
+El sistema debe permitir la exportación de datos a formato Excel, generando un informe B2B con las siguientes características:
+
+* **Encabezado:** Logo y nombre de la empresa "TIENDA DE MASCOTAS ANIMALS CENTER LTDA"
+* **Título del informe:** "Informe B2B"
+* **Periodo:** Fecha de generación del informe
+
+### **6.2. Contenido del Informe**
+
+El informe debe contener información detallada para cada producto del proveedor actualmente logueado, con las siguientes columnas:
+
+* **Código de Barras** (COD BARRA): Identificador único del producto
+* **Nombre del Producto**: Descripción completa del producto
+* **Sub Categoría**: Clasificación secundaria del producto
+* **Stock Un**: Unidades disponibles en inventario
+* **Ventas Un**: Unidades vendidas en el periodo seleccionado
+* **Suma**: Valor total de las ventas
+* **Valorizado**: Valor del inventario actual
+
+### **6.3. Implementación Técnica**
+
+Para la generación de informes Excel, se utilizará la librería **PhpSpreadsheet** con el siguiente proceso:
+
+1. Instalar PhpSpreadsheet vía Composer
+2. Implementar una función dedicada para la generación del informe
+3. Agregar formato profesional (bordes, colores, fuentes)
+4. Aplicar fórmulas para cálculos automáticos
+5. Implementar filtros para facilitarle al usuario la visualización de datos
+6. Generar el archivo Excel para descarga directa
+
+### **6.4. Endpoints para Exportación**
+
+Se creará un endpoint específico para manejar la exportación de datos:
+
+* `GET /exportar.php?tipo=informe&fecha_inicio=YYYY-MM-DD&fecha_fin=YYYY-MM-DD` → Genera el informe B2B en formato Excel
+
+## **7. Infraestructura y Despliegue**
 
 * **Hosting:** Servidor propio en la empresa.  
 * **Backups:** Copias de seguridad automáticas diarias.  
 * **Gestión de logs:** Registros en archivos locales en el servidor.
 
-## **7\. Mantenimiento y Soporte**
+## **8. Mantenimiento y Soporte**
 
 * **Control de versiones con Git.**  
 * **Pruebas en entorno de desarrollo antes de producción.**  
 * **Sistema de tickets y documentación para usuarios.**
 
-## **8\. Conclusión**
+## **9. Conclusión**
 
 Este documento define los lineamientos clave para el desarrollo del sistema B2B, garantizando una implementación segura, eficiente y escalable. Se recomienda seguir estas especificaciones para asegurar la calidad del software.
-
