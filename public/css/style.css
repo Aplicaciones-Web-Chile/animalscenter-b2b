@@ -1,0 +1,193 @@
+/**
+ * Estilos personalizados para el Sistema B2B de AnimalsCenter
+ */
+
+/* Ajustes generales */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+}
+
+/* Colores personalizados */
+.bg-primary {
+    background-color: #1a56db !important;
+}
+
+.btn-primary {
+    background-color: #1a56db;
+    border-color: #1a56db;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: #1342a4;
+    border-color: #1342a4;
+}
+
+/* Mejoras de navegación */
+.navbar-brand img {
+    max-height: 40px;
+}
+
+.nav-item {
+    margin-right: 5px;
+}
+
+.nav-link {
+    position: relative;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+.nav-link i {
+    margin-right: 5px;
+}
+
+/* Tarjetas y contenedores */
+.card {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+}
+
+/* Dashboard widgets */
+.stat-card {
+    border-left: 4px solid;
+    border-radius: 4px;
+}
+
+.stat-card.stat-primary {
+    border-left-color: #1a56db;
+}
+
+.stat-card.stat-success {
+    border-left-color: #0e9f6e;
+}
+
+.stat-card.stat-info {
+    border-left-color: #3f83f8;
+}
+
+.stat-card.stat-warning {
+    border-left-color: #ff5a1f;
+}
+
+.stat-card .stat-icon {
+    font-size: 2rem;
+    opacity: 0.8;
+}
+
+.stat-card .stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* Tablas */
+.table thead {
+    background-color: #f8f9fa;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(26, 86, 219, 0.05);
+}
+
+.table th {
+    font-weight: 600;
+    border-top: none;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 50rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.status-badge.badge-success {
+    background-color: #def7ec;
+    color: #0e9f6e;
+}
+
+.status-badge.badge-warning {
+    background-color: #feecdc;
+    color: #ff5a1f;
+}
+
+.status-badge.badge-danger {
+    background-color: #fde8e8;
+    color: #e02424;
+}
+
+/* Formularios */
+.form-label {
+    font-weight: 500;
+}
+
+.form-control:focus {
+    border-color: #3f83f8;
+    box-shadow: 0 0 0 0.25rem rgba(63, 131, 248, 0.25);
+}
+
+/* Paginación */
+.pagination .page-link {
+    color: #1a56db;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #1a56db;
+    border-color: #1a56db;
+}
+
+/* Pie de página */
+footer {
+    border-top: 1px solid #eaeaea;
+    color: #666;
+    font-size: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+
+/* Ayudantes de utilidad */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.font-weight-semibold {
+    font-weight: 600;
+}
+
+/* Animaciones */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

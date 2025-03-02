@@ -1,0 +1,30 @@
+services:
+  app:
+    build: .
+    platform: linux/amd64
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./storage:/var/www/html/storage
+    environment:
+      - DB_HOST=db
+      - DB_NAME=b2b_database
+      - DB_USER=root
+      - DB_PASS=secret
+    depends_on:
+      - db
+
+  db:
+    image: mysql/mysql-server:5.7
+    platform: linux/amd64
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: b2b_database
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+volumes:
+  mysql_data:
