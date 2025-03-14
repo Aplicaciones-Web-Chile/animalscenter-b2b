@@ -72,6 +72,13 @@ $pageTitle = $pageTitle ?? 'Sistema B2B';
                             <i class="fas fa-file-invoice-dollar"></i> Facturas
                         </a>
                     </li>
+                    <?php if (isAdmin()): ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="usuarios.php">
+                            <i class="fas fa-users"></i> Usuarios
+                        </a>
+                    </li>
+                    <?php endif; ?>
                 </ul>
                 
                 <div class="d-flex">
