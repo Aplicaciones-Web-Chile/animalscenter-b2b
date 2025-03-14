@@ -56,6 +56,53 @@ Los proveedores pueden acceder al sistema mediante la URL designada utilizando s
 * Autenticación segura mediante sesiones en PHP
 * Restricciones por IP para acceso a áreas sensibles
 
+## Cómo levantar el proyecto
+
+### Opción 1: Usando Docker (recomendado)
+
+1. Asegúrate de tener Docker y Docker Compose instalados en tu sistema.
+
+2. Desde la raíz del proyecto, ejecuta:
+   ```
+   docker-compose up -d
+   ```
+
+3. El sistema estará disponible en: http://localhost:8080
+
+4. Para detener los contenedores:
+   ```
+   docker-compose down
+   ```
+
+### Opción 2: Servidor local (XAMPP, MAMP, etc.)
+
+1. Configura un host virtual en tu servidor web local que apunte al directorio `public/` del proyecto.
+
+2. Asegúrate de que PHP y MySQL estén en ejecución.
+
+3. Accede al sistema a través de la URL configurada en tu host virtual.
+
+### Opción 3: Servidor PHP integrado (solo para desarrollo)
+
+1. Desde la raíz del proyecto, ejecuta:
+   ```
+   php -S localhost:8080 -t public/
+   ```
+
+2. El sistema estará disponible en: http://localhost:8080
+
+## Credenciales de acceso
+
+Para acceder al sistema puedes utilizar las siguientes credenciales de prueba:
+
+### Administrador
+- Email: admin@animalscenter.com
+- Contraseña: password
+
+### Proveedor de ejemplo
+- Email: proveedor@ejemplo.com
+- Contraseña: password
+
 ## Mantenimiento
 Para actualizar el sistema a nuevas versiones:
 ```
@@ -64,4 +111,4 @@ composer update
 ```
 
 ## Licencia
-Propiedad de AnimalsCenter. Todos los derechos reservados.
+Propiedad de AplicacionesWeb. Todos los derechos reservados.
