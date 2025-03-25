@@ -13,7 +13,7 @@ require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../includes/session.php';
 
 // Verificar estado de autenticación
-if (isAuthenticated()) {
+if (isLoggedIn()) {
     // Usuario autenticado, redirigir al dashboard
     header('Location: dashboard.php');
     exit;

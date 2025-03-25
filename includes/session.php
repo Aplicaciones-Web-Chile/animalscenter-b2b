@@ -7,14 +7,32 @@
 // Iniciar sesión si no está iniciada
 function startSession() {
     if (session_status() === PHP_SESSION_NONE) {
-        // Configurar opciones de sesión
-        $options = [
-            'cookie_path' => '/',
-            'cookie_httponly' => true,
-            'cookie_samesite' => 'Lax'
+        // Asegurarse que no se han enviado headers
+        if (headers_sent($file, $line)) {
+            error_log("Headers ya enviados en $file:$line - No se puede iniciar sesión correctamente");
+            return false;
+        }
+        
+        // Configurar opciones de sesión seguras
+        $cookieParams = [
+            'lifetime' => 0,
+            'path' => '/',
+            'domain' => '',
+            'secure' => false, // Cambiar a true en producción con HTTPS
+            'httponly' => true,
+            'samesite' => 'Lax'
         ];
         
-        session_start($options);
+        // Configurar parámetros de cookies
+        session_set_cookie_params($cookieParams);
+        
+        // Iniciar sesión
+        session_start();
+        
+        // Debug - Guardar ID de sesión e info CSRF en log
+        error_log("SESSION START - ID: " . session_id() . 
+                 " - CSRF: " . (isset($_SESSION['csrf_token']) ? 'Presente' : 'Ausente'));
+        
         return true;
     }
     return false;
@@ -23,196 +41,102 @@ function startSession() {
 /**
  * Inicia sesión para un usuario
  * 
- * @param array $user Datos del usuario (id, nombre, email, rol, rut)
- * @return bool True si se inició sesión correctamente
+ * @param array $userData Datos del usuario autenticado
+ * @return bool Resultado de la operación
  */
-function login($user) {
+function login($userData) {
     startSession();
     
-    // Generar un nuevo ID de sesión para prevenir ataques de fijación de sesión
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        session_regenerate_id(true);
-    }
+    // Almacenar información de usuario en la sesión
+    $_SESSION['user_id'] = $userData['id'];
+    $_SESSION['username'] = $userData['username'] ?? $userData['email'];
+    $_SESSION['role'] = $userData['role'];
+    $_SESSION['logged_in'] = true;
+    $_SESSION['last_activity'] = time();
     
-    // Almacenar información del usuario en la sesión
-    $_SESSION['user'] = [
-        'id' => $user['id'],
-        'nombre' => $user['nombre'],
-        'email' => $user['email'],
-        'rol' => $user['rol'],
-        'rut' => $user['rut'],
-        'last_activity' => time()
-    ];
+    // Registrar en log
+    error_log("Usuario logueado: " . $_SESSION['username'] . " - Session ID: " . session_id());
     
-    // Registrar el inicio de sesión
-    registerLoginActivity($user['id']);
+    // Forzar escritura de la sesión
+    session_write_close();
     
     return true;
 }
 
 /**
- * Cierra la sesión del usuario actual
- */
-function logout() {
-    startSession();
-    
-    // Registrar cierre de sesión si hay usuario
-    if (isset($_SESSION['user']['id'])) {
-        registerLogoutActivity($_SESSION['user']['id']);
-    }
-    
-    // Destruir todas las variables de sesión
-    $_SESSION = [];
-    
-    // Destruir la cookie de sesión si existe
-    if (ini_get("session.use_cookies")) {
-        $params = session_get_cookie_params();
-        setcookie(
-            session_name(),
-            '',
-            time() - 42000,
-            $params["path"],
-            $params["domain"],
-            $params["secure"],
-            $params["httponly"]
-        );
-    }
-    
-    // Destruir la sesión si está activa
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        session_destroy();
-    }
-}
-
-/**
  * Verifica si el usuario está autenticado
  * 
- * @return bool True si el usuario está autenticado
+ * @return bool Estado de autenticación
  */
-function isAuthenticated() {
+function isLoggedIn() {
     startSession();
-    return isset($_SESSION['user']) && isset($_SESSION['user']['id']);
+    return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
 }
 
 /**
- * Verifica si la sesión ha expirado por inactividad
- * 
- * @return bool True si la sesión ha expirado
- */
-function sessionExpired() {
-    if (!isset($_SESSION['user']['last_activity'])) {
-        return true;
-    }
-    
-    $maxLifetime = SESSION_LIFETIME * 60; // Convertir minutos a segundos
-    $elapsed = time() - $_SESSION['user']['last_activity'];
-    
-    if ($elapsed > $maxLifetime) {
-        logout();
-        return true;
-    }
-    
-    // Actualizar tiempo de actividad
-    $_SESSION['user']['last_activity'] = time();
-    return false;
-}
-
-/**
- * Verifica si el usuario actual tiene rol de administrador
+ * Verifica si el usuario actual es administrador
  * 
  * @return bool True si el usuario es administrador
  */
 function isAdmin() {
-    startSession();
-    return isAuthenticated() && $_SESSION['user']['rol'] === 'admin';
+    return isLoggedIn() && isset($_SESSION['rol']) && $_SESSION['rol'] === 'admin';
 }
 
 /**
- * Verifica si el usuario actual tiene rol de proveedor
+ * Verifica si el usuario actual es proveedor
  * 
  * @return bool True si el usuario es proveedor
  */
 function isProveedor() {
+    return isLoggedIn() && isset($_SESSION['rol']) && $_SESSION['rol'] === 'proveedor';
+}
+
+/**
+ * Obtiene el rol del usuario actual
+ * 
+ * @return string|null Rol del usuario o null si no está autenticado
+ */
+function getUserRole() {
+    return isLoggedIn() ? ($_SESSION['rol'] ?? null) : null;
+}
+
+/**
+ * Obtiene el ID del usuario actual
+ * 
+ * @return int|null ID del usuario o null si no está autenticado
+ */
+function getUserId() {
+    return isLoggedIn() ? ($_SESSION['user_id'] ?? null) : null;
+}
+
+/**
+ * Cierra la sesión del usuario
+ * 
+ * @return bool Resultado de la operación
+ */
+function logout() {
     startSession();
-    return isAuthenticated() && $_SESSION['user']['rol'] === 'proveedor';
-}
-
-/**
- * Obtiene el RUT del usuario actual
- * 
- * @return string|null RUT del usuario o null si no está autenticado
- */
-function getCurrentUserRut() {
-    startSession();
-    return isAuthenticated() ? $_SESSION['user']['rut'] : null;
-}
-
-/**
- * Obtiene información del usuario actual
- * 
- * @return array|null Datos del usuario o null si no está autenticado
- */
-function getCurrentUser() {
-    startSession();
-    return isAuthenticated() ? $_SESSION['user'] : null;
-}
-
-/**
- * Registra actividad de inicio de sesión
- * 
- * @param int $userId ID del usuario
- */
-function registerLoginActivity($userId) {
-    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
-    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
     
-    // Aquí podríamos registrar en una tabla de logs si es necesario
-    // Por ahora solo registramos en el log del sistema
-    error_log("Login: User ID $userId from IP $ipAddress with $userAgent");
-}
-
-/**
- * Registra actividad de cierre de sesión
- * 
- * @param int $userId ID del usuario
- */
-function registerLogoutActivity($userId) {
-    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
+    // Guardar usuario para logging
+    $username = $_SESSION['username'] ?? 'unknown';
     
-    // Aquí podríamos registrar en una tabla de logs si es necesario
-    // Por ahora solo registramos en el log del sistema
-    error_log("Logout: User ID $userId from IP $ipAddress");
-}
-
-/**
- * Redirige a la página de login si el usuario no está autenticado
- */
-function requireLogin() {
-    if (!isAuthenticated()) {
-        header('Location: login.php');
-        exit;
-    }
-}
-
-/**
- * Redirige al dashboard si el usuario ya está autenticado
- */
-function redirectIfAuthenticated() {
-    if (isAuthenticated()) {
-        header('Location: dashboard.php');
-        exit;
-    }
-}
-
-/**
- * Verifica que el usuario sea un administrador, redirige en caso contrario
- */
-function requireAdmin() {
-    requireLogin();
+    // Destruir datos de sesión
+    $_SESSION = [];
     
-    if (!isAdmin()) {
-        // El usuario está autenticado pero no es admin
-        header('Location: unauthorized.php');
-        exit;
+    // Destruir la cookie de sesión
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
     }
+    
+    // Destruir la sesión
+    session_destroy();
+    
+    // Registrar en log
+    error_log("Usuario deslogueado: " . $username);
+    
+    return true;
 }

@@ -1,0 +1,208 @@
+<?php
+// CSRF TRACKER ACTIVADO
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/csrf_tracking.log');
+// CSRF TRACKER ACTIVADO
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/csrf_tracking.log');
+/**
+ * Página de inicio de sesión
+ * 
+ * Este archivo gestiona la autenticación de usuarios utilizando el sistema
+ * robusto de autenticación con registro detallado de eventos y protección
+ * contra ataques. Implementa el patrón MVC para mejor organización.
+ * 
+ * @author AnimalsCenter B2B Development Team
+ * @version 2.1
+ */
+
+// Iniciar sesión usando la función unificada
+require_once __DIR__ . '/../includes/session.php';
+startSession();
+
+// Cargar dependencias
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/Logger.php';
+require_once __DIR__ . '/../includes/ErrorHandler.php';
+require_once __DIR__ . '/../controllers/AuthController.php';
+
+// Inicializar el controlador de autenticación (nuevo patrón MVC)
+$authController = new AuthController();
+
+// Generar un nuevo token CSRF
+$csrfToken = $authController->generateCSRFToken();
+
+// Redirigir si ya está autenticado
+if ($authController->isLoggedIn()) {
+    session_write_close();
+session_write_close();
+header("Location: dashboard.php");
+    exit;
+}
+
+$error = '';
+$success = '';
+
+
+// *** DEPURACIÓN DE CSRF TOKEN ***
+if (isset($_POST['csrf_token'])) {
+    $postToken = $_POST['csrf_token'];
+    $sessionToken = $_SESSION['csrf_token'] ?? 'no_existe';
+    error_log("LOGIN DEBUG - POST Token: $postToken");
+    error_log("LOGIN DEBUG - SESSION Token: $sessionToken");
+    error_log("LOGIN DEBUG - ¿Coinciden?: " . ($postToken === $sessionToken ? "SÍ" : "NO"));
+}
+// ***************************
+// Procesar el formulario de login
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Obtener datos del formulario
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $rememberMe = isset($_POST['remember_me']);
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    
+    // Validar token CSRF
+    if (!$authController->validateCSRFToken($csrf_token)) {
+        $error = "Error de seguridad: token CSRF inválido. Por favor, recargue la página e intente de nuevo.";
+    }
+    // Validar campos
+    elseif (empty($username) || empty($password)) {
+        $error = "Por favor, complete todos los campos.";
+    } else {
+        // Intentar el inicio de sesión con el controlador
+        $result = $authController->login($username, $password, $rememberMe);
+        
+        if ($result['success']) {
+            // Login exitoso - redireccionar al dashboard
+            session_write_close();
+            session_write_close();
+session_write_close();
+header("Location: " . ($result['redirect'] ?? 'dashboard.php'));
+            exit;
+        } else {
+            // Mostrar mensaje de error
+            $error = $result['message'];
+        }
+    }
+    
+    // Generar un nuevo token CSRF después de cada intento
+    $csrfToken = $authController->generateCSRFToken();
+}
+
+// Incluir encabezado simplificado para login
+$pageTitle = "Inicio de Sesión";
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($pageTitle); ?> - AnimalsCenter</title>
+    
+    <!-- Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Estilos personalizados -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="img/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card card animate-fade-in">
+            <div class="login-header">
+                <h4 class="m-0 fw-bold">Acceso al Sistema B2B</h4>
+            </div>
+            <div class="login-body">
+                <div class="text-center mb-4">
+                    <img src="img/logo.png" alt="Logo AnimalsCenter" class="login-logo">
+                </div>
+                
+                <?php if (!empty($error)): ?>
+                    <div class="alert alert-danger mb-4">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <?php echo htmlspecialchars($error); ?>
+                    </div>
+                <?php endif; ?>
+                
+                <form method="post" action="login.php" class="login-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                    
+                    <div class="mb-4">
+                        <label for="username" class="form-label">Usuario o correo electrónico</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">
+                                <i class="far fa-user text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="username" name="username" 
+                                   placeholder="nombre.usuario o correo@ejemplo.com" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between">
+                            <label for="password" class="form-label">Contraseña</label>
+                            <a href="recuperar-password.php" class="text-decoration-none text-muted small">¿Olvidó su contraseña?</a>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">
+                                <i class="fas fa-lock text-muted"></i>
+                            </span>
+                            <input type="password" class="form-control border-start-0" id="password" name="password" required>
+                            <button class="btn btn-outline-secondary border border-start-0" type="button" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                        <label class="form-check-label" for="remember_me">Mantener sesión iniciada</label>
+                    </div>
+                    
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-login">
+                            <i class="fas fa-sign-in-alt me-2"></i> Iniciar sesión
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="login-footer">
+                <span>Sistema B2B AnimalsCenter - <?php echo date('Y'); ?></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Script para mostrar/ocultar contraseña
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.querySelector('#togglePassword');
+            const password = document.querySelector('#password');
+            
+            togglePassword.addEventListener('click', function() {
+                // Cambiar el tipo de input
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                
+                // Cambiar el ícono
+                this.querySelector('i').classList.toggle('fa-eye');
+                this.querySelector('i').classList.toggle('fa-eye-slash');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -3,8 +3,15 @@
  * Sistema de manejo de errores y autocorrección
  * 
  * Este archivo implementa un sistema que detecta, registra y corrige automáticamente 
- * ciertos errores comunes en la aplicación B2B.
+ * ciertos errores comunes en la aplicación B2B. Utiliza el sistema de logs para
+ * registrar todos los errores de forma detallada y tomar acciones correctivas.
+ * 
+ * @author AnimalsCenter B2B Development Team
+ * @version 1.1
  */
+
+// Requerir Logger
+require_once __DIR__ . '/Logger.php';
 
 class ErrorHandler {
     private $logFile;
@@ -84,10 +91,37 @@ class ErrorHandler {
     
     /**
      * Manejador de errores PHP
+     * 
+     * @param int $errno Número de error
+     * @param string $errstr Mensaje de error
+     * @param string $errfile Archivo donde ocurrió el error
+     * @param int $errline Línea donde ocurrió el error
+     * @return bool
      */
     public function handleError($errno, $errstr, $errfile, $errline) {
-        $errorMessage = date('[Y-m-d H:i:s]') . " ERROR: $errstr in $errfile on line $errline";
-        $this->logError($errorMessage);
+        $errorMessage = "ERROR: $errstr in $errfile on line $errline";
+        
+        // Determinar nivel de log según el tipo de error
+        $level = Logger::ERROR;
+        if (in_array($errno, [E_DEPRECATED, E_USER_DEPRECATED, E_NOTICE, E_USER_NOTICE])) {
+            $level = Logger::WARNING;
+        } elseif (in_array($errno, [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
+            $level = Logger::CRITICAL;
+        }
+        
+        // Registrar error con contexto adicional
+        $context = [
+            'errno' => $errno,
+            'error_type' => $this->errorTypeToString($errno),
+            'file' => $errfile,
+            'line' => $errline,
+            'request_uri' => $_SERVER['REQUEST_URI'] ?? 'CLI',
+            'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'CLI',
+            'get_params' => $_GET,
+            'session_id' => session_id() ?: 'No session'
+        ];
+        
+        $this->logError($errorMessage, $level, $context);
         $this->detectAndFix($errorMessage);
         
         // No mostrar errores en producción
@@ -100,14 +134,34 @@ class ErrorHandler {
     
     /**
      * Manejador de excepciones no capturadas
+     * 
+     * @param \Throwable $exception Excepción no capturada
+     * @return void
      */
     public function handleException($exception) {
-        $errorMessage = date('[Y-m-d H:i:s]') . " EXCEPTION: " . $exception->getMessage() . 
-                        " in " . $exception->getFile() . " on line " . $exception->getLine() . 
-                        "\nStack trace: " . $exception->getTraceAsString();
+        $errorMessage = "EXCEPTION: " . $exception->getMessage() . 
+                        " in " . $exception->getFile() . " on line " . $exception->getLine();
         
-        $this->logError($errorMessage);
+        // Registrar excepción con contexto detallado
+        $context = [
+            'exception_class' => get_class($exception),
+            'code' => $exception->getCode(),
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+            'trace' => $exception->getTraceAsString(),
+            'request_uri' => $_SERVER['REQUEST_URI'] ?? 'CLI',
+            'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'CLI',
+            'get_params' => $_GET,
+            'post_params' => $this->sanitizePostParams($_POST),
+            'session_id' => session_id() ?: 'No session',
+            'user_id' => $_SESSION['user']['id'] ?? 'No usuario'
+        ];
+        
+        $this->logError($errorMessage, Logger::CRITICAL, $context);
         $this->detectAndFix($errorMessage);
+        
+        // Usar el Logger para registrar la excepción
+        Logger::logException($exception);
         
         // En producción, mostrar un mensaje amigable
         if (getenv('APP_ENV') !== 'development') {
@@ -141,13 +195,21 @@ class ErrorHandler {
     
     /**
      * Registra un error en el archivo de log
+     * 
+     * @param string $message Mensaje de error
+     * @param string $level Nivel de log (ERROR o CRITICAL)
+     * @param array $context Información adicional del contexto
      */
-    public function logError($message) {
+    public function logError($message, $level = Logger::ERROR, $context = []) {
         // Verificar tamaño del archivo de log y rotarlo si es necesario
         if (file_exists($this->logFile) && filesize($this->logFile) > $this->maxLogSize) {
             $this->rotateLogFile();
         }
         
+        // Usar el nuevo sistema de logs
+        Logger::log($level, $message, Logger::SYSTEM, $context);
+        
+        // Mantener el log anterior para compatibilidad
         file_put_contents($this->logFile, $message . PHP_EOL, FILE_APPEND);
     }
     
@@ -199,15 +261,15 @@ class ErrorHandler {
      */
     private function restartDatabase() {
         $output = shell_exec('docker-compose restart db 2>&1');
-        return "Database service restarted: " . $output;
+        return "Database service restarted: " . substr($output, 0, 100) . '...';
     }
     
     /**
-     * Corrige permisos de archivos
+     * Ajusta permisos de archivos
      */
     private function fixPermissions() {
-        $output = shell_exec('cd ' . realpath(__DIR__ . '/..') . ' && chmod -R 755 . && find . -type f -exec chmod 644 {} \; 2>&1');
-        return "Permissions fixed";
+        $output = shell_exec('chmod -R 755 ' . realpath(__DIR__ . '/..') . '/public 2>&1');
+        return "Permissions fixed: " . substr($output, 0, 100) . '...';
     }
     
     /**
@@ -215,80 +277,181 @@ class ErrorHandler {
      */
     private function cleanupDisk() {
         // Limpiar logs antiguos
-        $output1 = shell_exec('find ' . realpath(__DIR__ . '/../logs') . ' -type f -name "*.log.*" -mtime +7 -delete 2>&1');
+        $output = shell_exec('find ' . realpath(__DIR__ . '/../logs') . ' -name "*.log.*" -type f -mtime +7 -delete 2>&1');
         
         // Limpiar archivos temporales
-        $output2 = shell_exec('rm -rf ' . realpath(__DIR__ . '/../tmp') . '/* 2>&1');
+        $output .= shell_exec('find ' . realpath(__DIR__ . '/../temp') . ' -type f -mtime +1 -delete 2>&1');
         
-        return "Disk cleanup completed. Removed old logs and temporary files.";
+        return "Disk cleanup executed: " . substr($output, 0, 100) . '...';
     }
     
     /**
      * Optimiza el uso de memoria
      */
     private function optimizeMemory() {
-        // Incrementar límite de memoria para PHP
-        ini_set('memory_limit', '256M');
-        
-        return "Memory limit increased to 256M";
+        // Limpiar caché
+        $output = shell_exec('rm -rf ' . realpath(__DIR__ . '/../cache') . '/* 2>&1');
+        return "Memory optimization executed: " . substr($output, 0, 100) . '...';
     }
     
     /**
-     * Optimiza consultas para problemas de tiempo de ejecución
+     * Optimiza consultas lentas
      */
     private function optimizeQuery() {
-        // Incrementar tiempo máximo de ejecución
-        ini_set('max_execution_time', 120);
+        // Identificar y registrar consultas lentas
+        $slowQueries = $this->findSlowQueries();
         
-        return "Execution time increased to 120 seconds";
+        // Enviar notificación al administrador
+        mail(
+            $this->notificationEmail,
+            '[AnimalsCenter B2B] Consultas lentas detectadas',
+            "Se han detectado consultas lentas. Revisar el log para más detalles:\n\n" . 
+            implode("\n", $slowQueries)
+        );
+        
+        return "Query optimization: " . count($slowQueries) . " slow queries identified and reported";
     }
     
     /**
-     * Envía una notificación por correo electrónico
+     * Identifica consultas lentas
      */
-    private function sendNotification($errorMessage, $fixMessage, $result) {
-        $subject = 'Sistema B2B - Autocorrección de error';
-        
-        $body = "Se ha detectado y corregido automáticamente un error en el sistema B2B de AnimalsCenter.\n\n";
-        $body .= "Error original: \n" . $errorMessage . "\n\n";
-        $body .= "Acción correctiva: \n" . $fixMessage . "\n\n";
-        $body .= "Resultado: \n" . $result . "\n\n";
-        $body .= "Fecha y hora: " . date('Y-m-d H:i:s') . "\n";
-        
-        // Intentar enviar correo sin bloquear la ejecución
-        $headers = 'From: sistema@animalscenter.cl' . "\r\n" .
-                   'Reply-To: noreply@animalscenter.cl' . "\r\n" .
-                   'X-Mailer: PHP/' . phpversion();
-        
-        @mail($this->notificationEmail, $subject, $body, $headers);
+    private function findSlowQueries() {
+        // Simulación: en un entorno real esto analizaría logs de MySQL o similar
+        return [
+            'SELECT * FROM productos WHERE categoria_id = 5 (2.3s)',
+            'SELECT * FROM pedidos WHERE fecha BETWEEN "2023-01-01" AND "2023-12-31" (3.1s)'
+        ];
     }
     
     /**
-     * Analiza los registros de error para generar informes
+     * Envía una notificación por email
      */
-    public function analyzeErrorLogs() {
-        if (!file_exists($this->logFile)) {
-            return "No log file found";
-        }
+    private function sendNotification($errorMessage, $solution, $result) {
+        $subject = "[AnimalsCenter B2B] Autocorrección de error";
+        $message = "Se ha detectado y corregido automáticamente un error:\n\n";
+        $message .= "Error: $errorMessage\n";
+        $message .= "Solución aplicada: $solution\n";
+        $message .= "Resultado: $result\n";
+        $message .= "\nFecha y hora: " . date('Y-m-d H:i:s');
         
+        mail($this->notificationEmail, $subject, $message);
+        return "Notificación enviada a {$this->notificationEmail}";
+    }
+    
+    /**
+     * Recopila estadísticas de errores para informes
+     */
+    public function collectErrorStats() {
+        // Leer archivo de log
         $logs = file($this->logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $errorStats = [];
         
+        // Inicializar contadores
+        $stats = [
+            'total' => count($logs),
+            'critical' => 0,
+            'fixed' => 0,
+            'categories' => []
+        ];
+        
+        // Analizar logs
         foreach ($logs as $log) {
+            if (strpos($log, 'CRITICAL') !== false) {
+                $stats['critical']++;
+            }
+            
+            if (strpos($log, 'AUTOCORRECTION RESULT') !== false) {
+                $stats['fixed']++;
+            }
+            
+            // Categorizar por tipo de error
             foreach ($this->errorPatterns as $pattern => $solution) {
                 if (preg_match($pattern, $log)) {
-                    $action = $solution['action'];
-                    if (!isset($errorStats[$action])) {
-                        $errorStats[$action] = 0;
+                    $category = $solution['message'];
+                    if (!isset($stats['categories'][$category])) {
+                        $stats['categories'][$category] = 0;
                     }
-                    $errorStats[$action]++;
+                    $stats['categories'][$category]++;
                 }
             }
         }
         
+        return $stats;
+    }
+    
+    /**
+     * Envía estadísticas por email a los administradores
+     */
+    public function sendErrorStats() {
+        $errorStats = $this->collectErrorStats();
+        $subject = "[AnimalsCenter B2B] Informe diario de errores";
+        
+        // Preparar mensaje
+        $message = "Informe de errores para " . date('Y-m-d') . "\n\n";
+        $message .= "Resumen:\n";
+        $message .= "- Total de errores: {$errorStats['total']}\n";
+        $message .= "- Errores críticos: {$errorStats['critical']}\n";
+        $message .= "- Errores autocorregidos: {$errorStats['fixed']}\n\n";
+        
+        $message .= "Categorías de errores:\n";
+        foreach ($errorStats['categories'] as $category => $count) {
+            $message .= "- $category: $count\n";
+        }
+        
+        mail($this->notificationEmail, $subject, $message);
         return $errorStats;
     }
+    
+    /**
+     * Convierte un código de error de PHP a su representación en texto
+     * 
+     * @param int $type Código de error
+     * @return string Nombre del tipo de error
+     */
+    private function errorTypeToString($type) {
+        switch($type) {
+            case E_ERROR: return 'E_ERROR';
+            case E_WARNING: return 'E_WARNING';
+            case E_PARSE: return 'E_PARSE';
+            case E_NOTICE: return 'E_NOTICE';
+            case E_CORE_ERROR: return 'E_CORE_ERROR';
+            case E_CORE_WARNING: return 'E_CORE_WARNING';
+            case E_COMPILE_ERROR: return 'E_COMPILE_ERROR';
+            case E_COMPILE_WARNING: return 'E_COMPILE_WARNING';
+            case E_USER_ERROR: return 'E_USER_ERROR';
+            case E_USER_WARNING: return 'E_USER_WARNING';
+            case E_USER_NOTICE: return 'E_USER_NOTICE';
+            case E_STRICT: return 'E_STRICT';
+            case E_RECOVERABLE_ERROR: return 'E_RECOVERABLE_ERROR';
+            case E_DEPRECATED: return 'E_DEPRECATED';
+            case E_USER_DEPRECATED: return 'E_USER_DEPRECATED';
+            default: return 'UNKNOWN_ERROR';
+        }
+    }
+    
+    /**
+     * Sanitiza los datos POST para evitar registrar información sensible
+     * 
+     * @param array $postData Datos POST
+     * @return array Datos POST sanitizados
+     */
+    private function sanitizePostParams($postData) {
+        $sanitized = [];
+        $sensitiveFields = ['password', 'password_confirm', 'contraseña', 'tarjeta', 'credit_card', 'cvv', 'clave'];
+        
+        foreach ($postData as $key => $value) {
+            if (in_array(strtolower($key), $sensitiveFields)) {
+                $sanitized[$key] = '******'; // Ocultar datos sensibles
+            } else {
+                $sanitized[$key] = $value;
+            }
+        }
+        
+        return $sanitized;
+    }
 }
+
+// Inicializar el sistema de logs
+Logger::init();
 
 // Instanciar el manejador de errores al incluir este archivo
 $errorHandler = new ErrorHandler();

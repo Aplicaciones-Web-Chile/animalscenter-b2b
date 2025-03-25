@@ -31,3 +31,5 @@ Thumbs.db
 *.tmp
 *.swp
 .cache/
+config/CredencialesDePrueba.MD
+*.cfg

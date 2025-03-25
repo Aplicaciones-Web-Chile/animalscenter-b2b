@@ -4,13 +4,9 @@
  * Este archivo gestiona la conexión a la base de datos MySQL
  */
 
-// Cargar autoloader de Composer primero
-require_once __DIR__ . '/../vendor/autoload.php';
-
-// Cargar variables de entorno
-if (file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
-    $dotenv->load();
+// Asegurarse de que APP_ROOT esté definido
+if (!defined('APP_ROOT')) {
+    require_once __DIR__ . '/app.php';
 }
 
 /**
@@ -20,6 +16,7 @@ if (file_exists(__DIR__ . '/../.env')) {
  * @throws PDOException Si hay error en la conexión
  */
 function getDbConnection() {
+    // Usar las variables de entorno definidas
     $host = $_ENV['DB_HOST'] ?? 'localhost';
     $dbname = $_ENV['DB_NAME'] ?? 'b2b_database';
     $username = $_ENV['DB_USER'] ?? 'root';

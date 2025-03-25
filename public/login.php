@@ -1,75 +1,59 @@
 <?php
 /**
- * Página de inicio de sesión
+ * Página de inicio de sesión simplificada
+ * Sin validación CSRF para facilitar el proceso
  */
 
-// Iniciar sesión primero
-session_start();
-
-// Cargar dependencias
-require_once __DIR__ . '/../vendor/autoload.php';
+// Cargar configuración de la aplicación
 require_once __DIR__ . '/../config/app.php';
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../includes/session.php';
-require_once __DIR__ . '/../includes/helpers.php';
 
-// Redirigir si ya está autenticado
-redirectIfAuthenticated();
+// Incluir archivos necesarios
+require_once APP_ROOT . '/controllers/AuthController.php';
+require_once APP_ROOT . '/includes/session.php';
 
+// Iniciar sesión
+startSession();
+
+// Inicializar controlador de autenticación
+$authController = new AuthController();
+
+// Si el usuario ya está logueado, redirigir al dashboard
+if (isLoggedIn()) {
+    header('Location: dashboard.php');
+    exit;
+}
+
+// Procesar formulario enviado
 $error = '';
+$username = '';
 
-// Procesar el formulario de login
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Obtener datos del formulario
-    $email = trim($_POST['email'] ?? '');
+    // Validar credenciales
+    $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    $csrf_token = $_POST['csrf_token'] ?? '';
     
-    // Validar CSRF token
-    if (!validateCsrfToken($csrf_token)) {
-        $error = "Error de seguridad: token CSRF inválido. Por favor, recargue la página e intente de nuevo.";
-    }
-    // Validar email y contraseña
-    elseif (empty($email) || empty($password)) {
-        $error = "Por favor, complete todos los campos.";
+    if (empty($username) || empty($password)) {
+        $error = 'Por favor, complete todos los campos.';
     } else {
-        // Buscar usuario en la base de datos
-        try {
-            $user = fetchOne("SELECT * FROM usuarios WHERE email = ?", [$email]);
-            
-            if ($user && password_verify($password, $user['password_hash'])) {
-                // Login exitoso
-                login($user);
-                
-                // Redirigir según rol
-                header("Location: dashboard.php");
-                exit;
-            } else {
-                // Credenciales inválidas
-                $error = "Email o contraseña incorrectos.";
-                
-                // Registrar intento fallido de login
-                logLoginAttempt($email, false);
-            }
-        } catch (Exception $e) {
-            $error = "Error al procesar su solicitud. Por favor, intente de nuevo más tarde.";
-            error_log("Error en login: " . $e->getMessage());
+        // Intentar login
+        $result = $authController->login($username, $password);
+        
+        if ($result['success']) {
+            session_write_close(); // Importante: guardar la sesión antes de redirigir
+            header('Location: ' . ($result['redirect'] ?? 'dashboard.php'));
+            exit;
+        } else {
+            $error = $result['message'] ?? 'Credenciales inválidas.';
         }
     }
 }
-
-// Generar token CSRF
-$csrfToken = generateCsrfToken();
-
-// Incluir encabezado simplificado para login
-$pageTitle = "Inicio de Sesión";
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($pageTitle); ?> - AnimalsCenter</title>
+    <title>Inicio de Sesión - AnimalsCenter</title>
     
     <!-- Fuentes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -106,36 +90,43 @@ $pageTitle = "Inicio de Sesión";
                     </div>
                 <?php endif; ?>
                 
-                <form method="post" action="login.php" class="login-form">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                <form method="POST" action="login.php" class="needs-validation" novalidate>
                     
                     <div class="mb-4">
-                        <label for="email" class="form-label">Correo electrónico</label>
+                        <label for="username" class="form-label">Usuario o correo electrónico</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white">
-                                <i class="far fa-envelope text-muted"></i>
+                                <i class="far fa-user text-muted"></i>
                             </span>
-                            <input type="email" class="form-control border-start-0" id="email" name="email" 
-                                   placeholder="correo@ejemplo.com" required>
+                            <input type="text" class="form-control border-start-0" id="username" name="username" 
+                                   placeholder="nombre.usuario o correo@ejemplo.com" required>
                         </div>
                     </div>
                     
                     <div class="mb-4">
                         <div class="d-flex justify-content-between">
                             <label for="password" class="form-label">Contraseña</label>
-                            <a href="#" class="text-decoration-none text-muted small">¿Olvidó su contraseña?</a>
+                            <a href="recuperar-password.php" class="text-decoration-none text-muted small">¿Olvidó su contraseña?</a>
                         </div>
                         <div class="input-group">
                             <span class="input-group-text bg-white">
                                 <i class="fas fa-lock text-muted"></i>
                             </span>
                             <input type="password" class="form-control border-start-0" id="password" name="password" required>
+                            <button class="btn btn-outline-secondary border border-start-0" type="button" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
                     
-                    <div class="d-grid mt-5">
+                    <div class="mb-4 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                        <label class="form-check-label" for="remember_me">Mantener sesión iniciada</label>
+                    </div>
+                    
+                    <div class="d-grid mt-4">
                         <button type="submit" class="btn btn-primary btn-login">
-                            Iniciar sesión
+                            <i class="fas fa-sign-in-alt me-2"></i> Iniciar sesión
                         </button>
                     </div>
                 </form>
@@ -151,7 +142,18 @@ $pageTitle = "Inicio de Sesión";
     <script>
         // Script para mostrar/ocultar contraseña
         document.addEventListener('DOMContentLoaded', function() {
-            // Agregar funcionalidad si se necesita (mostrar/ocultar contraseña, etc.)
+            const togglePassword = document.querySelector('#togglePassword');
+            const password = document.querySelector('#password');
+            
+            togglePassword.addEventListener('click', function() {
+                // Cambiar el tipo de input
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                
+                // Cambiar el ícono
+                this.querySelector('i').classList.toggle('fa-eye');
+                this.querySelector('i').classList.toggle('fa-eye-slash');
+            });
         });
     </script>
 </body>

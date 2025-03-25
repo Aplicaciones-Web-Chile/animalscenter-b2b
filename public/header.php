@@ -3,11 +3,11 @@
  * Plantilla de encabezado para todas las páginas
  */
 
-// Iniciar sesión si no está iniciada
-session_start();
-
 // Incluir archivos necesarios
 require_once __DIR__ . '/../includes/session.php';
+
+// Iniciar sesión si no está iniciada
+startSession();
 
 // Si no está definido el título, asignar uno por defecto
 $pageTitle = $pageTitle ?? 'Sistema B2B';
@@ -37,7 +37,7 @@ $pageTitle = $pageTitle ?? 'Sistema B2B';
 </head>
 <body class="bg-light">
 
-<?php if (isAuthenticated()): ?>
+<?php if (isLoggedIn()): ?>
     <!-- Barra de navegación -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">

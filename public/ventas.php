@@ -1,7 +1,10 @@
 <?php
 /**
  * Página de gestión de ventas
- * Permite ver, filtrar y exportar ventas del proveedor logueado
+ * Maneja la lógica de visualización de ventas utilizando el patrón MVC
+ * 
+ * @author AnimalsCenter B2B Development Team
+ * @version 2.0
  */
 
 // Iniciar sesión
@@ -9,11 +12,18 @@ session_start();
 
 // Incluir archivos necesarios
 require_once __DIR__ . '/../includes/session.php';
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../controllers/VentaController.php';
+require_once __DIR__ . '/../controllers/AuthController.php';
+
+// Inicializar controladores
+$authController = new AuthController();
+$ventaController = new VentaController();
 
 // Verificar autenticación
-requireLogin();
+if (!$authController->isLoggedIn()) {
+    header('Location: login.php');
+    exit;
+}
 
 // Título de la página
 $pageTitle = 'Gestión de Ventas';
@@ -21,78 +31,37 @@ $pageTitle = 'Gestión de Ventas';
 // Incluir el encabezado
 include 'header.php';
 
-// Inicializar variables para filtros
+// Obtener parámetros de filtros y paginación
 $fechaInicio = $_GET['fecha_inicio'] ?? date('Y-m-d', strtotime('-30 days'));
 $fechaFin = $_GET['fecha_fin'] ?? date('Y-m-d');
 $productoId = $_GET['producto_id'] ?? '';
 $ordenamiento = $_GET['orden'] ?? 'fecha';
 $direccion = $_GET['dir'] ?? 'desc';
-
-// Inicializar variables para paginación
 $pagina = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
 $porPagina = 10;
 $offset = ($pagina - 1) * $porPagina;
 
-// Construir condiciones de filtrado
-$condiciones = ["v.fecha BETWEEN ? AND ?"];
-$params = [$fechaInicio . " 00:00:00", $fechaFin . " 23:59:59"];
+// Parámetros para el controlador
+$params = [
+    'offset' => $offset,
+    'limite' => $porPagina,
+    'proveedorRut' => $_SESSION['user']['rol'] === 'proveedor' ? $_SESSION['user']['rut'] : null
+];
 
-// Filtro por producto específico
-if (!empty($productoId)) {
-    $condiciones[] = "v.producto_id = ?";
-    $params[] = $productoId;
+// Obtener datos de ventas
+$ventasData = $ventaController->getVentas($params);
+
+// Si ocurrió un error al obtener las ventas
+if (!$ventasData['success']) {
+    $_SESSION['error_message'] = $ventasData['message'] ?? 'Error al cargar las ventas';
+    header('Location: error.php');
+    exit;
 }
 
-// Filtrar por proveedor si es un usuario proveedor
-if ($_SESSION['user']['rol'] === 'proveedor') {
-    $condiciones[] = "v.proveedor_rut = ?";
-    $params[] = $_SESSION['user']['rut'];
-}
-
-// Crear string de WHERE con condiciones
-$where = "";
-if (!empty($condiciones)) {
-    $where = "WHERE " . implode(" AND ", $condiciones);
-}
-
-// Ordenamiento
-$ordenSQL = "ORDER BY v.$ordenamiento $direccion";
-
-// Obtener lista de productos para el filtro
-$sqlProductos = "SELECT id, nombre FROM productos";
-if ($_SESSION['user']['rol'] === 'proveedor') {
-    $sqlProductos .= " WHERE proveedor_rut = ?";
-    $paramsProductos = [$_SESSION['user']['rut']];
-} else {
-    $paramsProductos = [];
-}
-$productos = fetchAll($sqlProductos, $paramsProductos);
-
-// Contar total de ventas
-$sqlTotal = "SELECT COUNT(*) as total FROM ventas v $where";
-$resultado = fetchOne($sqlTotal, $params);
-$totalVentas = $resultado ? $resultado['total'] : 0;
+// Extraer datos para la vista
+$ventas = $ventasData['data']['ventas'];
+$totalVentas = $ventasData['data']['total'];
 $totalPaginas = ceil($totalVentas / $porPagina);
-
-// Obtener ventas con paginación
-$sql = "SELECT v.*, p.nombre as producto, p.sku, u.nombre as proveedor
-        FROM ventas v
-        JOIN productos p ON v.producto_id = p.id
-        LEFT JOIN usuarios u ON v.proveedor_rut = u.rut
-        $where
-        $ordenSQL
-        LIMIT $offset, $porPagina";
-$ventas = fetchAll($sql, $params);
-
-// Calcular totales para el resumen
-$sqlResumen = "SELECT 
-                SUM(v.cantidad) as total_unidades,
-                COUNT(v.id) as total_ventas
-               FROM ventas v
-               $where";
-$resumen = fetchOne($sqlResumen, $params);
-$totalUnidades = $resumen ? $resumen['total_unidades'] : 0;
-$totalVentasResumen = $resumen ? $resumen['total_ventas'] : 0;
 
 ?>
 
@@ -114,7 +83,7 @@ $totalVentasResumen = $resumen ? $resumen['total_ventas'] : 0;
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total de Ventas</h5>
-                    <p class="card-text display-6"><?php echo number_format($totalVentasResumen, 0, ',', '.'); ?></p>
+                    <p class="card-text display-6"><?php echo number_format($totalVentas, 0, ',', '.'); ?></p>
                 </div>
             </div>
         </div>
@@ -122,7 +91,7 @@ $totalVentasResumen = $resumen ? $resumen['total_ventas'] : 0;
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Unidades Vendidas</h5>
-                    <p class="card-text display-6"><?php echo number_format($totalUnidades, 0, ',', '.'); ?></p>
+                    <p class="card-text display-6"><?php echo number_format($ventasData['data']['total_unidades'], 0, ',', '.'); ?></p>
                 </div>
             </div>
         </div>
@@ -156,7 +125,7 @@ $totalVentasResumen = $resumen ? $resumen['total_ventas'] : 0;
                             <label for="producto_id" class="form-label">Producto</label>
                             <select class="form-select" id="producto_id" name="producto_id">
                                 <option value="">Todos los productos</option>
-                                <?php foreach ($productos as $producto): ?>
+                                <?php foreach ($ventasData['data']['productos'] as $producto): ?>
                                 <option value="<?php echo $producto['id']; ?>" <?php echo $productoId == $producto['id'] ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($producto['nombre']); ?>
                                 </option>

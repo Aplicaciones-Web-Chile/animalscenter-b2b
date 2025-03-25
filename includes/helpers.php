@@ -94,18 +94,23 @@ function generateCsrfToken() {
  * Verifica si un token CSRF es válido
  * 
  * @param string $token Token a verificar
+ * @param bool $regenerate Si es true, regenera el token después de validarlo
  * @return bool True si el token es válido
  */
-function validateCsrfToken($token) {
+function validateCsrfToken($token, $regenerate = false) {
     startSession();
     if (!isset($_SESSION['csrf_token'])) {
+        // Si no hay token, creamos uno nuevo
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         return false;
     }
     
     $valid = hash_equals($_SESSION['csrf_token'], $token);
     
-    // Regenerar token después de su uso
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    // Regenerar token después de su uso solo si se solicita
+    if ($regenerate && $valid) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
     
     return $valid;
 }

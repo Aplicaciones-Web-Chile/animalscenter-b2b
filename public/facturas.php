@@ -1,7 +1,10 @@
 <?php
 /**
  * Página de gestión de facturas
- * Permite ver, filtrar y exportar facturas del proveedor logueado
+ * Maneja la lógica de visualización de facturas utilizando el patrón MVC
+ * 
+ * @autor AnimalsCenter B2B Development Team
+ * @version 2.0
  */
 
 // Iniciar sesión
@@ -9,11 +12,18 @@ session_start();
 
 // Incluir archivos necesarios
 require_once __DIR__ . '/../includes/session.php';
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../controllers/FacturaController.php';
+require_once __DIR__ . '/../controllers/AuthController.php';
+
+// Inicializar controladores
+$authController = new AuthController();
+$facturaController = new FacturaController();
 
 // Verificar autenticación
-requireLogin();
+if (!$authController->isLoggedIn()) {
+    header('Location: login.php');
+    exit;
+}
 
 // Título de la página
 $pageTitle = 'Gestión de Facturas';
@@ -21,73 +31,38 @@ $pageTitle = 'Gestión de Facturas';
 // Incluir el encabezado
 include 'header.php';
 
-// Inicializar variables para filtros
+// Obtener parámetros de filtros y paginación
 $fechaInicio = $_GET['fecha_inicio'] ?? date('Y-m-d', strtotime('-30 days'));
 $fechaFin = $_GET['fecha_fin'] ?? date('Y-m-d');
 $estado = $_GET['estado'] ?? '';
 $ordenamiento = $_GET['orden'] ?? 'fecha';
 $direccion = $_GET['dir'] ?? 'desc';
-
-// Inicializar variables para paginación
 $pagina = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
 $porPagina = 10;
 $offset = ($pagina - 1) * $porPagina;
 
-// Construir condiciones de filtrado
-$condiciones = ["f.fecha BETWEEN ? AND ?"];
-$params = [$fechaInicio . " 00:00:00", $fechaFin . " 23:59:59"];
+// Parámetros para el controlador
+$params = [
+    'offset' => $offset,
+    'limite' => $porPagina,
+    'proveedorRut' => $_SESSION['user']['rol'] === 'proveedor' ? $_SESSION['user']['rut'] : null,
+    'estado' => $estado
+];
 
-// Filtrar por estado específico
-if (!empty($estado)) {
-    $condiciones[] = "f.estado = ?";
-    $params[] = $estado;
+// Obtener datos de facturas
+$facturasData = $facturaController->getFacturas($params);
+
+// Si ocurrió un error al obtener las facturas
+if (!$facturasData['success']) {
+    $_SESSION['error_message'] = $facturasData['message'] ?? 'Error al cargar las facturas';
+    header('Location: error.php');
+    exit;
 }
 
-// Filtrar por proveedor si es un usuario proveedor
-if ($_SESSION['user']['rol'] === 'proveedor') {
-    $condiciones[] = "f.proveedor_rut = ?";
-    $params[] = $_SESSION['user']['rut'];
-}
-
-// Crear string de WHERE con condiciones
-$where = "";
-if (!empty($condiciones)) {
-    $where = "WHERE " . implode(" AND ", $condiciones);
-}
-
-// Ordenamiento
-$ordenSQL = "ORDER BY f.$ordenamiento $direccion";
-
-// Contar total de facturas
-$sqlTotal = "SELECT COUNT(*) as total FROM facturas f $where";
-$resultado = fetchOne($sqlTotal, $params);
-$totalFacturas = $resultado ? $resultado['total'] : 0;
+// Extraer datos para la vista
+$facturas = $facturasData['data']['facturas'];
+$totalFacturas = $facturasData['data']['total'];
 $totalPaginas = ceil($totalFacturas / $porPagina);
-
-// Obtener facturas con paginación
-$sql = "SELECT f.*, v.producto_id, p.nombre as producto, p.sku, u.nombre as proveedor
-        FROM facturas f
-        JOIN ventas v ON f.venta_id = v.id
-        JOIN productos p ON v.producto_id = p.id
-        LEFT JOIN usuarios u ON f.proveedor_rut = u.rut
-        $where
-        $ordenSQL
-        LIMIT $offset, $porPagina";
-$facturas = fetchAll($sql, $params);
-
-// Calcular monto total para las facturas filtradas
-$sqlMontoTotal = "SELECT SUM(monto) as total FROM facturas f $where";
-$resultadoMonto = fetchOne($sqlMontoTotal, $params);
-$montoTotal = $resultadoMonto ? $resultadoMonto['total'] : 0;
-
-// Contador por estados
-$sqlEstados = "SELECT 
-                SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) as pendientes,
-                SUM(CASE WHEN estado = 'pagada' THEN 1 ELSE 0 END) as pagadas,
-                SUM(CASE WHEN estado = 'vencida' THEN 1 ELSE 0 END) as vencidas
-               FROM facturas f 
-               $where";
-$contadorEstados = fetchOne($sqlEstados, $params);
 
 ?>
 

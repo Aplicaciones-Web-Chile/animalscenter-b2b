@@ -139,132 +139,236 @@ CREATE TABLE facturas (
 * `GET /api/facturas` → Lista facturas asociadas al usuario  
 * `GET /api/facturas/{id}` → Obtiene detalles de una factura
 
-## **5. Estructura de Archivos**
+## **5. Estructura de Archivos (MVC)**
 
 b2b-system/
 
-├── public/                   # Archivos públicos (CSS, JS, imágenes, etc.)
-
-│   ├── css/
-
+├── public/                   # Punto de entrada de la aplicación (Document Root)
+│   ├── index.php             # Front Controller - Único punto de entrada
+│   ├── css/                  # Archivos CSS
 │   │   ├── bootstrap.min.css
-
 │   │   ├── tailwind.min.css
-
-│   ├── js/
-
+│   │   └── style.css         # Estilos personalizados
+│   ├── js/                   # Archivos JavaScript
 │   │   ├── app.js            # Funciones JS generales
-
 │   │   ├── ajax.js           # Manejo de peticiones AJAX
-
-│   ├── index.php             # Página principal del sistema
-
-│   ├── login.php             # Página de login
-
-│   ├── dashboard.php         # Dashboard de métricas
-
-│   ├── productos.php         # Listado de productos
-
-│   ├── ventas.php            # Listado de ventas
-
-│   ├── facturas.php          # Listado de facturas
-
-│   ├── exportar.php          # Genera exportaciones Excel
-
-│   ├── header.php            # Plantilla de encabezado
-
-│   ├── footer.php            # Plantilla de pie de página
-
+│   │   └── forms.js          # Validación de formularios
+│   ├── img/                  # Imágenes
+│   └── .htaccess             # Configuración para redireccionar todo a index.php
 │
-
-├── api/                      # Endpoints de la API REST
-
-│   ├── api.php               # Controlador principal de API
-
-│   ├── auth.php              # Autenticación
-
-│   ├── productos.php         # Endpoints de productos
-
-│   ├── ventas.php            # Endpoints de ventas
-
-│   ├── facturas.php          # Endpoints de facturas
-
+├── app/                      # Código principal de la aplicación
+│   ├── Controllers/          # Controladores MVC
+│   │   ├── AuthController.php
+│   │   ├── DashboardController.php
+│   │   ├── FacturaController.php
+│   │   ├── PasswordController.php
+│   │   ├── ProductoController.php
+│   │   ├── TransactionController.php
+│   │   ├── VentaController.php
+│   │   └── Controller.php    # Clase base abstracta para controladores
+│   │
+│   ├── Models/               # Modelos MVC
+│   │   ├── DashboardModel.php
+│   │   ├── FacturaModel.php
+│   │   ├── ProductoModel.php
+│   │   ├── TransactionModel.php
+│   │   ├── UserModel.php
+│   │   ├── VentaModel.php
+│   │   └── Model.php         # Clase base abstracta para modelos
+│   │
+│   ├── Views/                # Vistas MVC (Plantillas de interfaz)
+│   │   ├── auth/
+│   │   │   ├── login.php
+│   │   │   ├── recuperar-password.php
+│   │   │   └── restablecer-password.php
+│   │   ├── dashboard/
+│   │   │   └── index.php
+│   │   ├── facturas/
+│   │   │   ├── index.php
+│   │   │   └── detalle.php
+│   │   ├── productos/
+│   │   │   ├── index.php
+│   │   │   └── detalle.php
+│   │   ├── ventas/
+│   │   │   ├── index.php
+│   │   │   └── detalle.php
+│   │   ├── layout/
+│   │   │   ├── header.php
+│   │   │   ├── footer.php
+│   │   │   ├── sidebar.php
+│   │   │   └── master.php    # Plantilla principal
+│   │   ├── export/
+│   │   │   ├── excel.php
+│   │   │   └── pdf.php
+│   │   └── error/
+│   │       ├── 404.php
+│   │       └── 500.php
+│   │
+│   ├── Services/             # Servicios y lógica de negocio compleja
+│   │   ├── AuthService.php   # Servicio de autenticación
+│   │   ├── ExportService.php # Servicio de exportación Excel/PDF
+│   │   ├── ApiService.php    # Cliente para comunicación con APIs externas
+│   │   └── ValidationService.php # Validación de datos
+│   │
+│   ├── Core/                 # Componentes del núcleo de la aplicación
+│   │   ├── Router.php        # Sistema de rutas
+│   │   ├── Request.php       # Abstracción de peticiones HTTP
+│   │   ├── Response.php      # Abstracción de respuestas HTTP
+│   │   ├── Session.php       # Gestión de sesiones
+│   │   ├── Database.php      # Conexión a base de datos
+│   │   └── App.php           # Clase principal de la aplicación
+│   │
+│   └── Helpers/              # Funciones auxiliares
+│       ├── AuthHelper.php    # Funciones de autenticación
+│       ├── SecurityHelper.php # Funciones de seguridad
+│       ├── ExcelHelper.php   # Generación de archivos Excel
+│       └── ValidationHelper.php # Validación de datos
 │
-
+├── api/                      # API REST del sistema
+│   ├── index.php             # Front Controller para la API
+│   ├── endpoints/
+│   │   ├── AuthEndpoint.php
+│   │   ├── ProductosEndpoint.php
+│   │   ├── VentasEndpoint.php
+│   │   └── FacturasEndpoint.php
+│   └── .htaccess             # Configuración para la API
+│
 ├── config/                   # Configuración del sistema
-
-│   ├── database.php          # Conexión a MySQL
-
-│   ├── config.php            # Variables globales
-
+│   ├── app.php               # Configuración general
+│   ├── database.php          # Configuración de base de datos
+│   ├── routes.php            # Definición de rutas
+│   └── middleware.php        # Configuración de middleware
 │
-
-├── includes/                 # Funciones reutilizables
-
-│   ├── session.php           # Manejo de sesiones
-
-│   ├── security.php          # Funciones de seguridad
-
-│   ├── excel_export.php      # Funciones para generar reportes Excel
-
+├── database/                 # Archivos relacionados con la base de datos
+│   ├── migrations/           # Migraciones de base de datos
+│   └── seeds/                # Datos de prueba
 │
-
+├── storage/                  # Almacenamiento de archivos
+│   ├── logs/                 # Registros de eventos
+│   │   ├── access.log
+│   │   └── error.log
+│   ├── cache/                # Archivos de caché
+│   ├── uploads/              # Archivos subidos por usuarios
+│   └── exports/              # Archivos exportados temporales
+│
+├── tests/                    # Pruebas automatizadas
+│   ├── Unit/                 # Pruebas unitarias
+│   └── Integration/          # Pruebas de integración
+│
 ├── vendor/                   # Librerías gestionadas por Composer
-
 │
-
-├── logs/                     # Registros de eventos
-
-│   ├── access.log
-
-│   ├── error.log
-
-│
-
-├── backups/                  # Carpeta para backups de BD
-
-│
-
-└── README.md                 # Documentación del sistema
+├── .env                      # Variables de entorno
+├── .env.example              # Ejemplo de variables de entorno
+├── composer.json             # Dependencias de Composer
+├── composer.lock             # Versiones bloqueadas de dependencias
+├── README.md                 # Documentación
+├── phpunit.xml               # Configuración de pruebas
+└── .gitignore                # Archivos ignorados por Git
 
 ## **5.1. Descripción del Funcionamiento de Cada Archivo**
 
-### **Frontend (Interfaz de Usuario)**
+### **Estructura MVC**
 
-* **header.php:** Contiene la estructura del encabezado, incluyendo el menú de navegación y enlaces a los archivos CSS y JS.  
-* **footer.php:** Contiene el pie de página, con información de la empresa y scripts adicionales.  
-* **index.php:** Página principal del sistema, muestra un resumen general con accesos directos a secciones clave.  
-* **dashboard.php:** Página con métricas y gráficos del sistema.  
-* **productos.php:** Página que muestra el listado de productos disponibles.  
-* **ventas.php:** Página que muestra el historial de ventas del proveedor logueado.  
-* **facturas.php:** Página que muestra el estado de las facturas.  
-* **exportar.php:** Archivo que genera reportes en formato Excel usando PhpSpreadsheet.
+#### **Capa de Presentación (Vista)**
 
-### **API (Comunicación con el ERP y Backend)**
+* **app/Views/**: Contiene todas las plantillas organizadas por secciones.
+  * **app/Views/layout/master.php:** Plantilla principal que estructura todas las páginas.
+  * **app/Views/layout/header.php:** Encabezado con menú de navegación.
+  * **app/Views/layout/footer.php:** Pie de página con información corporativa.
+  * **app/Views/layout/sidebar.php:** Barra lateral con menú de navegación secundario.
+  * **app/Views/auth/**: Plantillas para autenticación (login, recuperación de contraseña).
+  * **app/Views/dashboard/**: Plantillas para el panel de control y visualización de métricas.
+  * **app/Views/productos/**: Plantillas para gestión de productos.
+  * **app/Views/ventas/**: Plantillas para gestión y visualización de ventas.
+  * **app/Views/facturas/**: Plantillas para visualización y gestión de facturas.
+  * **app/Views/export/**: Plantillas para exportación de datos en diferentes formatos.
+  * **app/Views/error/**: Plantillas para páginas de error (404, 500, etc.).
 
-* **api.php:** Punto de entrada principal para la API REST.  
-* **auth.php:** Manejo de autenticación de usuarios (login, logout y validación de sesión).  
-* **productos.php:** Endpoint que maneja la consulta de productos desde el ERP.  
-* **ventas.php:** Endpoint que maneja la consulta de ventas.  
-* **facturas.php:** Endpoint que maneja la consulta de facturas.
+#### **Capa de Control (Controlador)**
 
-### **Backend (Lógica de Negocio y Configuración)**
+* **app/Controllers/Controller.php:** Clase base abstracta que define la estructura para todos los controladores.
+* **app/Controllers/AuthController.php:** Gestiona la autenticación de usuarios y seguridad.
+* **app/Controllers/DashboardController.php:** Administra la visualización de métricas del panel principal.
+* **app/Controllers/ProductoController.php:** Controla la gestión de productos.
+* **app/Controllers/VentaController.php:** Administra las ventas y su visualización.
+* **app/Controllers/FacturaController.php:** Controla la gestión de facturas.
+* **app/Controllers/TransactionController.php:** Administra las transacciones financieras.
+* **app/Controllers/PasswordController.php:** Gestiona la recuperación y cambio de contraseñas.
 
-* **config/database.php:** Archivo de conexión a la base de datos MySQL.  
-* **config/config.php:** Variables de configuración globales.  
-* **includes/session.php:** Manejo de sesiones en PHP.  
-* **includes/security.php:** Validaciones de seguridad contra SQL Injection, XSS y CSRF.  
-* **includes/excel_export.php:** Funciones para generar reportes Excel con PhpSpreadsheet.
-* **vendor/** Carpeta donde Composer almacena las librerías externas.
+#### **Capa de Modelo (Datos)**
 
-### **Otros Archivos y Directorios**
+* **app/Models/Model.php:** Clase base abstracta que define la estructura para todos los modelos.
+* **app/Models/UserModel.php:** Gestiona operaciones relacionadas con usuarios en la base de datos.
+* **app/Models/ProductoModel.php:** Administra operaciones de productos en la base de datos.
+* **app/Models/VentaModel.php:** Gestiona operaciones relacionadas con ventas.
+* **app/Models/FacturaModel.php:** Administra operaciones relacionadas con facturas.
+* **app/Models/TransactionModel.php:** Gestiona operaciones relacionadas con transacciones financieras.
+* **app/Models/DashboardModel.php:** Maneja consultas para métricas del panel de control.
 
-* **public/css/** Contiene los archivos CSS de Bootstrap y Tailwind CSS.  
-* **public/js/app.js:** Contiene funciones generales de la interfaz de usuario.  
-* **public/js/ajax.js:** Contiene las peticiones AJAX para mejorar la interactividad.  
-* **logs/** Carpeta donde se almacenan logs de errores y accesos.  
-* **backups/** Carpeta donde se almacenan backups de la base de datos.  
-* **README.md:** Documentación general del sistema.
+### **Capas de Servicio**
+
+* **app/Services/**: Contiene servicios que implementan lógica de negocio compleja.
+  * **app/Services/AuthService.php:** Implementa la lógica de autenticación y autorización.
+  * **app/Services/ExportService.php:** Gestiona la generación de exportaciones en diferentes formatos.
+  * **app/Services/ApiService.php:** Proporciona funcionalidad para comunicarse con APIs externas.
+  * **app/Services/ValidationService.php:** Implementa validación avanzada de datos de formularios.
+
+### **Núcleo de la Aplicación**
+
+* **app/Core/**: Componentes críticos del sistema MVC.
+  * **app/Core/App.php:** Clase principal que inicializa y coordina toda la aplicación.
+  * **app/Core/Router.php:** Sistema de enrutamiento que mapea URLs a controladores y acciones.
+  * **app/Core/Request.php:** Abstracción de peticiones HTTP entrantes.
+  * **app/Core/Response.php:** Abstracción de respuestas HTTP salientes.
+  * **app/Core/Session.php:** Gestión de sesiones de usuario.
+  * **app/Core/Database.php:** Gestión de conexiones a base de datos.
+
+### **API REST**
+
+* **api/index.php:** Punto de entrada único para todas las solicitudes a la API.
+* **api/endpoints/**: Contiene los controladores específicos para la API.
+  * **api/endpoints/AuthEndpoint.php:** Gestiona autenticación API mediante tokens.
+  * **api/endpoints/ProductosEndpoint.php:** Maneja operaciones de productos vía API.
+  * **api/endpoints/VentasEndpoint.php:** Gestiona operaciones relacionadas con ventas vía API.
+  * **api/endpoints/FacturasEndpoint.php:** Administra operaciones de facturas vía API.
+
+### **Configuración**
+
+* **config/app.php:** Configuración general de la aplicación.
+* **config/database.php:** Configuración de conexión a la base de datos.
+* **config/routes.php:** Definición de rutas URL de la aplicación.
+* **config/middleware.php:** Configuración de middleware para procesamiento de peticiones.
+* **.env:** Variables de entorno y configuración sensible (no versionada).
+* **.env.example:** Plantilla de configuración de entorno para desarrollo.
+
+### **Archivos Públicos**
+
+* **public/index.php:** Único punto de entrada a la aplicación web (Front Controller).
+* **public/css/**: Archivos CSS para estilizar la interfaz.
+* **public/js/**: Archivos JavaScript para funcionalidad del lado del cliente.
+* **public/img/**: Imágenes y recursos gráficos.
+* **public/.htaccess:** Configuración para redirigir todas las peticiones a index.php.
+
+### **Almacenamiento**
+
+* **storage/logs/**: Almacena registros de eventos y errores.
+* **storage/cache/**: Almacena archivos de caché para mejorar el rendimiento.
+* **storage/uploads/**: Almacena archivos subidos por usuarios.
+* **storage/exports/**: Almacena archivos generados para exportación.
+
+### **Pruebas**
+
+* **tests/Unit/**: Pruebas unitarias para componentes individuales.
+* **tests/Integration/**: Pruebas de integración para verificar la interacción entre componentes.
+* **phpunit.xml:** Configuración para el framework de pruebas PHPUnit.
+
+### **Otros**
+
+* **database/migrations/**: Scripts para la creación y modificación de la estructura de la base de datos.
+* **database/seeds/**: Scripts para poblar la base de datos con datos iniciales o de prueba.
+* **vendor/**: Librerías de terceros gestionadas por Composer.
+* **composer.json:** Configuración de dependencias del proyecto.
+* **README.md:** Documentación general del sistema y guía de instalación.
 
 ## **6. Funcionalidades de Exportación a Excel**
 

@@ -1,0 +1,276 @@
+<?php
+/**
+ * Controlador de Autenticación
+ * 
+ * Este controlador maneja todas las acciones relacionadas con la autenticación
+ * y gestión de usuarios del sistema.
+ * 
+ * @author AnimalsCenter B2B Development Team
+ * @version 1.0
+ */
+
+require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../includes/Logger.php';
+
+class AuthController {
+    private $userModel;
+    
+    /**
+     * Constructor del controlador
+     */
+    public function __construct() {
+        $this->userModel = new UserModel();
+    }
+    
+    /**
+     * Procesa el intento de inicio de sesión
+     * 
+     * @param string $username Nombre de usuario o email
+     * @param string $password Contraseña
+     * @param bool $rememberMe Mantener sesión activa
+     * @return array Resultado de la operación y mensaje
+     */
+    public function login($username, $password, $rememberMe = false) {
+        try {
+            // Validaciones básicas
+            if (empty($username) || empty($password)) {
+                return [
+                    'success' => false, 
+                    'message' => 'Debe proporcionar usuario y contraseña'
+                ];
+            }
+            
+            // Buscar usuario
+            $user = $this->userModel->findByUsernameOrEmail($username);
+            
+            // Verificar si el usuario existe
+            if (!$user) {
+                Logger::warning("Intento de acceso con usuario inexistente", 
+                    Logger::AUTH, ['username' => $username]);
+                
+                return [
+                    'success' => false, 
+                    'message' => 'Credenciales inválidas'
+                ];
+            }
+            
+            // Verificar el estado de la cuenta
+            if ($user['status'] === 'blocked') {
+                Logger::warning("Intento de acceso a cuenta bloqueada", 
+                    Logger::AUTH, ['user_id' => $user['id']]);
+                
+                return [
+                    'success' => false, 
+                    'message' => 'Su cuenta está bloqueada. Contacte a soporte.'
+                ];
+            }
+            
+            // Verificar contraseña
+            if (!password_verify($password, $user['password_hash'])) {
+                // Incrementar contador de intentos fallidos
+                $failedAttempts = $user['failed_attempts'] + 1;
+                $this->userModel->updateFailedAttempts($user['id'], $failedAttempts);
+                
+                // Bloquear cuenta si se superan los intentos
+                if ($failedAttempts >= 5) {
+                    // Lógica para bloquear cuenta
+                    Logger::critical("Cuenta bloqueada por múltiples intentos fallidos", 
+                        Logger::AUTH, ['user_id' => $user['id']]);
+                    
+                    return [
+                        'success' => false, 
+                        'message' => 'Cuenta bloqueada por seguridad. Contacte a soporte.'
+                    ];
+                }
+                
+                Logger::warning("Intento de acceso con contraseña inválida", 
+                    Logger::AUTH, [
+                        'user_id' => $user['id'], 
+                        'attempt' => $failedAttempts
+                    ]);
+                
+                return [
+                    'success' => false, 
+                    'message' => 'Credenciales inválidas'
+                ];
+            }
+            
+            // Login exitoso, resetear intentos fallidos
+            $this->userModel->resetFailedAttempts($user['id']);
+            
+            // Crear sesión
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['user_role'] = $user['role'];
+            $_SESSION['logged_in'] = true;
+            $_SESSION['last_activity'] = time();
+            
+            // Manejar "recordarme"
+            if ($rememberMe) {
+                $this->handleRememberMe($user['id']);
+            }
+            
+            Logger::info("Inicio de sesión exitoso", 
+                Logger::AUTH, ['user_id' => $user['id']]);
+            
+            return [
+                'success' => true, 
+                'message' => 'Bienvenido al sistema, ' . $user['nombre'],
+                'redirect' => 'dashboard.php'
+            ];
+        } catch (Exception $e) {
+            Logger::error("Error en proceso de login: " . $e->getMessage(), 
+                Logger::SYSTEM);
+            
+            return [
+                'success' => false, 
+                'message' => 'Error del sistema. Inténtelo nuevamente.'
+            ];
+        }
+    }
+    
+    /**
+     * Genera y almacena token CSRF
+     * 
+     * @return string Token generado
+     */
+    public function generateCSRFToken() {
+        // Asegurar que la sesión está iniciada
+        require_once __DIR__ . '/../includes/session.php';
+        startSession();
+        
+        $token = bin2hex(random_bytes(32));
+        $_SESSION['csrf_token'] = $token;
+        
+        // Registrar token para depuración
+        Logger::debug("Token CSRF generado", Logger::SECURITY, [
+            'token_hash' => hash('sha256', $token),
+            'session_id' => session_id()
+        ]);
+        
+        return $token;
+    }
+    
+    /**
+     * Verifica si un token CSRF es válido
+     * 
+     * @param string $token Token a verificar
+     * @return bool Resultado de la validación
+     */
+    public function validateCSRFToken($token) {
+        // Asegurar que la sesión está iniciada
+        require_once __DIR__ . '/../includes/session.php';
+        startSession();
+        
+        if (empty($token) || empty($_SESSION['csrf_token'])) {
+            Logger::warning("Validación CSRF fallida: token vacío", 
+                Logger::SECURITY);
+            return false;
+        }
+        
+        $valid = hash_equals($_SESSION['csrf_token'], $token);
+        
+        if (!$valid) {
+            Logger::warning("Validación CSRF fallida: tokens no coinciden", 
+                Logger::SECURITY, [
+                    'provided_hash' => hash('sha256', $token),
+                    'session_hash' => hash('sha256', $_SESSION['csrf_token']),
+                    'session_id' => session_id()
+                ]);
+        }
+        
+        return $valid;
+    }
+    
+    /**
+     * Genera token para "recordarme" y lo almacena
+     * 
+     * @param int $userId ID del usuario
+     * @return void
+     */
+    private function handleRememberMe($userId) {
+        $token = bin2hex(random_bytes(32));
+        $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
+        
+        $this->userModel->updateRememberToken($userId, $token, $expires);
+        
+        // Establecer cookie segura
+        $cookieName = 'remember_token';
+        $path = '/';
+        $domain = '';
+        $secure = isset($_SERVER['HTTPS']); 
+        $httpOnly = true;
+        
+        setcookie(
+            $cookieName,
+            $token,
+            strtotime('+30 days'),
+            $path,
+            $domain,
+            $secure,
+            $httpOnly
+        );
+    }
+    
+    /**
+     * Procesa el cierre de sesión
+     * 
+     * @return array Resultado de la operación
+     */
+    public function logout() {
+        // Eliminar cookie de "recordarme" si existe
+        if (isset($_COOKIE['remember_token'])) {
+            setcookie('remember_token', '', time() - 3600, '/');
+        }
+        
+        // Registrar evento
+        if (isset($_SESSION['user_id'])) {
+            Logger::info("Cierre de sesión", Logger::AUTH, [
+                'user_id' => $_SESSION['user_id']
+            ]);
+        }
+        
+        // Destruir sesión
+        session_unset();
+        session_destroy();
+        
+        return [
+            'success' => true,
+            'message' => 'Sesión finalizada correctamente'
+        ];
+    }
+    
+    /**
+     * Verifica si el usuario está autenticado
+     * 
+     * @return bool Estado de autenticación
+     */
+    public function isLoggedIn() {
+        // Si ya hay una sesión activa
+        if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
+            return true;
+        }
+        
+        // Verificar cookie "recordarme"
+        if (isset($_COOKIE['remember_token'])) {
+            $token = $_COOKIE['remember_token'];
+            $user = $this->userModel->findByRememberToken($token);
+            
+            if ($user) {
+                // Crear sesión
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['user_role'] = $user['role'];
+                $_SESSION['logged_in'] = true;
+                $_SESSION['last_activity'] = time();
+                
+                Logger::info("Inicio de sesión automático (remember me)", 
+                    Logger::AUTH, ['user_id' => $user['id']]);
+                
+                return true;
+            }
+        }
+        
+        return false;
+    }
+}

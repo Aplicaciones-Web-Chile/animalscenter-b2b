@@ -4,9 +4,15 @@
  * Este archivo contiene constantes y configuraciones globales
  */
 
+// Definir la raíz de la aplicación
+define('APP_ROOT', dirname(__DIR__));
+
+// Cargar autoloader de Composer
+require_once APP_ROOT . '/vendor/autoload.php';
+
 // Cargar variables de entorno si no se han cargado
-if (file_exists(__DIR__ . '/../.env') && !isset($_ENV['APP_ENV'])) {
-    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+if (file_exists(APP_ROOT . '/.env') && !isset($_ENV['APP_ENV'])) {
+    $dotenv = Dotenv\Dotenv::createImmutable(APP_ROOT);
     $dotenv->load();
 }
 
@@ -58,8 +64,8 @@ function configureEnvironment() {
     }
     
     // Configurar opciones de sesión
-    ini_set('session.cookie_lifetime', SESSION_LIFETIME * 60);
-    ini_set('session.gc_maxlifetime', SESSION_LIFETIME * 60);
+    #ini_set('session.cookie_lifetime', SESSION_LIFETIME * 60);
+    #ini_set('session.gc_maxlifetime', SESSION_LIFETIME * 60);
     
     if (SECURE_COOKIES) {
         ini_set('session.cookie_secure', 1);
