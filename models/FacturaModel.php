@@ -211,4 +211,31 @@ class FacturaModel {
             ];
         }
     }
+
+    /**
+     * Obtiene el total de monto de las facturas
+     * 
+     * @param string|null $proveedorRut RUT del proveedor para filtrar
+     * @return float Total de monto de las facturas
+     */
+    public function getTotalMonto($proveedorRut = null) {
+        try {
+            $sql = "SELECT SUM(total) as total_monto FROM facturas";
+            $params = [];
+            
+            if ($proveedorRut) {
+                $sql .= " WHERE proveedor_rut = ?";
+                $params[] = $proveedorRut;
+            }
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return $result ? (float)$result['total_monto'] : 0;
+        } catch (PDOException $e) {
+            error_log("Error al obtener el total de facturas: " . $e->getMessage());
+            return 0;
+        }
+    }
 }
