@@ -25,6 +25,19 @@ services:
       - mysql_data:/var/lib/mysql
     ports:
       - "3306:3306"
+      
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    platform: linux/amd64
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: secret
+      UPLOAD_LIMIT: 300M
+    depends_on:
+      - db
 
 volumes:
   mysql_data:
