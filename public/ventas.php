@@ -7,23 +7,25 @@
  * @version 2.0
  */
 
-// Iniciar sesión
-session_start();
-
 // Incluir archivos necesarios
+require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../controllers/VentaController.php';
-require_once __DIR__ . '/../controllers/AuthController.php';
 
-// Inicializar controladores
-$authController = new AuthController();
-$ventaController = new VentaController();
+// Iniciar sesión
+startSession();
 
 // Verificar autenticación
-if (!$authController->isLoggedIn()) {
-    header('Location: login.php');
-    exit;
+requireLogin();
+
+// Verificar que sea admin o proveedor
+if (!isAdmin() && !isProveedor()) {
+    setFlashMessage('error', 'No tienes permisos para acceder a esta página');
+    redirect('dashboard.php');
 }
+
+// Inicializar controlador
+$ventaController = new VentaController();
 
 // Título de la página
 $pageTitle = 'Gestión de Ventas';
@@ -45,7 +47,7 @@ $offset = ($pagina - 1) * $porPagina;
 $params = [
     'offset' => $offset,
     'limite' => $porPagina,
-    'proveedorRut' => $_SESSION['user']['rol'] === 'proveedor' ? $_SESSION['user']['rut'] : null
+    'proveedorRut' => isProveedor() ? $_SESSION['user_rut'] : null
 ];
 
 // Obtener datos de ventas

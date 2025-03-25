@@ -4,13 +4,14 @@
  * Permite ver, filtrar y exportar productos del proveedor logueado
  */
 
-// Iniciar sesión
-session_start();
-
 // Incluir archivos necesarios
+require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
+
+// Iniciar sesión
+startSession();
 
 // Verificar autenticación
 requireLogin();
@@ -35,25 +36,31 @@ $offset = ($pagina - 1) * $porPagina;
 $filtroProveedor = "";
 $params = [];
 
-if ($_SESSION['user']['rol'] === 'proveedor') {
-    $filtroProveedor = "WHERE proveedor_rut = ?";
-    $params[] = $_SESSION['user']['rut'];
-} elseif (!empty($busqueda)) {
-    $filtroProveedor = "WHERE nombre LIKE ? OR sku LIKE ?";
-    $params[] = "%$busqueda%";
-    $params[] = "%$busqueda%";
-} elseif (!empty($busqueda) && $_SESSION['user']['rol'] === 'proveedor') {
-    $filtroProveedor = "WHERE proveedor_rut = ? AND (nombre LIKE ? OR sku LIKE ?)";
-    $params[] = $_SESSION['user']['rut'];
+// Construir la consulta base
+$filtroProveedor = [];
+$params = [];
+
+// Filtrar por proveedor si es necesario
+if (isProveedor()) {
+    $filtroProveedor[] = "proveedor_rut = ?";
+    $params[] = $_SESSION['user_rut'];
+}
+
+// Agregar filtro de búsqueda si existe
+if (!empty($busqueda)) {
+    $filtroProveedor[] = "(nombre LIKE ? OR sku LIKE ?)";
     $params[] = "%$busqueda%";
     $params[] = "%$busqueda%";
 }
+
+// Combinar los filtros
+$filtroSQL = !empty($filtroProveedor) ? "WHERE " . implode(" AND ", $filtroProveedor) : "";
 
 // Ordenamiento
 $ordenSQL = "ORDER BY $ordenamiento $direccion";
 
 // Contar total de productos
-$sqlTotal = "SELECT COUNT(*) as total FROM productos $filtroProveedor";
+$sqlTotal = "SELECT COUNT(*) as total FROM productos $filtroSQL";
 $resultado = fetchOne($sqlTotal, $params);
 $totalProductos = $resultado ? $resultado['total'] : 0;
 $totalPaginas = ceil($totalProductos / $porPagina);
@@ -62,7 +69,7 @@ $totalPaginas = ceil($totalProductos / $porPagina);
 $sql = "SELECT p.*, u.nombre as proveedor 
         FROM productos p 
         LEFT JOIN usuarios u ON p.proveedor_rut = u.rut 
-        $filtroProveedor 
+        $filtroSQL 
         $ordenSQL 
         LIMIT $offset, $porPagina";
 $productos = fetchAll($sql, $params);
@@ -139,7 +146,7 @@ $productos = fetchAll($sql, $params);
                                         <th>Nombre</th>
                                         <th>Stock</th>
                                         <th>Precio</th>
-                                        <?php if ($_SESSION['user']['rol'] === 'admin'): ?>
+                                        <?php if (isAdmin()): ?>
                                         <th>Proveedor</th>
                                         <?php endif; ?>
                                         <th>Acciones</th>
@@ -152,7 +159,7 @@ $productos = fetchAll($sql, $params);
                                             <td><?php echo htmlspecialchars($producto['nombre']); ?></td>
                                             <td><?php echo $producto['stock']; ?></td>
                                             <td>$<?php echo number_format($producto['precio'], 2, ',', '.'); ?></td>
-                                            <?php if ($_SESSION['user']['rol'] === 'admin'): ?>
+                                            <?php if (isAdmin()): ?>
                                             <td><?php echo htmlspecialchars($producto['proveedor']); ?></td>
                                             <?php endif; ?>
                                             <td>

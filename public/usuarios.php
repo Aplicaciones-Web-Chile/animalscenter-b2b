@@ -4,18 +4,18 @@
  * Este archivo permite a los administradores gestionar usuarios del sistema
  */
 
-// Iniciar sesión
-session_start();
-
 // Incluir archivos necesarios
+require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/security.php';
 
-// Verificar autenticación y permisos (solo administradores)
-requireLogin();
-restrictAccessByRole(['admin'], 'dashboard.php');
+// Iniciar sesión
+startSession();
+
+// Verificar que sea administrador
+requireAdmin();
 
 // Título de la página
 $pageTitle = 'Gestión de Usuarios';
@@ -268,7 +268,7 @@ include 'header.php';
                                         <a href="usuarios.php?id=<?php echo $u['id']; ?>" class="btn btn-sm btn-info">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <?php if ((int)$u['id'] !== (int)$_SESSION['user']['id']): ?>
+                                        <?php if ((int)$u['id'] !== (int)getUserId()): ?>
                                             <a href="usuarios.php?eliminar=<?php echo $u['id']; ?>&token=<?php echo generateCsrfToken(); ?>" 
                                                class="btn btn-sm btn-danger" 
                                                onclick="return confirm('¿Estás seguro de eliminar este usuario?')">
