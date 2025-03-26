@@ -1,0 +1,16 @@
+# Redirigir todo al directorio public
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    
+    # Si la solicitud es para un archivo real o directorio real, no hacer nada
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+    
+    # Si la solicitud comienza con /public, dejar pasar
+    RewriteRule ^public/ - [L]
+    
+    # Cualquier otra solicitud, redirigir a /public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

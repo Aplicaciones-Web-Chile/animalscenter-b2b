@@ -16,12 +16,23 @@ if (!defined('APP_ROOT')) {
  * @throws PDOException Si hay error en la conexión
  */
 function getDbConnection() {
-    // Usar las variables de entorno definidas
-    $host = $_ENV['DB_HOST'] ?? 'localhost';
-    $dbname = $_ENV['DB_NAME'] ?? 'b2b_database';
-    $username = $_ENV['DB_USER'] ?? 'root';
-    $password = $_ENV['DB_PASS'] ?? '';
-    $port = $_ENV['DB_PORT'] ?? '3306';
+    // Comprobar si estamos en Hostinger utilizando la función definida en app.php
+    if (function_exists('isHostinger') && isHostinger()) {
+        // Estamos en Hostinger, usar credenciales de Hostinger
+        // Estas credenciales se deben actualizar con los valores reales de Hostinger
+        $host = $_ENV['DB_HOST_PRODUCTION'] ?? 'localhost';
+        $dbname = $_ENV['DB_NAME_PRODUCTION'] ?? $_ENV['DB_NAME'] ?? 'b2b_database';
+        $username = $_ENV['DB_USER_PRODUCTION'] ?? $_ENV['DB_USER'] ?? 'animalscentercl_b2b';
+        $password = $_ENV['DB_PASS_PRODUCTION'] ?? $_ENV['DB_PASS'] ?? 'tuPasswordProduccion';
+        $port = $_ENV['DB_PORT_PRODUCTION'] ?? $_ENV['DB_PORT'] ?? '3306';
+    } else {
+        // Estamos en entorno local, usar las variables de entorno definidas
+        $host = $_ENV['DB_HOST'] ?? 'localhost';
+        $dbname = $_ENV['DB_NAME'] ?? 'b2b_database';
+        $username = $_ENV['DB_USER'] ?? 'root';
+        $password = $_ENV['DB_PASS'] ?? '';
+        $port = $_ENV['DB_PORT'] ?? '3306';
+    }
 
     try {
         $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";

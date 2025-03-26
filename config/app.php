@@ -4,6 +4,12 @@
  * Este archivo contiene constantes y configuraciones globales
  */
 
+// Detectar automáticamente el entorno (Hostinger o local)
+function isHostinger() {
+    // Verifica si estamos en Hostinger basado en variables de servidor
+    return (strpos($_SERVER['DOCUMENT_ROOT'] ?? '', 'public_html') !== false);
+}
+
 // Definir la raíz de la aplicación
 define('APP_ROOT', dirname(__DIR__));
 
@@ -20,7 +26,19 @@ if (file_exists(APP_ROOT . '/.env') && !isset($_ENV['APP_ENV'])) {
 define('APP_NAME', $_ENV['APP_NAME'] ?? 'Sistema B2B AnimalsCenter');
 define('APP_ENV', $_ENV['APP_ENV'] ?? 'production');
 define('APP_DEBUG', filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN));
-define('APP_URL', $_ENV['APP_URL'] ?? 'http://localhost:8080');
+
+// Detección automática de URL base según el entorno
+if (isHostinger()) {
+    // En Hostinger
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    define('APP_URL', $protocol . $host);
+    define('PUBLIC_DIR', '/public_html'); // En Hostinger el directorio público se llama public_html
+} else {
+    // En local
+    define('APP_URL', $_ENV['APP_URL'] ?? 'http://localhost:8080');
+    define('PUBLIC_DIR', '/public'); // En local el directorio público se llama public
+}
 
 // Configuración de sesiones
 define('SESSION_LIFETIME', intval($_ENV['SESSION_LIFETIME'] ?? 120));
@@ -70,6 +88,15 @@ function configureEnvironment() {
     if (SECURE_COOKIES) {
         ini_set('session.cookie_secure', 1);
         ini_set('session.cookie_httponly', 1);
+    }
+    
+    // Ajustar configuraciones según el entorno (Hostinger o local)
+    if (isHostinger()) {
+        // Configuraciones específicas para Hostinger
+        ini_set('session.save_path', sys_get_temp_dir());
+        
+        // Ajustar rutas si es necesario para Hostinger
+        // Ejemplo: define('UPLOADS_DIR', $_SERVER['DOCUMENT_ROOT'] . '/uploads');
     }
 }
 
