@@ -110,6 +110,44 @@ function getUserId() {
 }
 
 /**
+ * Requiere que el usuario esté autenticado para acceder a una página
+ * Si no está autenticado, redirige a login.php
+ */
+function requireLogin() {
+    if (!isLoggedIn()) {
+        $_SESSION['error_message'] = 'Debe iniciar sesión para acceder a esta página';
+        header('Location: login.php');
+        exit;
+    }
+}
+
+/**
+ * Requiere que el usuario sea administrador para acceder a una página
+ * Si no es administrador, redirige al dashboard
+ */
+function requireAdmin() {
+    requireLogin();
+    if (!isAdmin()) {
+        $_SESSION['error_message'] = 'No tiene permisos para acceder a esta página';
+        header('Location: dashboard.php');
+        exit;
+    }
+}
+
+/**
+ * Requiere que el usuario sea proveedor para acceder a una página
+ * Si no es proveedor, redirige al dashboard
+ */
+function requireProveedor() {
+    requireLogin();
+    if (!isProveedor()) {
+        $_SESSION['error_message'] = 'No tiene permisos para acceder a esta página';
+        header('Location: dashboard.php');
+        exit;
+    }
+}
+
+/**
  * Cierra la sesión del usuario
  * 
  * @return bool Resultado de la operación

@@ -33,3 +33,5 @@ Thumbs.db
 .cache/
 config/CredencialesDePrueba.MD
 *.cfg
+public/test/*
+public/pma/*

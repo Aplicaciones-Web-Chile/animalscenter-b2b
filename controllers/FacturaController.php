@@ -35,12 +35,14 @@ class FacturaController {
             
             $facturas = $this->facturaModel->getFacturas($offset, $limite, $proveedorRut, $estado);
             $totalFacturas = $this->facturaModel->getTotalFacturas($proveedorRut, $estado);
+            $totalMonto = $this->facturaModel->getTotalMonto($proveedorRut, $estado);
             
             return [
                 'success' => true,
                 'data' => [
                     'facturas' => $facturas,
-                    'total' => $totalFacturas
+                    'total' => $totalFacturas,
+                    'totalMonto' => $totalMonto
                 ]
             ];
         } catch (Exception $e) {
@@ -159,5 +161,15 @@ class FacturaController {
                 'error' => $e->getMessage()
             ];
         }
+    }
+    
+    /**
+     * Obtiene el total de monto de las facturas
+     * 
+     * @param string|null $proveedorRut RUT del proveedor para filtrar
+     * @return float Total de monto de las facturas
+     */
+    public function getTotalMonto($proveedorRut = null) {
+        return $this->facturaModel->getTotalMonto($proveedorRut);
     }
 }

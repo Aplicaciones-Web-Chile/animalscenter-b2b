@@ -189,4 +189,26 @@ class VentaModel {
             ];
         }
     }
+
+    /**
+     * Obtiene el total de unidades vendidas
+     * 
+     * @param string|null $proveedorRut RUT del proveedor para filtrar
+     * @return int Total de unidades vendidas
+     */
+    public function getTotalUnidades($proveedorRut = null) {
+        $sql = "SELECT SUM(cantidad) as total FROM ventas";
+        $params = [];
+        
+        if ($proveedorRut) {
+            $sql .= " WHERE proveedor_rut = ?";
+            $params[] = $proveedorRut;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        return $result ? (int)$result['total'] : 0;
+    }
 }

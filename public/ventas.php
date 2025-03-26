@@ -52,7 +52,6 @@ $params = [
 
 // Obtener datos de ventas
 $ventasData = $ventaController->getVentas($params);
-
 // Si ocurrió un error al obtener las ventas
 if (!$ventasData['success']) {
     $_SESSION['error_message'] = $ventasData['message'] ?? 'Error al cargar las ventas';
@@ -63,6 +62,7 @@ if (!$ventasData['success']) {
 // Extraer datos para la vista
 $ventas = $ventasData['data']['ventas'];
 $totalVentas = $ventasData['data']['total'];
+$totalUnidades = $ventasData['data']['totalUnidades'];
 $totalPaginas = ceil($totalVentas / $porPagina);
 
 ?>
@@ -93,7 +93,8 @@ $totalPaginas = ceil($totalVentas / $porPagina);
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Unidades Vendidas</h5>
-                    <p class="card-text display-6"><?php echo number_format($ventasData['data']['total_unidades'], 0, ',', '.'); ?></p>
+
+                    <p class="card-text display-6"><?php echo number_format($totalUnidades, 0, ',', '.'); ?></p>
                 </div>
             </div>
         </div>

@@ -81,11 +81,9 @@ $productos = fetchAll($sql, $params);
         <div class="col-md-12">
             <div class="d-flex justify-content-between align-items-center">
                 <h1 class="mb-0"><i class="fas fa-boxes me-2"></i>Gestión de Productos</h1>
-                <?php if ($_SESSION['user']['rol'] === 'admin'): ?>
                 <a href="exportar.php?tipo=productos" class="btn btn-success">
                     <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                 </a>
-                <?php endif; ?>
             </div>
         </div>
     </div>

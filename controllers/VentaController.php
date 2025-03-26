@@ -34,12 +34,14 @@ class VentaController {
             
             $ventas = $this->ventaModel->getVentas($offset, $limite, $proveedorRut);
             $totalVentas = $this->ventaModel->getTotalVentas($proveedorRut);
+            $totalUnidades = $this->ventaModel->getTotalUnidades($proveedorRut);
             
             return [
                 'success' => true,
                 'data' => [
                     'ventas' => $ventas,
-                    'total' => $totalVentas
+                    'total' => $totalVentas,
+                    'totalUnidades' => $totalUnidades
                 ]
             ];
         } catch (Exception $e) {
@@ -158,5 +160,15 @@ class VentaController {
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Obtiene el total de unidades vendidas
+     * 
+     * @param string|null $proveedorRut RUT del proveedor para filtrar
+     * @return int Total de unidades vendidas
+     */
+    public function getTotalUnidades($proveedorRut = null) {
+        return $this->ventaModel->getTotalUnidades($proveedorRut);
     }
 }

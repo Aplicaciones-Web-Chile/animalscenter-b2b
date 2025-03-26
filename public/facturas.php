@@ -67,6 +67,7 @@ if (!$facturasData['success']) {
 $facturas = $facturasData['data']['facturas'];
 $totalFacturas = $facturasData['data']['total'];
 $totalPaginas = ceil($totalFacturas / $porPagina);
+$totalMonto = $facturasData['data']['totalMonto'];
 
 ?>
 
