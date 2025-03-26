@@ -12,6 +12,29 @@
     RewriteRule ^(.*)$ index.php [QSA,L]
 </IfModule>
 
+# Permitir acceso a todos los archivos
+<IfModule mod_authz_core.c>
+    # Permitir acceso a todos
+    Require all granted
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    # Para versiones antiguas de Apache
+    Order allow,deny
+    Allow from all
+</IfModule>
+
+# Asegurarse de que diagnostico.php sea accesible
+<Files "diagnostico.php">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Allow from all
+    </IfModule>
+</Files>
+
 # Configuración adicional para PHP
 <IfModule mod_php7.c>
     php_value upload_max_filesize 64M

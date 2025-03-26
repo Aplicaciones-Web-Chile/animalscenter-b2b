@@ -67,6 +67,94 @@ function isAllowedIP() {
 }
 
 /**
+ * Función para registrar errores en un archivo centralizado
+ * 
+ * @param string $message Mensaje de error
+ * @param string $level Nivel de error (ERROR, WARNING, INFO)
+ * @param array $context Contexto adicional
+ * @return bool True si se pudo escribir en el log
+ */
+function logError($message, $level = 'ERROR', $context = []) {
+    // Definir la ruta del archivo de log
+    $logFile = APP_ROOT . '/logs/app.log';
+    
+    // Crear el directorio de logs si no existe
+    if (!is_dir(dirname($logFile))) {
+        mkdir(dirname($logFile), 0755, true);
+    }
+    
+    // Formatear el mensaje de error
+    $timestamp = date('Y-m-d H:i:s');
+    $contextStr = !empty($context) ? ' ' . json_encode($context) : '';
+    $logMessage = "[$timestamp] [$level] $message$contextStr" . PHP_EOL;
+    
+    // Escribir en el archivo de log
+    return file_put_contents($logFile, $logMessage, FILE_APPEND);
+}
+
+/**
+ * Manejador personalizado de errores
+ * 
+ * @param int $errno Número de error
+ * @param string $errstr Mensaje de error
+ * @param string $errfile Archivo donde ocurrió el error
+ * @param int $errline Línea donde ocurrió el error
+ * @return bool
+ */
+function customErrorHandler($errno, $errstr, $errfile, $errline) {
+    // Mapear el número de error a un nivel
+    $level = 'ERROR';
+    switch ($errno) {
+        case E_WARNING:
+        case E_USER_WARNING:
+            $level = 'WARNING';
+            break;
+        case E_NOTICE:
+        case E_USER_NOTICE:
+            $level = 'NOTICE';
+            break;
+    }
+    
+    // Registrar el error
+    logError($errstr, $level, [
+        'file' => $errfile,
+        'line' => $errline,
+        'type' => $errno
+    ]);
+    
+    // Devolver false para que PHP maneje el error de forma estándar
+    return false;
+}
+
+/**
+ * Manejador de excepciones no capturadas
+ * 
+ * @param Throwable $exception La excepción no capturada
+ */
+function customExceptionHandler($exception) {
+    // Registrar la excepción
+    logError($exception->getMessage(), 'CRITICAL', [
+        'file' => $exception->getFile(),
+        'line' => $exception->getLine(),
+        'trace' => $exception->getTraceAsString()
+    ]);
+    
+    // En producción, mostrar un mensaje genérico
+    if (APP_ENV !== 'development') {
+        echo "<h1>Error del sistema</h1>";
+        echo "<p>Ha ocurrido un error inesperado. Por favor, contacte al administrador.</p>";
+    } else {
+        // En desarrollo, mostrar detalles de la excepción
+        echo "<h1>Error: " . htmlspecialchars($exception->getMessage()) . "</h1>";
+        echo "<p>Archivo: " . htmlspecialchars($exception->getFile()) . " en la línea " . $exception->getLine() . "</p>";
+        echo "<h2>Stack Trace:</h2>";
+        echo "<pre>" . htmlspecialchars($exception->getTraceAsString()) . "</pre>";
+    }
+    
+    exit(1);
+}
+
+/**
  * Configura el entorno según el modo (desarrollo o producción)
  */
 function configureEnvironment() {
@@ -78,7 +166,7 @@ function configureEnvironment() {
     } else {
         ini_set('display_errors', 0);
         ini_set('display_startup_errors', 0);
-        error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT);
+        error_reporting(E_ALL); // Capturar todos los errores para el log
     }
     
     // Configurar opciones de sesión
@@ -98,6 +186,22 @@ function configureEnvironment() {
         // Ajustar rutas si es necesario para Hostinger
         // Ejemplo: define('UPLOADS_DIR', $_SERVER['DOCUMENT_ROOT'] . '/uploads');
     }
+    
+    // Establecer manejadores personalizados de errores y excepciones
+    set_error_handler('customErrorHandler');
+    set_exception_handler('customExceptionHandler');
+    
+    // Registrar errores fatales
+    register_shutdown_function(function() {
+        $error = error_get_last();
+        if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+            logError($error['message'], 'FATAL', [
+                'file' => $error['file'],
+                'line' => $error['line'],
+                'type' => $error['type']
+            ]);
+        }
+    });
 }
 
 // Configurar el entorno

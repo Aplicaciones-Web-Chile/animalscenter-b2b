@@ -14,3 +14,28 @@
     # Cualquier otra solicitud, redirigir a /public/
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
+
+# Permitir acceso a todos los archivos
+<IfModule mod_authz_core.c>
+    # Permitir acceso a todos
+    Require all granted
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    # Para versiones antiguas de Apache
+    Order allow,deny
+    Allow from all
+</IfModule>
+
+# Configuración de PHP para mostrar errores en archivo de log
+<IfModule mod_php7.c>
+    php_flag display_errors off
+    php_flag log_errors on
+    php_value error_log "logs/php_errors.log"
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_flag display_errors off
+    php_flag log_errors on
+    php_value error_log "logs/php_errors.log"
+</IfModule>
