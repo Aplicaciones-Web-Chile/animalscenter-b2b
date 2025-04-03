@@ -24,55 +24,103 @@ include 'header.php';
 
 // Inicializar variables para filtros
 $busqueda = $_GET['busqueda'] ?? '';
-$ordenamiento = $_GET['orden'] ?? 'nombre';
-$direccion = $_GET['dir'] ?? 'asc';
+$fechaInicio = $_GET['fecha_inicio'] ?? date('d/m/Y'); // Por defecto el día actual
+$fechaFin = $_GET['fecha_fin'] ?? date('d/m/Y'); // Por defecto el día actual
+$proveedor = $_GET['proveedor'] ?? '78843490'; // Código del proveedor por defecto
+$distribuidor = $_GET['distribuidor'] ?? '001'; // Código del distribuidor por defecto
 
 // Inicializar variables para paginación
 $pagina = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
 $porPagina = 10;
-$offset = ($pagina - 1) * $porPagina;
 
-// Filtrar por proveedor si es un usuario proveedor
-$filtroProveedor = "";
-$params = [];
-
-// Construir la consulta base
-$filtroProveedor = [];
-$params = [];
-
-// Filtrar por proveedor si es necesario
-if (isProveedor()) {
-    $filtroProveedor[] = "proveedor_rut = ?";
-    $params[] = $_SESSION['user_rut'];
+// Función para consumir la API de productos
+function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor) {
+    // URL y configuración de la API
+    $url = "https://api2.aplicacionesweb.cl/apiacenter/productos/vtayrepxsuc";
+    $token = "94ec33d0d75949c298f47adaa78928c2";
+    
+    // Datos a enviar
+    $data = [
+        "Distribuidor" => $distribuidor,
+        "FINI" => $fechaInicio,
+        "FTER" => $fechaFin,
+        "KPRV" => $proveedor
+    ];
+    
+    // Configuración de la petición
+    $options = [
+        'http' => [
+            'header' => "Authorization: $token\r\n" .
+                       "Content-Type: application/json\r\n",
+            'method' => 'POST',
+            'content' => json_encode($data)
+        ]
+    ];
+    
+    // Crear contexto y realizar petición
+    $context = stream_context_create($options);
+    
+    try {
+        // Registrar la llamada a la API en el log
+        error_log("Llamando a API: $url con datos: " . json_encode($data));
+        
+        // Realizar la petición
+        $result = file_get_contents($url, false, $context);
+        
+        if ($result === false) {
+            error_log("Error al obtener datos de la API: No se pudo conectar");
+            return ['estado' => 0, 'datos' => [], 'error' => 'No se pudo conectar con la API'];
+        }
+        
+        // Decodificar respuesta
+        $response = json_decode($result, true);
+        
+        // Verificar estructura de respuesta
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("Error al decodificar respuesta JSON: " . json_last_error_msg());
+            return ['estado' => 0, 'datos' => [], 'error' => 'Error al procesar la respuesta'];
+        }
+        
+        return $response;
+    } catch (Exception $e) {
+        error_log("Excepción al llamar a la API: " . $e->getMessage());
+        return ['estado' => 0, 'datos' => [], 'error' => $e->getMessage()];
+    }
 }
 
-// Agregar filtro de búsqueda si existe
-if (!empty($busqueda)) {
-    $filtroProveedor[] = "(nombre LIKE ? OR sku LIKE ?)";
-    $params[] = "%$busqueda%";
-    $params[] = "%$busqueda%";
+// Obtener productos desde la API
+$respuestaAPI = obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor);
+
+// Verificar que la respuesta sea correcta
+if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
+    $productos = [];
+    $mensajeError = $respuestaAPI['error'] ?? 'Error al obtener productos de la API';
+} else {
+    $productosAPI = $respuestaAPI['datos'] ?? [];
+    
+    // Filtrar por búsqueda si se especifica
+    if (!empty($busqueda)) {
+        $productosAPI = array_filter($productosAPI, function($producto) use ($busqueda) {
+            return (stripos($producto['PRODUCTO_DESCRIPCION'], $busqueda) !== false) || 
+                   (stripos($producto['PRODUCTO_CODIGO'], $busqueda) !== false) ||
+                   (stripos($producto['MARCA_DESCRIPCION'], $busqueda) !== false);
+        });
+    }
+    
+    // Contar total de productos después del filtro
+    $totalProductos = count($productosAPI);
+    $totalPaginas = ceil($totalProductos / $porPagina);
+    
+    // Ordenar productos según criterio
+    // Por defecto ordenamos por descripción del producto
+    usort($productosAPI, function($a, $b) {
+        return strcmp($a['PRODUCTO_DESCRIPCION'], $b['PRODUCTO_DESCRIPCION']);
+    });
+    
+    // Aplicar paginación
+    $offset = ($pagina - 1) * $porPagina;
+    $productos = array_slice($productosAPI, $offset, $porPagina);
 }
-
-// Combinar los filtros
-$filtroSQL = !empty($filtroProveedor) ? "WHERE " . implode(" AND ", $filtroProveedor) : "";
-
-// Ordenamiento
-$ordenSQL = "ORDER BY $ordenamiento $direccion";
-
-// Contar total de productos
-$sqlTotal = "SELECT COUNT(*) as total FROM productos $filtroSQL";
-$resultado = fetchOne($sqlTotal, $params);
-$totalProductos = $resultado ? $resultado['total'] : 0;
-$totalPaginas = ceil($totalProductos / $porPagina);
-
-// Obtener productos con paginación
-$sql = "SELECT p.*, u.nombre as proveedor 
-        FROM productos p 
-        LEFT JOIN usuarios u ON p.proveedor_rut = u.rut 
-        $filtroSQL 
-        $ordenSQL 
-        LIMIT $offset, $porPagina";
-$productos = fetchAll($sql, $params);
 
 ?>
 
@@ -94,28 +142,29 @@ $productos = fetchAll($sql, $params);
             <div class="card">
                 <div class="card-body">
                     <form action="" method="GET" class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <div class="input-group">
                                 <input type="text" class="form-control" name="busqueda" 
-                                    placeholder="Buscar por nombre o SKU" value="<?php echo htmlspecialchars($busqueda); ?>">
+                                    placeholder="Buscar por nombre o código" value="<?php echo htmlspecialchars($busqueda); ?>">
                                 <button class="btn btn-primary" type="submit">
                                     <i class="fas fa-search"></i>
                                 </button>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <select name="orden" class="form-select">
-                                <option value="nombre" <?php echo $ordenamiento === 'nombre' ? 'selected' : ''; ?>>Ordenar por Nombre</option>
-                                <option value="sku" <?php echo $ordenamiento === 'sku' ? 'selected' : ''; ?>>Ordenar por SKU</option>
-                                <option value="stock" <?php echo $ordenamiento === 'stock' ? 'selected' : ''; ?>>Ordenar por Stock</option>
-                                <option value="precio" <?php echo $ordenamiento === 'precio' ? 'selected' : ''; ?>>Ordenar por Precio</option>
-                            </select>
+                        <div class="col-md-3">
+                            <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                            <input type="text" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                                value="<?php echo htmlspecialchars($fechaInicio); ?>" placeholder="dd/mm/yyyy">
                         </div>
-                        <div class="col-md-2">
-                            <select name="dir" class="form-select">
-                                <option value="asc" <?php echo $direccion === 'asc' ? 'selected' : ''; ?>>Ascendente</option>
-                                <option value="desc" <?php echo $direccion === 'desc' ? 'selected' : ''; ?>>Descendente</option>
-                            </select>
+                        <div class="col-md-3">
+                            <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                            <input type="text" class="form-control" id="fecha_fin" name="fecha_fin" 
+                                value="<?php echo htmlspecialchars($fechaFin); ?>" placeholder="dd/mm/yyyy">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="proveedor" class="form-label">Código Proveedor</label>
+                            <input type="text" class="form-control" id="proveedor" name="proveedor" 
+                                value="<?php echo htmlspecialchars($proveedor); ?>" placeholder="Código Proveedor">
                         </div>
                     </form>
                 </div>
@@ -140,28 +189,30 @@ $productos = fetchAll($sql, $params);
                             <table class="table table-striped table-hover">
                                 <thead>
                                     <tr>
-                                        <th>SKU</th>
-                                        <th>Nombre</th>
-                                        <th>Stock</th>
-                                        <th>Precio</th>
-                                        <?php if (isAdmin()): ?>
-                                        <th>Proveedor</th>
-                                        <?php endif; ?>
+                                        <th>Código</th>
+                                        <th>Producto</th>
+                                        <th>Marca</th>
+                                        <th>Familia</th>
+                                        <th>Suc. 1</th>
+                                        <th>Stock 1</th>
+                                        <th>Suc. 2</th>
+                                        <th>Stock 2</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($productos as $producto): ?>
                                         <tr>
-                                            <td><?php echo htmlspecialchars($producto['sku']); ?></td>
-                                            <td><?php echo htmlspecialchars($producto['nombre']); ?></td>
-                                            <td><?php echo $producto['stock']; ?></td>
-                                            <td>$<?php echo number_format($producto['precio'], 2, ',', '.'); ?></td>
-                                            <?php if (isAdmin()): ?>
-                                            <td><?php echo htmlspecialchars($producto['proveedor']); ?></td>
-                                            <?php endif; ?>
+                                            <td><?php echo htmlspecialchars($producto['PRODUCTO_CODIGO']); ?></td>
+                                            <td><?php echo htmlspecialchars($producto['PRODUCTO_DESCRIPCION']); ?></td>
+                                            <td><?php echo htmlspecialchars($producto['MARCA_DESCRIPCION']); ?></td>
+                                            <td><?php echo htmlspecialchars($producto['FAMILIA_DESCRIPCION']); ?></td>
+                                            <td><?php echo $producto['VENTA_SUCURSAL01']; ?></td>
+                                            <td><?php echo $producto['STOCK_BODEGA01']; ?></td>
+                                            <td><?php echo $producto['VENTA_SUCURSAL02']; ?></td>
+                                            <td><?php echo $producto['STOCK_BODEGA02']; ?></td>
                                             <td>
-                                                <button class="btn btn-sm btn-info" onclick="verDetalles(<?php echo $producto['id']; ?>)">
+                                                <button class="btn btn-sm btn-info" onclick="verDetalles('<?php echo $producto['PRODUCTO_CODIGO']; ?>')">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                             </td>
@@ -177,7 +228,7 @@ $productos = fetchAll($sql, $params);
                                 <ul class="pagination justify-content-center">
                                     <?php if ($pagina > 1): ?>
                                         <li class="page-item">
-                                            <a class="page-link" href="?pagina=<?php echo ($pagina - 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&orden=<?php echo $ordenamiento; ?>&dir=<?php echo $direccion; ?>">
+                                            <a class="page-link" href="?pagina=<?php echo ($pagina - 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
                                                 &laquo; Anterior
                                             </a>
                                         </li>
@@ -185,7 +236,7 @@ $productos = fetchAll($sql, $params);
                                     
                                     <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
                                         <li class="page-item <?php echo $i === $pagina ? 'active' : ''; ?>">
-                                            <a class="page-link" href="?pagina=<?php echo $i; ?>&busqueda=<?php echo urlencode($busqueda); ?>&orden=<?php echo $ordenamiento; ?>&dir=<?php echo $direccion; ?>">
+                                            <a class="page-link" href="?pagina=<?php echo $i; ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
                                                 <?php echo $i; ?>
                                             </a>
                                         </li>
@@ -193,7 +244,7 @@ $productos = fetchAll($sql, $params);
                                     
                                     <?php if ($pagina < $totalPaginas): ?>
                                         <li class="page-item">
-                                            <a class="page-link" href="?pagina=<?php echo ($pagina + 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&orden=<?php echo $ordenamiento; ?>&dir=<?php echo $direccion; ?>">
+                                            <a class="page-link" href="?pagina=<?php echo ($pagina + 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
                                                 Siguiente &raquo;
                                             </a>
                                         </li>
@@ -232,58 +283,78 @@ $productos = fetchAll($sql, $params);
 
 <script>
 // Función para mostrar detalles del producto
-function verDetalles(id) {
+function verDetalles(codigo) {
     const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
     
     // Mostrar el modal
     modal.show();
     
-    // Cargar detalles vía AJAX
-    fetch(`/api/productos.php?id=${id}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const producto = data.data;
-                document.getElementById('detallesProducto').innerHTML = `
-                    <table class="table table-borderless">
-                        <tr>
-                            <th>SKU:</th>
-                            <td>${producto.sku}</td>
-                        </tr>
-                        <tr>
-                            <th>Nombre:</th>
-                            <td>${producto.nombre}</td>
-                        </tr>
-                        <tr>
-                            <th>Stock:</th>
-                            <td>${producto.stock} unidades</td>
-                        </tr>
-                        <tr>
-                            <th>Precio:</th>
-                            <td>$${parseFloat(producto.precio).toLocaleString('es-CL')}</td>
-                        </tr>
-                        <tr>
-                            <th>Valor total:</th>
-                            <td>$${(producto.stock * producto.precio).toLocaleString('es-CL')}</td>
-                        </tr>
-                    </table>
-                `;
-            } else {
-                document.getElementById('detallesProducto').innerHTML = `
-                    <div class="alert alert-danger">
-                        Error al cargar los detalles del producto: ${data.message}
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            document.getElementById('detallesProducto').innerHTML = `
-                <div class="alert alert-danger">
-                    Error de comunicación con el servidor.
-                </div>
-            `;
-            console.error('Error:', error);
-        });
+    // Buscar el producto en la tabla actual
+    const productos = <?php echo json_encode($productos); ?>;
+    let producto = null;
+    
+    for (let i = 0; i < productos.length; i++) {
+        if (productos[i].PRODUCTO_CODIGO === codigo) {
+            producto = productos[i];
+            break;
+        }
+    }
+    
+    if (producto) {
+        document.getElementById('detallesProducto').innerHTML = `
+            <table class="table table-borderless">
+                <tr>
+                    <th>Código:</th>
+                    <td>${producto.PRODUCTO_CODIGO}</td>
+                </tr>
+                <tr>
+                    <th>Descripción:</th>
+                    <td>${producto.PRODUCTO_DESCRIPCION}</td>
+                </tr>
+                <tr>
+                    <th>Marca:</th>
+                    <td>${producto.MARCA_DESCRIPCION}</td>
+                </tr>
+                <tr>
+                    <th>Familia:</th>
+                    <td>${producto.FAMILIA_DESCRIPCION}</td>
+                </tr>
+                <tr>
+                    <th colspan="2" class="bg-light text-center">Ventas y Stock por Sucursal</th>
+                </tr>
+                <tr>
+                    <th>Sucursal 1 - Ventas:</th>
+                    <td>${producto.VENTA_SUCURSAL01}</td>
+                </tr>
+                <tr>
+                    <th>Sucursal 1 - Stock:</th>
+                    <td>${producto.STOCK_BODEGA01}</td>
+                </tr>
+                <tr>
+                    <th>Sucursal 2 - Ventas:</th>
+                    <td>${producto.VENTA_SUCURSAL02}</td>
+                </tr>
+                <tr>
+                    <th>Sucursal 2 - Stock:</th>
+                    <td>${producto.STOCK_BODEGA02}</td>
+                </tr>
+                <tr>
+                    <th>Sucursal 3 - Ventas:</th>
+                    <td>${producto.VENTA_SUCURSAL03 || '0'}</td>
+                </tr>
+                <tr>
+                    <th>Sucursal 3 - Stock:</th>
+                    <td>${producto.STOCK_BODEGA03 || '0'}</td>
+                </tr>
+            </table>
+        `;
+    } else {
+        document.getElementById('detallesProducto').innerHTML = `
+            <div class="alert alert-danger">
+                No se pudo encontrar la información del producto con código ${codigo}.
+            </div>
+        `;
+    }
 }
 </script>
 
