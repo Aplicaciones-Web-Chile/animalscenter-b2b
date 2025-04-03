@@ -81,6 +81,7 @@ $pageTitle = $pageTitle ?? 'Sistema B2B';
                             <i class="fas fa-box"></i> Productos
                         </a>
                     </li>
+                    <!--
                     <li class="nav-item">
                         <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'ventas.php' ? 'active' : ''; ?>" href="ventas.php">
                             <i class="fas fa-shopping-cart"></i> Ventas
@@ -91,6 +92,7 @@ $pageTitle = $pageTitle ?? 'Sistema B2B';
                             <i class="fas fa-file-invoice-dollar"></i> Facturas
                         </a>
                     </li>
+                    -->
                     <?php if (isAdmin()): ?>
                     <li class="nav-item">
                         <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'usuarios.php' ? 'active' : ''; ?>" href="usuarios.php">

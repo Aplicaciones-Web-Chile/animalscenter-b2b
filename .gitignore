@@ -35,3 +35,7 @@ config/CredencialesDePrueba.MD
 *.cfg
 public/test/*
 public/pma/*
+
+# windsurf rules
+.windsurfrules
+docs/ejemplo-de-documento-a-generar.xls
