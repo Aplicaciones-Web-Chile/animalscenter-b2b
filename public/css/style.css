@@ -4,7 +4,7 @@
 
 /* Ajustes generales */
 body {
-    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Signika", sans-serif;
     color: #333;
     background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
     min-height: 100vh;
@@ -253,6 +253,7 @@ body {
 .pagination .page-item.active .page-link {
     background-color: #1a56db;
     border-color: #1a56db;
+    color: #dee2e6;
 }
 
 /* Pie de página */

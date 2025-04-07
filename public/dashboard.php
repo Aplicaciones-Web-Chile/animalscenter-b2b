@@ -79,16 +79,16 @@ include 'header.php';
                         <a href="productos.php" class="list-group-item list-group-item-action">
                             <i class="fas fa-box me-2"></i>Gestionar Productos
                         </a>
-                        <a href="ordenes.php" class="list-group-item list-group-item-action">
+                        <!--<a href="ordenes.php" class="list-group-item list-group-item-action">
                             <i class="fas fa-shopping-cart me-2"></i>Ver Órdenes
-                        </a>
+                        </a>-->
                         <?php else: ?>
                         <a href="mis-productos.php" class="list-group-item list-group-item-action">
                             <i class="fas fa-box me-2"></i>Mis Productos
                         </a>
-                        <a href="mis-ordenes.php" class="list-group-item list-group-item-action">
+                        <!--<a href="mis-ordenes.php" class="list-group-item list-group-item-action">
                             <i class="fas fa-shopping-cart me-2"></i>Mis Órdenes
-                        </a>
+                        </a>-->
                         <a href="perfil.php" class="list-group-item list-group-item-action">
                             <i class="fas fa-user-cog me-2"></i>Mi Perfil
                         </a>

@@ -129,7 +129,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
         <div class="col-md-12">
             <div class="d-flex justify-content-between align-items-center">
                 <h1 class="mb-0"><i class="fas fa-boxes me-2"></i>Gestión de Productos</h1>
-                <a href="exportar.php?tipo=productos" class="btn btn-success">
+                <a href="exportar.php?tipo=productos&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-success">
                     <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                 </a>
             </div>
@@ -185,7 +185,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                             No se encontraron productos. <?php echo !empty($busqueda) ? 'Intente con otra búsqueda.' : ''; ?>
                         </div>
                     <?php else: ?>
-                        <div class="table-responsive">
+                        <div class="table-responsive mb-3">
                             <table class="table table-striped table-hover">
                                 <thead>
                                     <tr>
