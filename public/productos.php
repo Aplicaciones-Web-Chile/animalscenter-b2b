@@ -323,9 +323,9 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                 </div>
             </div>
             <div class="modal-footer">
-                <a href="#" class="btn btn-primary me-auto d-none" id="exportarProductoBtn">
+                <!--<a href="#" class="btn btn-primary me-auto d-none" id="exportarProductoBtn">
                     <i class="fas fa-file-excel me-1"></i> Exportar producto
-                </a>
+                </a>-->
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
