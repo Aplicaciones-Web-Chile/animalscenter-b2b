@@ -60,6 +60,11 @@ class AuthController {
             $_SESSION['nombre'] = $user['nombre'];
             $_SESSION['logged_in'] = true;
             
+            // Guardar el RUT del proveedor en la sesión si el usuario es proveedor
+            if ($user['rol'] === 'proveedor' && isset($user['rut'])) {
+                $_SESSION['rut_proveedor'] = $user['rut'];
+            }
+            
             return [
                 'success' => true,
                 'message' => 'Bienvenido ' . $user['nombre'],

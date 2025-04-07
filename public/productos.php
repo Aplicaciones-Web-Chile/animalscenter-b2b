@@ -23,11 +23,22 @@ $pageTitle = 'Gestión de Productos';
 include 'header.php';
 
 // Inicializar variables para filtros
-$busqueda = $_GET['busqueda'] ?? '';
-$fechaInicio = $_GET['fecha_inicio'] ?? date('d/m/Y'); // Por defecto el día actual
-$fechaFin = $_GET['fecha_fin'] ?? date('d/m/Y'); // Por defecto el día actual
-$proveedor = $_GET['proveedor'] ?? '78843490'; // Código del proveedor por defecto
-$distribuidor = $_GET['distribuidor'] ?? '001'; // Código del distribuidor por defecto
+$busqueda       = $_GET['busqueda'] ?? '';
+$fechaInicio    = $_GET['fecha_inicio'] ?? date('d/m/Y'); // Por defecto el día actual
+$fechaFin       = $_GET['fecha_fin'] ?? date('d/m/Y'); // Por defecto el día actual
+$distribuidor   = $_GET['distribuidor'] ?? '001'; // Código del distribuidor por defecto
+
+// Determinar el rol del usuario actual
+$esAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] === 'admin';
+
+// Si el usuario es admin, puede cambiar el proveedor, si no, se usa el de la sesión
+if ($esAdmin) {
+    // El admin puede filtrar por cualquier proveedor
+    $proveedor = $_GET['proveedor'] ?? '78843490'; // Código del proveedor por defecto para admin
+} else {
+    // Un proveedor solo puede ver sus propios productos
+    $proveedor = $_SESSION['rut_proveedor'] ?? '0'; // Usar el código almacenado en la sesión
+}
 
 // Inicializar variables para paginación
 $pagina = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
@@ -176,11 +187,16 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                             <input type="text" class="form-control date-input" id="fecha_fin" name="fecha_fin" 
                                 value="<?php echo htmlspecialchars($fechaFin); ?>" placeholder="dd/mm/yyyy">
                         </div>
+                        <?php if ($esAdmin): ?>
                         <div class="col-md-3">
                             <label for="proveedor" class="form-label">Código Proveedor</label>
                             <input type="text" class="form-control" id="proveedor" name="proveedor" 
                                 value="<?php echo htmlspecialchars($proveedor); ?>" placeholder="Código Proveedor">
                         </div>
+                        <?php else: ?>
+                        <!-- Para usuarios no administradores, enviamos el valor del proveedor como campo oculto -->
+                        <input type="hidden" name="proveedor" value="<?php echo htmlspecialchars($proveedor); ?>">
+                        <?php endif; ?>
                     </form>
                 </div>
             </div>

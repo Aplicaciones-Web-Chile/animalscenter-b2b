@@ -158,7 +158,7 @@ function logout() {
     // Guardar usuario para logging
     $username = $_SESSION['username'] ?? 'unknown';
     
-    // Destruir datos de sesión
+    // Destruir datos de sesión - IMPORTANTE: eliminar completamente todas las variables
     $_SESSION = [];
     
     // Destruir la cookie de sesión
@@ -172,6 +172,10 @@ function logout() {
     
     // Destruir la sesión
     session_destroy();
+    
+    // Iniciar una nueva sesión para evitar errores en caso de que se acceda a $_SESSION después
+    session_start();
+    $_SESSION = []; // Asegura que no haya datos residuales
     
     // Registrar en log
     error_log("Usuario deslogueado: " . $username);
