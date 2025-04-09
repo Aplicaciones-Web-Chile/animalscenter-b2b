@@ -35,6 +35,7 @@ config/CredencialesDePrueba.MD
 *.cfg
 public/test/*
 public/pma/*
+public/tmp/*
 
 # windsurf rules
 .windsurfrules

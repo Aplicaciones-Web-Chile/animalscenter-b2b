@@ -42,7 +42,7 @@ if ($esAdmin) {
 
 // Inicializar variables para paginación
 $pagina = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
-$porPagina = 10;
+$porPagina = 20;
 
 // Función para consumir la API de productos
 function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor) {
@@ -217,6 +217,21 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0"><i class="fas fa-list me-2"></i>Listado de Productos</h5>
                 </div>
+                <div class="card-body bg-light py-2">
+                    <!-- Buscador JavaScript para filtrar la tabla -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="input-group" style="max-width: 500px;">
+                            <span class="input-group-text bg-white">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" id="tablaBuscador" class="form-control" placeholder="Buscar por código, nombre, marca o familia..." autocomplete="off">
+                            <button class="btn btn-outline-secondary" type="button" id="limpiarBusqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="resultadosBusqueda" class="text-muted small"></div>
+                    </div>
+                </div>
                 <div class="card-body">
                     <?php if (empty($productos)): ?>
                         <div class="alert alert-info">
@@ -231,22 +246,17 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                         <th width="30%">Producto</th>
                                         <th width="15%">Marca</th>
                                         <th width="15%">Familia</th>
-                                        <th width="8%">Ventas</th>
-                                        <th width="8%">Stock</th>
-                                        <th width="8%">Ventas</th>
-                                        <th width="8%">Stock</th>
+                                        <th width="8%">Ventas <br> VERGARA</th>
+                                        <th width="8%">Stock <br> VERGARA</th>
+                                        <th width="8%">Ventas <br> LAMPA</th>
+                                        <th width="8%">Stock <br> LAMPA</th>
+                                        <th width="8%">Ventas <br> PANAMERICANA</th>
+                                        <th width="8%">Stock <br> PANAMERICANA</th>
+                                        <th width="8%">Ventas <br> MATTA</th>
+                                        <th width="8%">Stock <br> MATTA</th>
+                                        <th width="8%">Ventas <br> PROVIDENCIA</th>
+                                        <th width="8%">Stock <br> PROVIDENCIA</th>
                                         <th width="8%">Acciones</th>
-                                    </tr>
-                                    <tr class="text-muted" style="font-size: 0.8rem; text-transform: none;">
-                                        <th></th>
-                                        <th></th>
-                                        <th></th>
-                                        <th></th>
-                                        <th>Suc. 1</th>
-                                        <th>Suc. 1</th>
-                                        <th>Suc. 2</th>
-                                        <th>Suc. 2</th>
-                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -278,6 +288,24 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                             <td>
                                                 <span class="badge badge-stock <?php echo $stockClass2; ?>">
                                                     <?php echo $producto['STOCK_BODEGA02']; ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo $producto['VENTA_SUCURSAL03']; ?></td>
+                                            <td>
+                                                <span class="badge badge-stock <?php echo $stockClass3; ?>">
+                                                    <?php echo $producto['STOCK_BODEGA03']; ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo $producto['VENTA_SUCURSAL04']; ?></td>
+                                            <td>
+                                                <span class="badge badge-stock <?php echo $stockClass4; ?>">
+                                                    <?php echo $producto['STOCK_BODEGA04']; ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo $producto['VENTA_SUCURSAL05']; ?></td>
+                                            <td>
+                                                <span class="badge badge-stock <?php echo $stockClass5; ?>">
+                                                    <?php echo $producto['STOCK_BODEGA05']; ?>
                                                 </span>
                                             </td>
                                             <td>
@@ -477,7 +505,7 @@ function verDetalles(codigo) {
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td>COPIAPO</td>
+                                        <td>VERGARA</td>
                                         <td class="text-center">${producto.VENTA_SUCURSAL01 || '0'}</td>
                                         <td class="text-center">
                                             <span class="badge badge-stock ${producto.STOCK_BODEGA01 <= 5 ? 'low' : (producto.STOCK_BODEGA01 <= 20 ? 'medium' : '')}">
@@ -486,7 +514,7 @@ function verDetalles(codigo) {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td>LA SERENA</td>
+                                        <td>LAMPA</td>
                                         <td class="text-center">${producto.VENTA_SUCURSAL02 || '0'}</td>
                                         <td class="text-center">
                                             <span class="badge badge-stock ${producto.STOCK_BODEGA02 <= 5 ? 'low' : (producto.STOCK_BODEGA02 <= 20 ? 'medium' : '')}">
@@ -495,7 +523,7 @@ function verDetalles(codigo) {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td>ANTOFAGASTA</td>
+                                        <td>PANAMERICANA</td>
                                         <td class="text-center">${producto.VENTA_SUCURSAL03 || '0'}</td>
                                         <td class="text-center">
                                             <span class="badge badge-stock ${producto.STOCK_BODEGA03 <= 5 ? 'low' : (producto.STOCK_BODEGA03 <= 20 ? 'medium' : '')}">
@@ -504,7 +532,7 @@ function verDetalles(codigo) {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td>ÑUÑOA</td>
+                                        <td>MATTA</td>
                                         <td class="text-center">${producto.VENTA_SUCURSAL04 || '0'}</td>
                                         <td class="text-center">
                                             <span class="badge badge-stock ${producto.STOCK_BODEGA04 <= 5 ? 'low' : (producto.STOCK_BODEGA04 <= 20 ? 'medium' : '')}">
@@ -542,6 +570,83 @@ function verDetalles(codigo) {
         `;
     }
 }
+</script>
+
+<!-- Script para el buscador de la tabla -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const buscador = document.getElementById('tablaBuscador');
+    const limpiarBtn = document.getElementById('limpiarBusqueda');
+    const resultadosInfo = document.getElementById('resultadosBusqueda');
+    const tabla = document.querySelector('.table-striped');
+    const filas = tabla ? Array.from(tabla.querySelectorAll('tbody tr')) : [];
+    let totalFilas = filas.length;
+    
+    // Función para actualizar el contador de resultados
+    function actualizarContadorResultados(mostrados) {
+        resultadosInfo.textContent = `Mostrando ${mostrados} de ${totalFilas} productos`;
+    }
+    
+    // Inicializar el contador
+    actualizarContadorResultados(totalFilas);
+    
+    // Función para filtrar las filas de la tabla
+    function filtrarTabla() {
+        const textoBusqueda = buscador.value.toLowerCase().trim();
+        let filasVisibles = 0;
+        
+        // Si no hay texto de búsqueda, mostrar todas las filas
+        if (textoBusqueda === '') {
+            filas.forEach(fila => {
+                fila.style.display = '';
+                filasVisibles++;
+            });
+        } else {
+            // Filtrar filas según el texto de búsqueda
+            filas.forEach(fila => {
+                // Extraer el texto de las celdas relevantes (código, producto, marca, familia)
+                const codigo = fila.cells[0].textContent.toLowerCase();
+                const producto = fila.cells[1].textContent.toLowerCase();
+                const marca = fila.cells[2].textContent.toLowerCase();
+                const familia = fila.cells[3].textContent.toLowerCase();
+                
+                // Comprobar si el texto de búsqueda está en alguna de las celdas
+                if (codigo.includes(textoBusqueda) || 
+                    producto.includes(textoBusqueda) || 
+                    marca.includes(textoBusqueda) || 
+                    familia.includes(textoBusqueda)) {
+                    fila.style.display = '';
+                    filasVisibles++;
+                } else {
+                    fila.style.display = 'none';
+                }
+            });
+        }
+        
+        // Actualizar contador de resultados
+        actualizarContadorResultados(filasVisibles);
+        
+        // Mostrar/ocultar el botón de limpiar según haya texto o no
+        if (textoBusqueda === '') {
+            limpiarBtn.classList.add('d-none');
+        } else {
+            limpiarBtn.classList.remove('d-none');
+        }
+    }
+    
+    // Evento para filtrar al escribir en el buscador
+    buscador.addEventListener('input', filtrarTabla);
+    
+    // Evento para limpiar la búsqueda
+    limpiarBtn.addEventListener('click', function() {
+        buscador.value = '';
+        filtrarTabla();
+        buscador.focus();
+    });
+    
+    // Ocultar el botón de limpiar al inicio
+    limpiarBtn.classList.add('d-none');
+});
 </script>
 
 <?php

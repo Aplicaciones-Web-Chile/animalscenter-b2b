@@ -368,13 +368,13 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             $sheet->setCellValue('G' . $row_idx, $producto['UNIDAD_COMPRA'] ?? '1');
             
             // Sucursales y stock (usar los datos de la API o valores predeterminados si no están disponibles)
-            $sheet->setCellValue('H' . $row_idx, 'COPIAPO');
+            $sheet->setCellValue('H' . $row_idx, 'VERGARA');
             $sheet->setCellValue('I' . $row_idx, $producto['STOCK_BODEGA01'] ?? '0');
-            $sheet->setCellValue('J' . $row_idx, 'LA SERENA');
+            $sheet->setCellValue('J' . $row_idx, 'LAMPA');
             $sheet->setCellValue('K' . $row_idx, $producto['STOCK_BODEGA02'] ?? '0');
-            $sheet->setCellValue('L' . $row_idx, 'ANTOFAGASTA');
+            $sheet->setCellValue('L' . $row_idx, 'PANAMERICANA');
             $sheet->setCellValue('M' . $row_idx, $producto['STOCK_BODEGA03'] ?? '0');
-            $sheet->setCellValue('N' . $row_idx, 'ÑUÑOA');
+            $sheet->setCellValue('N' . $row_idx, 'MATTA');
             $sheet->setCellValue('O' . $row_idx, $producto['STOCK_BODEGA04'] ?? '0');
             $sheet->setCellValue('P' . $row_idx, 'PROVIDENCIA');
             $sheet->setCellValue('Q' . $row_idx, $producto['STOCK_BODEGA05'] ?? '0');
