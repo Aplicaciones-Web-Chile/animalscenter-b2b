@@ -109,6 +109,13 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
 } else {
     $productosAPI = $respuestaAPI['datos'] ?? [];
     
+    /* 
+        Guardo $productosAPI en un json con los datos de los productos en un archivo 
+        físico en la carpeta tmp con un nombre descriptivo de la fecha en que se ejecutó.
+        Antes de guardarlo, lo limpio para que no tenga datos duplicados.
+    */
+    file_put_contents(__DIR__ . '/tmp/productos_' . date('Y-m-d_H-i-s') . '.json', json_encode($productosAPI));
+
     // Filtrar por búsqueda si se especifica
     if (!empty($busqueda)) {
         $productosAPI = array_filter($productosAPI, function($producto) use ($busqueda) {
