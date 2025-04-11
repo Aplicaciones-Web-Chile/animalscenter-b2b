@@ -114,7 +114,11 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
         físico en la carpeta tmp con un nombre descriptivo de la fecha en que se ejecutó.
         Antes de guardarlo, lo limpio para que no tenga datos duplicados.
     */
-    file_put_contents(__DIR__ . '/tmp/productos_' . date('Y-m-d_H-i-s') . '.json', json_encode($productosAPI));
+    $file = file_put_contents(__DIR__ . '/tmp/productos_' . date('Y-m-d_H-i-s') . '.json', json_encode($productosAPI));
+    if ($file === false) {
+        error_log("Error al guardar productos en el archivo");
+        die('Error al guardar productos en el archivo');
+    }
 
     // Filtrar por búsqueda si se especifica
     if (!empty($busqueda)) {
@@ -246,6 +250,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                         <th width="30%">Producto</th>
                                         <th width="15%">Marca</th>
                                         <th width="15%">Familia</th>
+                                        <th width="15%">Ventas <br> Distribución </th>
                                         <th width="8%">Ventas <br> VERGARA</th>
                                         <th width="8%">Stock <br> VERGARA</th>
                                         <th width="8%">Ventas <br> LAMPA</th>
@@ -271,13 +276,14 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                             <td>
                                                 <div class="d-flex flex-column">
                                                     <span class="fw-medium"><?php echo htmlspecialchars($producto['PRODUCTO_DESCRIPCION']); ?></span>
-                                                    <?php if (!empty($producto['PRODUCTO_BARCODE'])): ?>
-                                                        <small class="text-muted">COD: <?php echo htmlspecialchars($producto['PRODUCTO_BARCODE']); ?></small>
+                                                    <?php if (!empty($producto['CODIGO_DE_BARRA'])): ?>
+                                                        <small class="text-muted">COD: <?php echo htmlspecialchars($producto['CODIGO_DE_BARRA']); ?></small>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
                                             <td><?php echo htmlspecialchars($producto['MARCA_DESCRIPCION']); ?></td>
                                             <td><?php echo htmlspecialchars($producto['FAMILIA_DESCRIPCION']); ?></td>
+                                            <td><?php echo htmlspecialchars($producto['VENTA_DISTRIBUCION']); ?></td>
                                             <td><?php echo $producto['VENTA_SUCURSAL01']; ?></td>
                                             <td>
                                                 <span class="badge badge-stock <?php echo $stockClass1; ?>">
@@ -423,9 +429,6 @@ function verDetalles(codigo) {
         // Calcular la rotación
         const rotacion = totalVentas > 0 && totalStock > 0 ? (totalStock / totalVentas).toFixed(2) : 0;
         
-        // Determinar si es "Buena Percha" (B/P)
-        const esBP = (totalVentas > 0 && totalStock > 0) || rotacion > 1;
-        
         document.getElementById('detallesProducto').innerHTML = `
             <div class="row g-0">
                 <div class="col-md-4 bg-light">
@@ -448,7 +451,7 @@ function verDetalles(codigo) {
                             </div>
                             <div class="row mb-2">
                                 <div class="col-5 text-muted">Código de Barra:</div>
-                                <div class="col-7">${producto.PRODUCTO_BARCODE || 'N/A'}</div>
+                                <div class="col-7">${producto.CODIGO_DE_BARRA || 'N/A'}</div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-5 text-muted">Marca:</div>
@@ -477,14 +480,6 @@ function verDetalles(codigo) {
                             <div class="row mb-2">
                                 <div class="col-6 text-muted">Rotación:</div>
                                 <div class="col-6 fw-bold">${rotacion}</div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-6 text-muted">Buena Percha:</div>
-                                <div class="col-6">
-                                    <span class="badge ${esBP ? 'bg-success' : 'bg-secondary'}">
-                                        ${esBP ? 'SI' : 'NO'}
-                                    </span>
-                                </div>
                             </div>
                         </div>
                     </div>
