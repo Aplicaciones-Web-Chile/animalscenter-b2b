@@ -251,6 +251,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                         <th width="15%">Marca</th>
                                         <th width="15%">Familia</th>
                                         <th width="15%">Ventas <br> Distribución </th>
+                                        <th width="8%">Ventas <br> WEB</th>
                                         <th width="8%">Ventas <br> VERGARA</th>
                                         <th width="8%">Stock <br> VERGARA</th>
                                         <th width="8%">Ventas <br> LAMPA</th>
@@ -284,6 +285,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                             <td><?php echo htmlspecialchars($producto['MARCA_DESCRIPCION']); ?></td>
                                             <td><?php echo htmlspecialchars($producto['FAMILIA_DESCRIPCION']); ?></td>
                                             <td><?php echo htmlspecialchars($producto['VENTA_DISTRIBUCION']); ?></td>
+                                            <td><?php echo $producto['VENTA_SUCURSAL07']; ?></td>
                                             <td><?php echo $producto['VENTA_SUCURSAL01']; ?></td>
                                             <td>
                                                 <span class="badge badge-stock <?php echo $stockClass1; ?>">

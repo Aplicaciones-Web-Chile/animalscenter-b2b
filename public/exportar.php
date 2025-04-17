@@ -273,15 +273,15 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         
         // Configurar el título principal del informe
         $sheet->setCellValue('A1', 'TIENDA DE MASCOTAS ANIMALS CENTER LTDA');
-        $sheet->mergeCells('A1:V1');
+        $sheet->mergeCells('A1:W1');
         
         // Configurar subtítulo del informe
         $sheet->setCellValue('A2', 'Informe B2B');
-        $sheet->mergeCells('A2:V2');
+        $sheet->mergeCells('A2:W2');
         
         // Establecer fechas del informe
         $sheet->setCellValue('A3', 'Desde el ' . $fechaInicio . ' hasta el ' . $fechaFin);
-        $sheet->mergeCells('A3:V3');
+        $sheet->mergeCells('A3:W3');
         
         // Aplicar estilos al encabezado
         $headerStyle = [
@@ -309,14 +309,14 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             ],
         ];
         
-        $sheet->getStyle('A1:V3')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:W3')->applyFromArray($headerStyle);
         
         // Saltar una fila para iniciar el contenido
         $row_idx = 5;
         
         // Texto "ORDENADO POR CÓDIGO"
         $sheet->setCellValue('A' . $row_idx, 'ORDENADO POR CÓDIGO');
-        $sheet->mergeCells('A' . $row_idx . ':V' . $row_idx);
+        $sheet->mergeCells('A' . $row_idx . ':W' . $row_idx);
         $sheet->getStyle('A' . $row_idx)->getFont()->setBold(true);
         
         // Crear encabezados de columna con sucursales agrupadas
@@ -345,25 +345,28 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         // Campo de Venta Distribución
         $sheet->setCellValue('H' . $headerRow1, 'DISTRIB');
 
+        // Campo de Venta Web
+        $sheet->setCellValue('I' . $headerRow1, 'WEB');
+
         // Sucursales
-        $sheet->setCellValue('I' . $headerRow1, 'VERGARA');
-        $sheet->mergeCells('I' . $headerRow1 . ':J' . $headerRow1);
+        $sheet->setCellValue('J' . $headerRow1, 'VERGARA');
+        $sheet->mergeCells('J' . $headerRow1 . ':K' . $headerRow1);
         
-        $sheet->setCellValue('K' . $headerRow1, 'LAMPA');
-        $sheet->mergeCells('K' . $headerRow1 . ':L' . $headerRow1);
+        $sheet->setCellValue('L' . $headerRow1, 'LAMPA');
+        $sheet->mergeCells('L' . $headerRow1 . ':M' . $headerRow1);
         
-        $sheet->setCellValue('M' . $headerRow1, 'PANAMERICANA');
-        $sheet->mergeCells('M' . $headerRow1 . ':N' . $headerRow1);
+        $sheet->setCellValue('N' . $headerRow1, 'PANAMERICANA');
+        $sheet->mergeCells('N' . $headerRow1 . ':O' . $headerRow1);
         
-        $sheet->setCellValue('O' . $headerRow1, 'MATTA');
-        $sheet->mergeCells('O' . $headerRow1 . ':P' . $headerRow1);
+        $sheet->setCellValue('P' . $headerRow1, 'MATTA');
+        $sheet->mergeCells('P' . $headerRow1 . ':Q' . $headerRow1);
         
-        $sheet->setCellValue('Q' . $headerRow1, 'PROVIDENCIA');
-        $sheet->mergeCells('Q' . $headerRow1 . ':R' . $headerRow1);
+        $sheet->setCellValue('R' . $headerRow1, 'PROVIDENCIA');
+        $sheet->mergeCells('R' . $headerRow1 . ':S' . $headerRow1);
 
         // Totales
-        $sheet->setCellValue('S' . $headerRow1, 'TOTALES');
-        $sheet->mergeCells('S' . $headerRow1 . ':V' . $headerRow1);
+        $sheet->setCellValue('T' . $headerRow1, 'TOTALES');
+        $sheet->mergeCells('T' . $headerRow1 . ':W' . $headerRow1);
         
         // Segunda fila del encabezado - Detalle de columnas
         $row_idx++;
@@ -378,34 +381,35 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->setCellValue('F' . $headerRow2, 'Sub categoría');
         $sheet->setCellValue('G' . $headerRow2, 'Kilo');
         $sheet->setCellValue('H' . $headerRow2, 'Venta Distribución');
+        $sheet->setCellValue('I' . $headerRow2, 'Venta Web');
         
         // Detalle de sucursales - Venta y Stock
-        $sheet->setCellValue('I' . $headerRow2, 'Venta');
-        $sheet->setCellValue('J' . $headerRow2, 'Stock');
-        $sheet->setCellValue('K' . $headerRow2, 'Venta');
-        $sheet->setCellValue('L' . $headerRow2, 'Stock');
-        $sheet->setCellValue('M' . $headerRow2, 'Venta');
-        $sheet->setCellValue('N' . $headerRow2, 'Stock');
-        $sheet->setCellValue('O' . $headerRow2, 'Venta');
-        $sheet->setCellValue('P' . $headerRow2, 'Stock');
-        $sheet->setCellValue('Q' . $headerRow2, 'Venta');
-        $sheet->setCellValue('R' . $headerRow2, 'Stock');
+        $sheet->setCellValue('J' . $headerRow2, 'Venta');
+        $sheet->setCellValue('K' . $headerRow2, 'Stock');
+        $sheet->setCellValue('L' . $headerRow2, 'Venta');
+        $sheet->setCellValue('M' . $headerRow2, 'Stock');
+        $sheet->setCellValue('N' . $headerRow2, 'Venta');
+        $sheet->setCellValue('O' . $headerRow2, 'Stock');
+        $sheet->setCellValue('P' . $headerRow2, 'Venta');
+        $sheet->setCellValue('Q' . $headerRow2, 'Stock');
+        $sheet->setCellValue('R' . $headerRow2, 'Venta');
+        $sheet->setCellValue('S' . $headerRow2, 'Stock');
         
         // Totales - Con comentarios explicativos
-        $sheet->setCellValue('S' . $headerRow2, 'Stock Valorizado');
-        $comentarioStockValorizado = $sheet->getComment('S' . $headerRow2);
+        $sheet->setCellValue('T' . $headerRow2, 'Stock Valorizado');
+        $comentarioStockValorizado = $sheet->getComment('T' . $headerRow2);
         $comentarioStockValorizado->getText()->createTextRun('Valor total del stock: Suma de todos los stocks multiplicado por el valor unitario');
 
-        $sheet->setCellValue('T' . $headerRow2, 'Suma Ventas (U)');
-        $comentarioSumaVentas = $sheet->getComment('T' . $headerRow2);
+        $sheet->setCellValue('U' . $headerRow2, 'Suma Ventas (U)');
+        $comentarioSumaVentas = $sheet->getComment('U' . $headerRow2);
         $comentarioSumaVentas->getText()->createTextRun('Total de unidades vendidas en todas las sucursales');
 
-        $sheet->setCellValue('U' . $headerRow2, 'Suma Stock (U)');
-        $comentarioSumaStock = $sheet->getComment('U' . $headerRow2);
+        $sheet->setCellValue('V' . $headerRow2, 'Suma Stock (U)');
+        $comentarioSumaStock = $sheet->getComment('V' . $headerRow2);
         $comentarioSumaStock->getText()->createTextRun('Total de unidades en stock en todas las sucursales');
 
-        $sheet->setCellValue('V' . $headerRow2, 'Rotación');
-        $comentarioRotacion = $sheet->getComment('V' . $headerRow2);
+        $sheet->setCellValue('W' . $headerRow2, 'Rotación');
+        $comentarioRotacion = $sheet->getComment('W' . $headerRow2);
         $comentarioRotacion->getText()->createTextRun('Velocidad con que se vende el producto: Ventas / Stock');
         
         // Estilo para encabezados de columna
@@ -495,22 +499,23 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             $sheet->setCellValue('D' . $row_idx, $producto['MARCA_DESCRIPCION']);
             $sheet->setCellValue('E' . $row_idx, $producto['FAMILIA_DESCRIPCION']); // Categoría
             $sheet->setCellValue('F' . $row_idx, $producto['SUBFAMILIA_DESCRIPCION'] ?? ''); // Subcategoría
-            $sheet->setCellValue('G' . $row_idx, $producto['UNIDAD_COMPRA'] ?? '1');
+            $sheet->setCellValue('G' . $row_idx, $producto['KG'] ?? 'No disponible');
             
             // Sucursales y stock (usar los datos de la API o valores predeterminados si no están disponibles)
             // Venta Distribución y sucursales (usar los datos de la API o valores predeterminados si no están disponibles)
             // Convertimos todos los valores a numéricos para evitar errores
             $sheet->setCellValue('H' . $row_idx, floatval(str_replace(',', '.', $producto['VENTA_DISTRIBUCION'] ?? 0)));
-            $sheet->setCellValue('I' . $row_idx, floatval($producto['VENTA_SUCURSAL01'] ?? 0));
-            $sheet->setCellValue('J' . $row_idx, floatval($producto['STOCK_BODEGA01'] ?? 0));
-            $sheet->setCellValue('K' . $row_idx, floatval($producto['VENTA_SUCURSAL02'] ?? 0));
-            $sheet->setCellValue('L' . $row_idx, floatval($producto['STOCK_BODEGA02'] ?? 0));
-            $sheet->setCellValue('M' . $row_idx, floatval($producto['VENTA_SUCURSAL03'] ?? 0));
-            $sheet->setCellValue('N' . $row_idx, floatval($producto['STOCK_BODEGA03'] ?? 0));
-            $sheet->setCellValue('O' . $row_idx, floatval($producto['VENTA_SUCURSAL04'] ?? 0));
-            $sheet->setCellValue('P' . $row_idx, floatval($producto['STOCK_BODEGA04'] ?? 0));
-            $sheet->setCellValue('Q' . $row_idx, floatval($producto['VENTA_SUCURSAL05'] ?? 0));
-            $sheet->setCellValue('R' . $row_idx, floatval($producto['STOCK_BODEGA05'] ?? 0));
+            $sheet->setCellValue('I' . $row_idx, floatval($producto['VENTA_SUCURSAL07'] ?? 0));
+            $sheet->setCellValue('J' . $row_idx, floatval($producto['VENTA_SUCURSAL01'] ?? 0));
+            $sheet->setCellValue('K' . $row_idx, floatval($producto['STOCK_BODEGA01'] ?? 0));
+            $sheet->setCellValue('L' . $row_idx, floatval($producto['VENTA_SUCURSAL02'] ?? 0));
+            $sheet->setCellValue('M' . $row_idx, floatval($producto['STOCK_BODEGA02'] ?? 0));
+            $sheet->setCellValue('N' . $row_idx, floatval($producto['VENTA_SUCURSAL03'] ?? 0));
+            $sheet->setCellValue('O' . $row_idx, floatval($producto['STOCK_BODEGA03'] ?? 0));
+            $sheet->setCellValue('P' . $row_idx, floatval($producto['VENTA_SUCURSAL04'] ?? 0));
+            $sheet->setCellValue('Q' . $row_idx, floatval($producto['STOCK_BODEGA04'] ?? 0));
+            $sheet->setCellValue('R' . $row_idx, floatval($producto['VENTA_SUCURSAL05'] ?? 0));
+            $sheet->setCellValue('S' . $row_idx, floatval($producto['STOCK_BODEGA05'] ?? 0));
             
             // Valor unitario y datos de ventas - aseguramos que sean numéricos
             $valorUnitario = floatval($producto['PRECIO_VENTA'] ?? 0);
@@ -519,8 +524,9 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             $ventaSuc3 = floatval($producto['VENTA_SUCURSAL03'] ?? 0);
             $ventaSuc4 = floatval($producto['VENTA_SUCURSAL04'] ?? 0);
             $ventaSuc5 = floatval($producto['VENTA_SUCURSAL05'] ?? 0);
+            $ventaWeb = floatval($producto['VENTA_SUCURSAL07'] ?? 0);
             
-            // Fórmula S: Stock valorizado (suma de stocks * unidad de compra)
+            // Fórmula T: Stock valorizado (suma de stocks * unidad de compra)
             // Calculamos directamente el valor en lugar de usar una fórmula para evitar problemas de formato
             // Aseguramos que todos los valores sean numéricos con floatval()
             $stockTotal = floatval($producto['STOCK_BODEGA01'] ?? 0) + floatval($producto['STOCK_BODEGA02'] ?? 0) + 
@@ -528,24 +534,24 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
                         floatval($producto['STOCK_BODEGA05'] ?? 0);
             $unidadCompra = floatval($producto['UNIDAD_COMPRA'] ?? 1);
             $stockValorizado = $stockTotal * $unidadCompra;
-            $sheet->setCellValue('S' . $row_idx, $stockValorizado);
+            $sheet->setCellValue('T' . $row_idx, $stockValorizado);
             
-            // Columna T: Suma de ventas por sucursal
+            // Columna U: Suma de ventas por sucursal
             // Asignar directamente el valor numérico para evitar problemas con las fórmulas
             $sumaVentas = $ventaSuc1 + $ventaSuc2 + $ventaSuc3 + $ventaSuc4 + $ventaSuc5;
-            $sheet->setCellValue('T' . $row_idx, $sumaVentas);
+            $sheet->setCellValue('U' . $row_idx, $sumaVentas);
             
-            // Columna U: Suma Stock (total de stock en todas las sucursales)
+            // Columna V: Suma Stock (total de stock en todas las sucursales)
             // Usamos el valor de $stockTotal que ya calculamos antes y convertimos a numérico
             $sumaStock = $stockTotal; // Ya es numérico porque lo calculamos arriba
-            $sheet->setCellValue('U' . $row_idx, $sumaStock);
+            $sheet->setCellValue('V' . $row_idx, $sumaStock);
             
-            // Columna V: Rotación (ventas / stock, evitando división por cero)
+            // Columna W: Rotación (ventas / stock, evitando división por cero)
             if ($sumaStock > 0) {
                 $rotacion = $sumaVentas / $sumaStock;
-                $sheet->setCellValue('V' . $row_idx, number_format($rotacion, 2)); // Formateamos a 2 decimales para mejor legibilidad
+                $sheet->setCellValue('W' . $row_idx, number_format($rotacion, 2)); // Formateamos a 2 decimales para mejor legibilidad
             } else {
-                $sheet->setCellValue('V' . $row_idx, 0);
+                $sheet->setCellValue('W' . $row_idx, 0);
             }
             
             $row_idx++;
@@ -555,28 +561,28 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $lastDataRow = $row_idx - 1;
         if ($lastDataRow >= $startDataRow) {
             // Aplicar bordes a los datos
-            $sheet->getStyle('A' . $startDataRow . ':V' . $lastDataRow)->getBorders()->getAllBorders()->setBorderStyle(
+            $sheet->getStyle('A' . $startDataRow . ':W' . $lastDataRow)->getBorders()->getAllBorders()->setBorderStyle(
                 PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
             );
             
             // Formato numérico para las columnas de stock
-            $columnRanges = ['I:I', 'K:K', 'M:M', 'O:O', 'Q:Q', 'S:S', 'T:T'];
+            $columnRanges = ['I:I', 'J:J', 'L:L', 'N:N', 'P:P', 'R:R', 'T:T', 'U:U'];
             foreach ($columnRanges as $range) {
                 $sheet->getStyle($range . $startDataRow . ':' . $range . $lastDataRow)
                     ->getNumberFormat()->setFormatCode('#,##0');
             }
             
             // Formato moneda para valores
-            $sheet->getStyle('R' . $startDataRow . ':R' . $lastDataRow)
+            $sheet->getStyle('S' . $startDataRow . ':S' . $lastDataRow)
                 ->getNumberFormat()->setFormatCode('_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)');
             
             // Formato decimal para rotación
-            $sheet->getStyle('U' . $startDataRow . ':U' . $lastDataRow)
+            $sheet->getStyle('V' . $startDataRow . ':V' . $lastDataRow)
                 ->getNumberFormat()->setFormatCode('0.00');
         }
         
         // Ajustar anchos de columnas automáticamente
-        foreach (range('A', 'V') as $col) {
+        foreach (range('A', 'W') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         
