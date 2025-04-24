@@ -10,6 +10,7 @@ require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/security.php';
+require_once __DIR__ . '/../includes/api_client.php';
 
 // Iniciar sesión
 startSession();
@@ -28,8 +29,17 @@ $usuario = [
     'nombre' => '',
     'email' => '',
     'rut' => '',
-    'rol' => 'proveedor'
+    'rol' => 'proveedor',
+    'marcas' => []
 ];
+
+// Obtener listado de marcas desde la API
+$marcasDisponibles = [];
+try {
+    $marcasDisponibles = getMarcasFromAPI();
+} catch (Exception $e) {
+    logError('Error al obtener marcas: ' . $e->getMessage());
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
     // Verificar token CSRF
@@ -45,6 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
     $password = $_POST['password'] ?? '';
     $confirmarPassword = $_POST['confirmar_password'] ?? '';
     $rol = $_POST['rol'] ?? 'proveedor';
+    // Obtener marcas del nuevo campo JSON
+    $marcas = [];
+    if (isset($_POST['marcas_json']) && !empty($_POST['marcas_json'])) {
+        $marcas = json_decode($_POST['marcas_json'], true) ?: [];
+    }
     
     // Validaciones básicas
     $errores = [];
@@ -102,7 +117,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             $sql = "INSERT INTO usuarios (nombre, email, password_hash, rol, rut) VALUES (?, ?, ?, ?, ?)";
             $params = [$nombre, $email, $passwordHash, $rol, $rut];
             
-            if (executeQuery($sql, $params)) {
+            $db = getDbConnection();
+            $stmt = $db->prepare($sql);
+            if ($stmt->execute($params)) {
+                $nuevoUsuarioId = $db->lastInsertId();
+                
+                // Si es proveedor, guardar las marcas seleccionadas
+                if ($rol === 'proveedor' && !empty($marcas)) {
+                    guardarMarcasProveedor($nuevoUsuarioId, $marcas);
+                }
+                
                 setFlashMessage('success', 'Usuario creado correctamente.');
                 redirect('usuarios.php');
             } else {
@@ -145,6 +169,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             }
             
             if (executeQuery($sql, $params)) {
+                // Si es proveedor, actualizar las marcas seleccionadas
+                if ($rol === 'proveedor') {
+                    guardarMarcasProveedor($id, $marcas);
+                }
+                
                 setFlashMessage('success', 'Usuario actualizado correctamente.');
                 redirect('usuarios.php');
             } else {
@@ -163,7 +192,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             'nombre' => $nombre,
             'email' => $email,
             'rut' => $rut,
-            'rol' => $rol
+            'rol' => $rol,
+            'marcas' => $marcas
         ];
     }
 }
@@ -172,6 +202,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
 if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $id = (int)$_GET['id'];
     $usuario = fetchOne("SELECT id, nombre, email, rol, rut FROM usuarios WHERE id = ?", [$id]);
+    
+    // Si es un proveedor, obtener sus marcas asociadas
+    if ($usuario && $usuario['rol'] === 'proveedor') {
+        $usuario['marcas'] = getMarcasProveedor($id);
+    } else {
+        $usuario['marcas'] = [];
+    }
     
     if (!$usuario) {
         setFlashMessage('error', 'Usuario no encontrado.');
@@ -211,6 +248,10 @@ $usuarios = fetchAll("SELECT id, nombre, email, rol, rut, fecha_creacion FROM us
 // Incluir el encabezado
 include 'header.php';
 ?>
+
+<!-- Cargar el CSS para el selector de marcas tipo pill -->
+<link rel="stylesheet" href="<?php echo APP_URL . '/public/assets/css/pill-selector.css'; ?>">
+
 
 <div class="container mt-4">
     <div class="row mb-4">
@@ -325,10 +366,22 @@ include 'header.php';
                         </div>
                         <div class="col-md-6">
                             <label for="rol" class="form-label">Rol</label>
-                            <select class="form-select" id="rol" name="rol">
+                            <select class="form-select" id="rol" name="rol" onchange="toggleMarcasField()">
                                 <option value="proveedor" <?php echo $usuario['rol'] === 'proveedor' ? 'selected' : ''; ?>>Proveedor</option>
                                 <option value="admin" <?php echo $usuario['rol'] === 'admin' ? 'selected' : ''; ?>>Administrador</option>
                             </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Campo de marcas (solo visible para proveedores) -->
+                    <div class="row mb-3" id="marcasContainer" style="<?php echo $usuario['rol'] === 'admin' ? 'display:none;' : ''; ?>">
+                        <div class="col-md-12">
+                            <label for="marcasInput" class="form-label">Marcas asociadas</label>
+                            <div class="pill-selector-container" id="pillSelectorContainer">
+                                <input type="text" class="pill-selector-input" id="marcasInput" placeholder="Escriba para buscar marcas...">
+                            </div>
+                            <input type="hidden" id="marcasHidden" name="marcas_json">
+                            <div class="form-text">Escriba el nombre de la marca y selecciónela de la lista</div>
                         </div>
                     </div>
                     
@@ -372,6 +425,48 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])):
     });
 </script>
 <?php endif; ?>
+
+<!-- Script para mostrar/ocultar el campo de marcas según el rol -->
+<script src="<?php echo APP_URL . '/public/assets/js/pill-selector.js'; ?>"></script>
+<script>
+function toggleMarcasField() {
+    const rolSelect = document.getElementById('rol');
+    const marcasContainer = document.getElementById('marcasContainer');
+    
+    if (rolSelect.value === 'admin') {
+        marcasContainer.style.display = 'none';
+    } else {
+        marcasContainer.style.display = 'block';
+    }
+}
+
+// Inicializar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Asegurarse que el estado inicial es correcto
+    toggleMarcasField();
+    
+    // Inicializar el selector de marcas tipo pill
+    const marcasData = <?php echo json_encode($marcasDisponibles); ?>;
+    
+    // Obtener las marcas ya seleccionadas para el usuario
+    const selectedMarcasIds = <?php echo json_encode($usuario['marcas'] ?? []); ?>;
+    const selectedMarcas = selectedMarcasIds.map(id => {
+        const marca = marcasData.find(m => m.id === id);
+        return marca ? marca : { id: id, nombre: 'Marca ' + id };
+    });
+    
+    // Inicializar el componente
+    const pillSelector = new PillSelector({
+        containerSelector: '#pillSelectorContainer',
+        inputSelector: '#marcasInput',
+        hiddenInputSelector: '#marcasHidden',
+        dataSource: marcasData,
+        placeholder: 'Escriba para buscar marcas...',
+        noResultsText: 'No se encontraron marcas',
+        selectedItems: selectedMarcas
+    });
+});
+</script>
 
 <?php
 // Incluir el pie de página

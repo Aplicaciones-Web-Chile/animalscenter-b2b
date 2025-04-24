@@ -52,6 +52,17 @@ CREATE TABLE facturas (
     FOREIGN KEY (proveedor_rut) REFERENCES usuarios(rut) ON DELETE CASCADE
 );
 
+-- Crear tabla de proveedores_marcas si no existe
+CREATE TABLE IF NOT EXISTS proveedores_marcas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    proveedor_id INT NOT NULL,
+    marca_id VARCHAR(10) NOT NULL,
+    marca_nombre VARCHAR(100) NOT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_proveedor_marca (proveedor_id, marca_id),
+    FOREIGN KEY (proveedor_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
 -- Datos de ejemplo (opcional)
 INSERT INTO usuarios (nombre, email, password_hash, rol, rut) VALUES 
 ('Administrador', 'admin@animalscenter.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', '11.111.111-1'),
