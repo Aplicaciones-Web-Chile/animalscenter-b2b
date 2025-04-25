@@ -217,13 +217,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
 }
 
 // Eliminar usuario
-if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar']) && isset($_GET['token'])) {
-    // Verificar token CSRF
-    if (!validateCsrfToken($_GET['token'])) {
-        setFlashMessage('error', 'Error de seguridad: Token CSRF inválido.');
-        redirect('usuarios.php');
-    }
-    
+if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar'])) {
     $id = (int)$_GET['eliminar'];
     
     // No permitir eliminar al usuario actual
@@ -232,11 +226,31 @@ if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar']) && isset($_GET['to
         redirect('usuarios.php');
     }
     
-    // Eliminar usuario
-    if (executeQuery("DELETE FROM usuarios WHERE id = ?", [$id])) {
+    // Obtener el rol del usuario antes de eliminarlo
+    $usuario = fetchOne("SELECT rol FROM usuarios WHERE id = ?", [$id]);
+    
+    // Iniciar una transacción para asegurar que todas las operaciones se completen o ninguna
+    $db = getDbConnection();
+    $db->beginTransaction();
+    
+    try {
+        // Si es un proveedor, eliminar primero sus asociaciones con marcas
+        if ($usuario && $usuario['rol'] === 'proveedor') {
+            executeQuery("DELETE FROM proveedores_marcas WHERE proveedor_id = ?", [$id]);
+        }
+        
+        // Eliminar el usuario
+        executeQuery("DELETE FROM usuarios WHERE id = ?", [$id]);
+        
+        // Confirmar la transacción
+        $db->commit();
+        
         setFlashMessage('success', 'Usuario eliminado correctamente.');
-    } else {
-        setFlashMessage('error', 'Error al eliminar el usuario.');
+    } catch (Exception $e) {
+        // Revertir la transacción en caso de error
+        $db->rollBack();
+        logError('Error al eliminar usuario: ' . $e->getMessage());
+        setFlashMessage('error', 'Error al eliminar el usuario: ' . $e->getMessage());
     }
     
     redirect('usuarios.php');

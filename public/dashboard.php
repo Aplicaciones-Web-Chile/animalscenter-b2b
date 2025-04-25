@@ -73,8 +73,8 @@ include 'header.php';
                 <div class="card-body">
                     <div class="list-group">
                         <?php if ($userRole === 'admin'): ?>
-                        <a href="proveedores.php" class="list-group-item list-group-item-action">
-                            <i class="fas fa-users me-2"></i>Gestionar Proveedores
+                        <a href="usuarios.php" class="list-group-item list-group-item-action">
+                            <i class="fas fa-users me-2"></i>Gestionar Usuarios
                         </a>
                         <a href="productos.php" class="list-group-item list-group-item-action">
                             <i class="fas fa-box me-2"></i>Gestionar Productos
