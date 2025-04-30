@@ -24,12 +24,15 @@ $pageTitle = 'Gestión de Usuarios';
 // Procesar formulario de creación/edición de usuario
 $mensaje = '';
 $tipoMensaje = '';
+
+// Inicializar variables para el formulario
 $usuario = [
     'id' => '',
     'nombre' => '',
     'email' => '',
     'rut' => '',
     'rol' => 'proveedor',
+    'habilitado' => 'S', // Por defecto habilitado
     'marcas' => []
 ];
 
@@ -55,6 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
     $password = $_POST['password'] ?? '';
     $confirmarPassword = $_POST['confirmar_password'] ?? '';
     $rol = $_POST['rol'] ?? 'proveedor';
+    // Determinar si el usuario está habilitado (solo aplica para proveedores)
+    $habilitado = ($rol === 'proveedor' && isset($_POST['habilitado'])) ? 'S' : 'N';
+    // Para administradores, siempre habilitado
+    if ($rol === 'admin') {
+        $habilitado = 'S';
+    }
     // Obtener marcas del nuevo campo JSON
     $marcas = [];
     if (isset($_POST['marcas_json']) && !empty($_POST['marcas_json'])) {
@@ -68,17 +77,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
         $errores[] = 'El nombre es obligatorio.';
     }
     
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errores[] = 'El email es inválido.';
+    // El email no es obligatorio, pero si se proporciona debe ser válido
+    if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errores[] = 'El formato del email es inválido.';
     }
     
     if (empty($rut)) {
         $errores[] = 'El RUT es obligatorio.';
     }
     
-    // Validar RUT chileno (formato básico)
-    if (!preg_match('/^[0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK]$/', $rut)) {
-        $errores[] = 'El formato del RUT debe ser XX.XXX.XXX-X';
+    // Validar RUT chileno (acepta con o sin formato)
+    $rutOriginal = $rut; // Guardar el formato original para mostrar errores
+    
+    // Ver si tiene formato y validarlo
+    if (preg_match('/^[0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK]$/', $rut)) {
+        // Si tiene formato, limpiarlo para almacenamiento
+        $rut = limpiarRut($rut);
+    } else if (!preg_match('/^[0-9]{7,8}[0-9kK]$/', $rut)) {
+        // Si no tiene formato válido ni es un RUT limpio válido
+        $errores[] = 'El formato del RUT debe ser XX.XXX.XXX-X o bien un RUT numérico';
     }
     
     // Validar contraseña para usuarios nuevos
@@ -96,11 +113,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
     if (empty($errores)) {
         // Crear nuevo usuario
         if ($_POST['accion'] === 'crear') {
-            // Verificar si el email ya existe
-            $existeEmail = fetchOne("SELECT id FROM usuarios WHERE email = ?", [$email]);
-            if ($existeEmail) {
-                setFlashMessage('error', 'El email ya está registrado.');
-                redirect('usuarios.php');
+            // Verificar si el email ya existe (solo si se proporcionó un email)
+            if (!empty($email)) {
+                $existeEmail = fetchOne("SELECT id FROM usuarios WHERE email = ?", [$email]);
+                if ($existeEmail) {
+                    setFlashMessage('error', 'El email ya está registrado.');
+                    redirect('usuarios.php');
+                }
             }
             
             // Verificar si el RUT ya existe
@@ -114,19 +133,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
             
             // Insertar nuevo usuario
-            $sql = "INSERT INTO usuarios (nombre, email, password_hash, rol, rut) VALUES (?, ?, ?, ?, ?)";
-            $params = [$nombre, $email, $passwordHash, $rol, $rut];
+            $sql = "INSERT INTO usuarios (nombre, email, password_hash, rol, rut, habilitado) VALUES (?, ?, ?, ?, ?, ?)";
+            $params = [$nombre, $email, $passwordHash, $rol, $rut, $habilitado];
             
             $db = getDbConnection();
             $stmt = $db->prepare($sql);
             if ($stmt->execute($params)) {
                 $nuevoUsuarioId = $db->lastInsertId();
-                
-                // Si es proveedor, guardar las marcas seleccionadas
-                if ($rol === 'proveedor' && !empty($marcas)) {
-                    guardarMarcasProveedor($nuevoUsuarioId, $marcas);
+                // Si es proveedor, guardar las marcas seleccionadas y sincronizar con la API
+                if ($rol === 'proveedor') {
+                    try {
+                        // Guardar marcas en BD local y sincronizar con API
+                        guardarMarcasProveedor($nuevoUsuarioId, $marcas);
+                        logError('Sincronización exitosa de marcas para el nuevo proveedor RUT: ' . $rut);
+                    } catch (Exception $e) {
+                        // Registrar el error pero continuar
+                        logError('Error al sincronizar marcas con API para el nuevo proveedor RUT: ' . $rut . '. Error: ' . $e->getMessage());
+                        // Añadir mensaje de advertencia para el usuario
+                        setFlashMessage('warning', 'Usuario creado, pero hubo un problema al sincronizar marcas con la API. Se ha registrado el error.');
+                        redirect('usuarios.php');
+                    }
                 }
-                
                 setFlashMessage('success', 'Usuario creado correctamente.');
                 redirect('usuarios.php');
             } else {
@@ -138,11 +165,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
         elseif ($_POST['accion'] === 'editar' && isset($_POST['id'])) {
             $id = (int)$_POST['id'];
             
-            // Verificar si el email ya existe para otro usuario
-            $existeEmail = fetchOne("SELECT id FROM usuarios WHERE email = ? AND id != ?", [$email, $id]);
-            if ($existeEmail) {
-                setFlashMessage('error', 'El email ya está registrado por otro usuario.');
-                redirect('usuarios.php?id=' . $id);
+            // Verificar si el email ya existe para otro usuario (solo si se proporcionó un email)
+            if (!empty($email)) {
+                $existeEmail = fetchOne("SELECT id FROM usuarios WHERE email = ? AND id != ?", [$email, $id]);
+                if ($existeEmail) {
+                    setFlashMessage('error', 'El email ya está registrado por otro usuario.');
+                    redirect('usuarios.php?id=' . $id);
+                }
             }
             
             // Verificar si el RUT ya existe para otro usuario
@@ -169,9 +198,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             }
             
             if (executeQuery($sql, $params)) {
-                // Si es proveedor, actualizar las marcas seleccionadas
+                // Si es proveedor, actualizar las marcas seleccionadas y sincronizar con la API
                 if ($rol === 'proveedor') {
-                    guardarMarcasProveedor($id, $marcas);
+                    try {
+                        // Guardar marcas en BD local y sincronizar con API
+                        guardarMarcasProveedor($id, $marcas);
+                        logError('Sincronización exitosa de marcas para el proveedor editado RUT: ' . $rut);
+                    } catch (Exception $e) {
+                        // Registrar el error pero continuar
+                        logError('Error al sincronizar marcas con API para el proveedor editado RUT: ' . $rut . '. Error: ' . $e->getMessage());
+                        // Añadir mensaje de advertencia para el usuario
+                        setFlashMessage('warning', 'Usuario actualizado, pero hubo un problema al sincronizar marcas con la API. Se ha registrado el error.');
+                        redirect('usuarios.php');
+                    }
                 }
                 
                 setFlashMessage('success', 'Usuario actualizado correctamente.');
@@ -201,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
 // Cargar datos de usuario para edición
 if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $id = (int)$_GET['id'];
-    $usuario = fetchOne("SELECT id, nombre, email, rol, rut FROM usuarios WHERE id = ?", [$id]);
+    $usuario = fetchOne("SELECT id, nombre, email, rol, rut, habilitado FROM usuarios WHERE id = ?", [$id]);
     
     // Si es un proveedor, obtener sus marcas asociadas
     if ($usuario && $usuario['rol'] === 'proveedor') {
@@ -226,17 +265,21 @@ if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar'])) {
         redirect('usuarios.php');
     }
     
-    // Obtener el rol del usuario antes de eliminarlo
-    $usuario = fetchOne("SELECT rol FROM usuarios WHERE id = ?", [$id]);
+    // Obtener el rol y RUT del usuario antes de eliminarlo
+    $usuario = fetchOne("SELECT rol, rut FROM usuarios WHERE id = ?", [$id]);
     
     // Iniciar una transacción para asegurar que todas las operaciones se completen o ninguna
     $db = getDbConnection();
     $db->beginTransaction();
     
     try {
-        // Si es un proveedor, eliminar primero sus asociaciones con marcas
+        // Si es un proveedor, eliminar sus asociaciones con marcas en la BD local
         if ($usuario && $usuario['rol'] === 'proveedor') {
+            // Eliminar asociaciones en la base de datos local
             executeQuery("DELETE FROM proveedores_marcas WHERE proveedor_id = ?", [$id]);
+            
+            // No es necesario eliminar asociaciones en la API cuando se elimina un usuario proveedor
+            logError('Usuario proveedor eliminado (RUT: ' . $usuario['rut'] . '). No se realizaron llamadas a la API.');
         }
         
         // Eliminar el usuario
@@ -257,7 +300,7 @@ if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar'])) {
 }
 
 // Obtener listado de usuarios para la tabla
-$usuarios = fetchAll("SELECT id, nombre, email, rol, rut, fecha_creacion FROM usuarios ORDER BY nombre");
+$usuarios = fetchAll("SELECT id, nombre, email, rol, rut, fecha_creacion, habilitado FROM usuarios ORDER BY nombre");
 
 // Incluir el encabezado
 include 'header.php';
@@ -303,20 +346,64 @@ include 'header.php';
                                 <th>Email</th>
                                 <th>RUT</th>
                                 <th>Rol</th>
+                                <th>Marcas Asociadas</th>
                                 <th>Fecha de Creación</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($usuarios as $u): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($u['nombre']); ?></td>
-                                    <td><?php echo htmlspecialchars($u['email']); ?></td>
-                                    <td><?php echo htmlspecialchars($u['rut']); ?></td>
+                            <?php foreach ($usuarios as $u): 
+                                // Determinar si el usuario está deshabilitado
+                                $deshabilitado = ($u['rol'] === 'proveedor' && isset($u['habilitado']) && $u['habilitado'] !== 'S');
+                                // Clase CSS para usuarios deshabilitados
+                                $claseDeshabilitado = $deshabilitado ? 'usuario-deshabilitado' : '';
+                            ?>
+                                <tr class="<?php echo $claseDeshabilitado; ?>">
+                                    <td><?php echo htmlspecialchars($u['nombre'] ?? ''); ?></td>
+                                    <td><?php echo htmlspecialchars($u['email'] ?? ''); ?></td>
+                                    <td><?php echo htmlspecialchars(formatearRut($u['rut'] ?? '')); ?></td>
                                     <td>
                                         <span class="badge bg-<?php echo $u['rol'] === 'admin' ? 'danger' : 'success'; ?>">
                                             <?php echo $u['rol'] === 'admin' ? 'Administrador' : 'Proveedor'; ?>
                                         </span>
+                                        <?php if ($deshabilitado): ?>
+                                            <span class="ms-1 badge bg-secondary">Deshabilitado</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        if ($u['rol'] === 'proveedor') {
+                                            $marcasUsuario = getMarcasProveedor($u['id']);
+                                            
+                                            if (empty($marcasUsuario)) {
+                                                echo '<span class="text-muted">Sin marcas asociadas</span>';
+                                            } else {
+                                                echo '<div class="marcas-container">';
+                                                
+                                                // Buscar nombres de las marcas
+                                                foreach ($marcasUsuario as $marcaId) {
+                                                    $marcaNombre = '';
+                                                    foreach ($marcasDisponibles as $marca) {
+                                                        if ($marca['id'] === $marcaId) {
+                                                            $marcaNombre = $marca['nombre'];
+                                                            break;
+                                                        }
+                                                    }
+                                                    
+                                                    // Si no encontramos el nombre, usar el ID
+                                                    if (empty($marcaNombre)) {
+                                                        $marcaNombre = 'Marca ' . $marcaId;
+                                                    }
+                                                    
+                                                    echo '<span class="badge bg-info text-dark me-1 mb-1">' . htmlspecialchars($marcaNombre) . '</span>';
+                                                }
+                                                
+                                                echo '</div>';
+                                            }
+                                        } else {
+                                            echo '<span class="text-muted">N/A</span>';
+                                        }
+                                        ?>
                                     </td>
                                     <td><?php echo formatDateTime($u['fecha_creacion']); ?></td>
                                     <td>
@@ -340,6 +427,26 @@ include 'header.php';
         </div>
     </div>
 </div>
+
+<!-- Botón para sincronizar usuarios y proveedores -->
+<div class="d-flex justify-content-center mt-4 mb-4">
+    <a href="sync_usuarios.php" class="btn btn-primary btn-lg">
+        <i class="fas fa-sync-alt me-2"></i>Sincronizar Proveedores con la API
+    </a>
+</div>
+
+<?php
+/**
+ * Formatea un RUT sin formato al formato chileno XX.XXX.XXX-X
+ */
+function formatearRut($rut) {
+    $rutLimpio = preg_replace('/[^0-9kK]/', '', $rut);
+    $dv = substr($rutLimpio, -1);
+    $numero = substr($rutLimpio, 0, -1);
+    $numero = number_format($numero, 0, '', '.');
+    return $numero . '-' . $dv;
+}
+?>
 
 <!-- Modal para crear/editar usuario -->
 <div class="modal fade" id="modalUsuario" tabindex="-1" aria-labelledby="modalUsuarioLabel" aria-hidden="true">
@@ -366,7 +473,7 @@ include 'header.php';
                         <div class="col-md-6">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email" 
-                                   value="<?php echo htmlspecialchars($usuario['email']); ?>" required>
+                                   value="<?php echo htmlspecialchars($usuario['email'] ?? ''); ?>" autocomplete="off">
                         </div>
                     </div>
                     
@@ -375,8 +482,7 @@ include 'header.php';
                             <label for="rut" class="form-label">RUT</label>
                             <input type="text" class="form-control" id="rut" name="rut" 
                                    placeholder="Ej: 12.345.678-9"
-                                   value="<?php echo htmlspecialchars($usuario['rut']); ?>" required>
-                            <div class="form-text">Formato: XX.XXX.XXX-X</div>
+                                   value="<?php echo !empty($usuario['rut']) ? htmlspecialchars(formatearRut($usuario['rut'])) : ''; ?>" required>
                         </div>
                         <div class="col-md-6">
                             <label for="rol" class="form-label">Rol</label>
@@ -384,6 +490,17 @@ include 'header.php';
                                 <option value="proveedor" <?php echo $usuario['rol'] === 'proveedor' ? 'selected' : ''; ?>>Proveedor</option>
                                 <option value="admin" <?php echo $usuario['rol'] === 'admin' ? 'selected' : ''; ?>>Administrador</option>
                             </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Campo de habilitado (solo visible para proveedores) -->
+                    <div class="row mb-3" id="habilitadoContainer" style="<?php echo $usuario['rol'] === 'admin' ? 'display:none;' : ''; ?>">
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="habilitado" name="habilitado" value="S" <?php echo (!isset($usuario['habilitado']) || $usuario['habilitado'] === 'S') ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="habilitado">Usuario habilitado</label>
+                                <div class="form-text">Los usuarios proveedores deshabilitados no podrán iniciar sesión en el sistema.</div>
+                            </div>
                         </div>
                     </div>
                     
@@ -405,7 +522,7 @@ include 'header.php';
                                 <?php echo empty($usuario['id']) ? 'Contraseña' : 'Nueva contraseña (dejar en blanco para mantener)'; ?>
                             </label>
                             <input type="password" class="form-control" id="password" name="password" 
-                                   <?php echo empty($usuario['id']) ? 'required' : ''; ?>>
+                                   <?php echo empty($usuario['id']) ? 'required' : ''; ?> autocomplete="new-password">
                             <?php if (empty($usuario['id'])): ?>
                                 <div class="form-text">Mínimo 6 caracteres</div>
                             <?php endif; ?>
@@ -413,7 +530,7 @@ include 'header.php';
                         <div class="col-md-6">
                             <label for="confirmar_password" class="form-label">Confirmar contraseña</label>
                             <input type="password" class="form-control" id="confirmar_password" name="confirmar_password" 
-                                   <?php echo empty($usuario['id']) ? 'required' : ''; ?>>
+                                   <?php echo empty($usuario['id']) ? 'required' : ''; ?> autocomplete="new-password">
                         </div>
                     </div>
                 </div>
@@ -446,11 +563,14 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])):
 function toggleMarcasField() {
     const rolSelect = document.getElementById('rol');
     const marcasContainer = document.getElementById('marcasContainer');
+    const habilitadoContainer = document.getElementById('habilitadoContainer');
     
     if (rolSelect.value === 'admin') {
         marcasContainer.style.display = 'none';
+        habilitadoContainer.style.display = 'none';
     } else {
         marcasContainer.style.display = 'block';
+        habilitadoContainer.style.display = 'block';
     }
 }
 
@@ -479,10 +599,56 @@ document.addEventListener('DOMContentLoaded', function() {
         noResultsText: 'No se encontraron marcas',
         selectedItems: selectedMarcas
     });
+    
+    // Manejar la creación de usuarios desde la API
+    document.querySelectorAll('.crear-usuario-api').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Obtener datos del proveedor
+            const rut = this.getAttribute('data-rut');
+            const nombre = this.getAttribute('data-nombre');
+            
+            // Abrir el modal de creación de usuario
+            const modal = new bootstrap.Modal(document.getElementById('modalUsuario'));
+            
+            // Llenar el formulario con los datos del proveedor
+            document.getElementById('id').value = '';
+            document.getElementById('nombre').value = nombre;
+            document.getElementById('rut').value = rut;
+            document.getElementById('email').value = '';
+            document.getElementById('rol').value = 'proveedor';
+            
+            // Asegurarse que el campo de marcas esté visible
+            document.getElementById('marcasContainer').style.display = 'block';
+            
+            // Limpiar marcas seleccionadas
+            pillSelector.clearItems();
+            
+            // Mostrar el modal
+            modal.show();
+            
+            // Enfocar el campo de email
+            setTimeout(() => {
+                document.getElementById('email').focus();
+            }, 500);
+        });
+    });
 });
 </script>
 
-<?php
-// Incluir el pie de página
-include 'footer.php';
-?>
+<!-- Estilos personalizados para usuarios deshabilitados -->
+<style>
+    /* Aplicar opacidad a las celdas de usuarios deshabilitados, excepto la última (acciones) */
+    .usuario-deshabilitado td:not(:last-child) {
+        opacity: 0.4;
+    }
+    
+    /* Efecto hover para mejorar legibilidad al pasar el mouse */
+    .usuario-deshabilitado:hover td:not(:last-child) {
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+    }
+</style>
+
+<?php include 'footer.php'; ?>

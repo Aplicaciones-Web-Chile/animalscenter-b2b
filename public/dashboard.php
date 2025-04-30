@@ -83,7 +83,7 @@ include 'header.php';
                             <i class="fas fa-shopping-cart me-2"></i>Ver Órdenes
                         </a>-->
                         <?php else: ?>
-                        <a href="mis-productos.php" class="list-group-item list-group-item-action">
+                        <a href="productos.php" class="list-group-item list-group-item-action">
                             <i class="fas fa-box me-2"></i>Mis Productos
                         </a>
                         <!--<a href="mis-ordenes.php" class="list-group-item list-group-item-action">

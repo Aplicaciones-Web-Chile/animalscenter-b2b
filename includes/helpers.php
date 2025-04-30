@@ -4,6 +4,38 @@
  */
 
 /**
+ * Limpia un RUT eliminando puntos y guión
+ * 
+ * @param string $rut RUT con formato (ej: 12.345.678-9)
+ * @return string RUT sin formato (ej: 123456789)
+ */
+function limpiarRut($rut) {
+    return str_replace(['.', '-'], '', $rut);
+}
+
+/**
+ * Formatea un RUT para mostrar con puntos y guión
+ * 
+ * @param string $rut RUT sin formato (ej: 123456789)
+ * @return string RUT con formato (ej: 12.345.678-9)
+ */
+function formatearRut($rut) {
+    if (empty($rut)) return '';
+    
+    // Primero limpiar por si acaso ya tiene formato
+    $rut = limpiarRut($rut);
+    
+    // Extraer dígito verificador
+    $dv = substr($rut, -1);
+    $numero = substr($rut, 0, -1);
+    
+    // Formatear con puntos de miles
+    $numero = number_format($numero, 0, '', '.');
+    
+    return $numero . '-' . $dv;
+}
+
+/**
  * Sanea un valor de entrada para prevenir XSS
  * 
  * @param string $input Valor de entrada a sanear

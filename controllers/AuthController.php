@@ -49,6 +49,14 @@ class AuthController {
                 ];
             }
             
+            // Verificar si el usuario proveedor está habilitado
+            if ($user['rol'] === 'proveedor' && isset($user['habilitado']) && $user['habilitado'] !== 'S') {
+                return [
+                    'success' => false, 
+                    'message' => 'Su cuenta está deshabilitada. Contacte al administrador.'
+                ];
+            }
+            
             // Iniciar sesión
             require_once __DIR__ . '/../includes/session.php';
             startSession();
