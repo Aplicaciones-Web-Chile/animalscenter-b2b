@@ -69,26 +69,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
     if (isset($_POST['marcas_json']) && !empty($_POST['marcas_json'])) {
         $marcas = json_decode($_POST['marcas_json'], true) ?: [];
     }
-    
+
     // Validaciones básicas
     $errores = [];
-    
+
     if (empty($nombre)) {
         $errores[] = 'El nombre es obligatorio.';
     }
-    
+
     // El email no es obligatorio, pero si se proporciona debe ser válido
     if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errores[] = 'El formato del email es inválido.';
     }
-    
+
     if (empty($rut)) {
         $errores[] = 'El RUT es obligatorio.';
     }
-    
+
     // Validar RUT chileno (acepta con o sin formato)
     $rutOriginal = $rut; // Guardar el formato original para mostrar errores
-    
+
     // Ver si tiene formato y validarlo
     if (preg_match('/^[0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK]$/', $rut)) {
         // Si tiene formato, limpiarlo para almacenamiento
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
         // Si no tiene formato válido ni es un RUT limpio válido
         $errores[] = 'El formato del RUT debe ser XX.XXX.XXX-X o bien un RUT numérico';
     }
-    
+
     // Validar contraseña para usuarios nuevos
     if ($_POST['accion'] === 'crear') {
         if (empty($password)) {
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             $errores[] = 'Las contraseñas no coinciden.';
         }
     }
-    
+
     // Si no hay errores, proceder con la acción
     if (empty($errores)) {
         // Crear nuevo usuario
@@ -121,21 +121,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                     redirect('usuarios.php');
                 }
             }
-            
+
             // Verificar si el RUT ya existe
             $existeRut = fetchOne("SELECT id FROM usuarios WHERE rut = ?", [$rut]);
             if ($existeRut) {
                 setFlashMessage('error', 'El RUT ya está registrado.');
                 redirect('usuarios.php');
             }
-            
+
             // Hashear contraseña
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-            
+
             // Insertar nuevo usuario
             $sql = "INSERT INTO usuarios (nombre, email, password_hash, rol, rut, habilitado) VALUES (?, ?, ?, ?, ?, ?)";
             $params = [$nombre, $email, $passwordHash, $rol, $rut, $habilitado];
-            
+
             $db = getDbConnection();
             $stmt = $db->prepare($sql);
             if ($stmt->execute($params)) {
@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
         // Editar usuario existente
         elseif ($_POST['accion'] === 'editar' && isset($_POST['id'])) {
             $id = (int)$_POST['id'];
-            
+
             // Verificar si el email ya existe para otro usuario (solo si se proporcionó un email)
             if (!empty($email)) {
                 $existeEmail = fetchOne("SELECT id FROM usuarios WHERE email = ? AND id != ?", [$email, $id]);
@@ -173,30 +173,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                     redirect('usuarios.php?id=' . $id);
                 }
             }
-            
+
             // Verificar si el RUT ya existe para otro usuario
             $existeRut = fetchOne("SELECT id FROM usuarios WHERE rut = ? AND id != ?", [$rut, $id]);
             if ($existeRut) {
                 setFlashMessage('error', 'El RUT ya está registrado por otro usuario.');
                 redirect('usuarios.php?id=' . $id);
             }
-            
+
             // Actualizar usuario
             $sql = "UPDATE usuarios SET nombre = ?, email = ?, rol = ?, rut = ? WHERE id = ?";
             $params = [$nombre, $email, $rol, $rut, $id];
-            
+
             // Si se proporcionó una nueva contraseña, actualizarla también
             if (!empty($password)) {
                 if ($password !== $confirmarPassword) {
                     setFlashMessage('error', 'Las contraseñas no coinciden.');
                     redirect('usuarios.php?id=' . $id);
                 }
-                
+
                 $passwordHash = password_hash($password, PASSWORD_DEFAULT);
                 $sql = "UPDATE usuarios SET nombre = ?, email = ?, password_hash = ?, rol = ?, rut = ? WHERE id = ?";
                 $params = [$nombre, $email, $passwordHash, $rol, $rut, $id];
             }
-            
+
             if (executeQuery($sql, $params)) {
                 // Si es proveedor, actualizar las marcas seleccionadas y sincronizar con la API
                 if ($rol === 'proveedor') {
@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                         redirect('usuarios.php');
                     }
                 }
-                
+
                 setFlashMessage('success', 'Usuario actualizado correctamente.');
                 redirect('usuarios.php');
             } else {
@@ -224,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
         // Si hay errores, mostrarlos
         $tipoMensaje = 'error';
         $mensaje = implode('<br>', $errores);
-        
+
         // Mantener los datos del formulario
         $usuario = [
             'id' => $_POST['id'] ?? '',
@@ -241,14 +241,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
 if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $id = (int)$_GET['id'];
     $usuario = fetchOne("SELECT id, nombre, email, rol, rut, habilitado FROM usuarios WHERE id = ?", [$id]);
-    
+
     // Si es un proveedor, obtener sus marcas asociadas
     if ($usuario && $usuario['rol'] === 'proveedor') {
         $usuario['marcas'] = getMarcasProveedor($id);
     } else {
         $usuario['marcas'] = [];
     }
-    
+
     if (!$usuario) {
         setFlashMessage('error', 'Usuario no encontrado.');
         redirect('usuarios.php');
@@ -258,36 +258,36 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
 // Eliminar usuario
 if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar'])) {
     $id = (int)$_GET['eliminar'];
-    
+
     // No permitir eliminar al usuario actual
     if ($id === (int)$_SESSION['user']['id']) {
         setFlashMessage('error', 'No puedes eliminar tu propio usuario.');
         redirect('usuarios.php');
     }
-    
+
     // Obtener el rol y RUT del usuario antes de eliminarlo
     $usuario = fetchOne("SELECT rol, rut FROM usuarios WHERE id = ?", [$id]);
-    
+
     // Iniciar una transacción para asegurar que todas las operaciones se completen o ninguna
     $db = getDbConnection();
     $db->beginTransaction();
-    
+
     try {
         // Si es un proveedor, eliminar sus asociaciones con marcas en la BD local
         if ($usuario && $usuario['rol'] === 'proveedor') {
             // Eliminar asociaciones en la base de datos local
             executeQuery("DELETE FROM proveedores_marcas WHERE proveedor_id = ?", [$id]);
-            
+
             // No es necesario eliminar asociaciones en la API cuando se elimina un usuario proveedor
             logError('Usuario proveedor eliminado (RUT: ' . $usuario['rut'] . '). No se realizaron llamadas a la API.');
         }
-        
+
         // Eliminar el usuario
         executeQuery("DELETE FROM usuarios WHERE id = ?", [$id]);
-        
+
         // Confirmar la transacción
         $db->commit();
-        
+
         setFlashMessage('success', 'Usuario eliminado correctamente.');
     } catch (Exception $e) {
         // Revertir la transacción en caso de error
@@ -295,7 +295,7 @@ if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar'])) {
         logError('Error al eliminar usuario: ' . $e->getMessage());
         setFlashMessage('error', 'Error al eliminar el usuario: ' . $e->getMessage());
     }
-    
+
     redirect('usuarios.php');
 }
 
@@ -321,14 +321,14 @@ include 'header.php';
             </div>
         </div>
     </div>
-    
+
     <?php if (!empty($mensaje)): ?>
         <div class="alert alert-<?php echo $tipoMensaje === 'error' ? 'danger' : 'success'; ?> alert-dismissible fade show" role="alert">
             <?php echo $mensaje; ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     <?php endif; ?>
-    
+
     <!-- Listado de usuarios -->
     <div class="card">
         <div class="card-header bg-primary text-white">
@@ -352,7 +352,7 @@ include 'header.php';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($usuarios as $u): 
+                            <?php foreach ($usuarios as $u):
                                 // Determinar si el usuario está deshabilitado
                                 $deshabilitado = ($u['rol'] === 'proveedor' && isset($u['habilitado']) && $u['habilitado'] !== 'S');
                                 // Clase CSS para usuarios deshabilitados
@@ -374,12 +374,12 @@ include 'header.php';
                                         <?php
                                         if ($u['rol'] === 'proveedor') {
                                             $marcasUsuario = getMarcasProveedor($u['id']);
-                                            
+
                                             if (empty($marcasUsuario)) {
                                                 echo '<span class="text-muted">Sin marcas asociadas</span>';
                                             } else {
                                                 echo '<div class="marcas-container">';
-                                                
+
                                                 // Buscar nombres de las marcas
                                                 foreach ($marcasUsuario as $marcaId) {
                                                     $marcaNombre = '';
@@ -389,15 +389,15 @@ include 'header.php';
                                                             break;
                                                         }
                                                     }
-                                                    
+
                                                     // Si no encontramos el nombre, usar el ID
                                                     if (empty($marcaNombre)) {
                                                         $marcaNombre = 'Marca ' . $marcaId;
                                                     }
-                                                    
+
                                                     echo '<span class="badge bg-info text-dark me-1 mb-1">' . htmlspecialchars($marcaNombre) . '</span>';
                                                 }
-                                                
+
                                                 echo '</div>';
                                             }
                                         } else {
@@ -411,8 +411,8 @@ include 'header.php';
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <?php if ((int)$u['id'] !== (int)getUserId()): ?>
-                                            <a href="usuarios.php?eliminar=<?php echo $u['id']; ?>&token=<?php echo generateCsrfToken(); ?>" 
-                                               class="btn btn-sm btn-danger" 
+                                            <a href="usuarios.php?eliminar=<?php echo $u['id']; ?>&token=<?php echo generateCsrfToken(); ?>"
+                                               class="btn btn-sm btn-danger"
                                                onclick="return confirm('¿Estás seguro de eliminar este usuario?')">
                                                 <i class="fas fa-trash"></i>
                                             </a>
@@ -435,19 +435,6 @@ include 'header.php';
     </a>
 </div>
 
-<?php
-/**
- * Formatea un RUT sin formato al formato chileno XX.XXX.XXX-X
- */
-function formatearRut($rut) {
-    $rutLimpio = preg_replace('/[^0-9kK]/', '', $rut);
-    $dv = substr($rutLimpio, -1);
-    $numero = substr($rutLimpio, 0, -1);
-    $numero = number_format($numero, 0, '', '.');
-    return $numero . '-' . $dv;
-}
-?>
-
 <!-- Modal para crear/editar usuario -->
 <div class="modal fade" id="modalUsuario" tabindex="-1" aria-labelledby="modalUsuarioLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -463,24 +450,24 @@ function formatearRut($rut) {
                     <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
                     <input type="hidden" name="id" value="<?php echo htmlspecialchars($usuario['id']); ?>">
                     <input type="hidden" name="accion" value="<?php echo empty($usuario['id']) ? 'crear' : 'editar'; ?>">
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="nombre" class="form-label">Nombre completo</label>
-                            <input type="text" class="form-control" id="nombre" name="nombre" 
+                            <input type="text" class="form-control" id="nombre" name="nombre"
                                    value="<?php echo htmlspecialchars($usuario['nombre']); ?>" required>
                         </div>
                         <div class="col-md-6">
                             <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email" 
+                            <input type="email" class="form-control" id="email" name="email"
                                    value="<?php echo htmlspecialchars($usuario['email'] ?? ''); ?>" autocomplete="off">
                         </div>
                     </div>
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="rut" class="form-label">RUT</label>
-                            <input type="text" class="form-control" id="rut" name="rut" 
+                            <input type="text" class="form-control" id="rut" name="rut"
                                    placeholder="Ej: 12.345.678-9"
                                    value="<?php echo !empty($usuario['rut']) ? htmlspecialchars(formatearRut($usuario['rut'])) : ''; ?>" required>
                         </div>
@@ -492,7 +479,7 @@ function formatearRut($rut) {
                             </select>
                         </div>
                     </div>
-                    
+
                     <!-- Campo de habilitado (solo visible para proveedores) -->
                     <div class="row mb-3" id="habilitadoContainer" style="<?php echo $usuario['rol'] === 'admin' ? 'display:none;' : ''; ?>">
                         <div class="col-md-12">
@@ -503,7 +490,7 @@ function formatearRut($rut) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Campo de marcas (solo visible para proveedores) -->
                     <div class="row mb-3" id="marcasContainer" style="<?php echo $usuario['rol'] === 'admin' ? 'display:none;' : ''; ?>">
                         <div class="col-md-12">
@@ -515,13 +502,13 @@ function formatearRut($rut) {
                             <div class="form-text">Escriba el nombre de la marca y selecciónela de la lista</div>
                         </div>
                     </div>
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="password" class="form-label">
                                 <?php echo empty($usuario['id']) ? 'Contraseña' : 'Nueva contraseña (dejar en blanco para mantener)'; ?>
                             </label>
-                            <input type="password" class="form-control" id="password" name="password" 
+                            <input type="password" class="form-control" id="password" name="password"
                                    <?php echo empty($usuario['id']) ? 'required' : ''; ?> autocomplete="new-password">
                             <?php if (empty($usuario['id'])): ?>
                                 <div class="form-text">Mínimo 6 caracteres</div>
@@ -529,7 +516,7 @@ function formatearRut($rut) {
                         </div>
                         <div class="col-md-6">
                             <label for="confirmar_password" class="form-label">Confirmar contraseña</label>
-                            <input type="password" class="form-control" id="confirmar_password" name="confirmar_password" 
+                            <input type="password" class="form-control" id="confirmar_password" name="confirmar_password"
                                    <?php echo empty($usuario['id']) ? 'required' : ''; ?> autocomplete="new-password">
                         </div>
                     </div>
@@ -564,7 +551,7 @@ function toggleMarcasField() {
     const rolSelect = document.getElementById('rol');
     const marcasContainer = document.getElementById('marcasContainer');
     const habilitadoContainer = document.getElementById('habilitadoContainer');
-    
+
     if (rolSelect.value === 'admin') {
         marcasContainer.style.display = 'none';
         habilitadoContainer.style.display = 'none';
@@ -578,17 +565,17 @@ function toggleMarcasField() {
 document.addEventListener('DOMContentLoaded', function() {
     // Asegurarse que el estado inicial es correcto
     toggleMarcasField();
-    
+
     // Inicializar el selector de marcas tipo pill
     const marcasData = <?php echo json_encode($marcasDisponibles); ?>;
-    
+
     // Obtener las marcas ya seleccionadas para el usuario
     const selectedMarcasIds = <?php echo json_encode($usuario['marcas'] ?? []); ?>;
     const selectedMarcas = selectedMarcasIds.map(id => {
         const marca = marcasData.find(m => m.id === id);
         return marca ? marca : { id: id, nombre: 'Marca ' + id };
     });
-    
+
     // Inicializar el componente
     const pillSelector = new PillSelector({
         containerSelector: '#pillSelectorContainer',
@@ -599,35 +586,35 @@ document.addEventListener('DOMContentLoaded', function() {
         noResultsText: 'No se encontraron marcas',
         selectedItems: selectedMarcas
     });
-    
+
     // Manejar la creación de usuarios desde la API
     document.querySelectorAll('.crear-usuario-api').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
-            
+
             // Obtener datos del proveedor
             const rut = this.getAttribute('data-rut');
             const nombre = this.getAttribute('data-nombre');
-            
+
             // Abrir el modal de creación de usuario
             const modal = new bootstrap.Modal(document.getElementById('modalUsuario'));
-            
+
             // Llenar el formulario con los datos del proveedor
             document.getElementById('id').value = '';
             document.getElementById('nombre').value = nombre;
             document.getElementById('rut').value = rut;
             document.getElementById('email').value = '';
             document.getElementById('rol').value = 'proveedor';
-            
+
             // Asegurarse que el campo de marcas esté visible
             document.getElementById('marcasContainer').style.display = 'block';
-            
+
             // Limpiar marcas seleccionadas
             pillSelector.clearItems();
-            
+
             // Mostrar el modal
             modal.show();
-            
+
             // Enfocar el campo de email
             setTimeout(() => {
                 document.getElementById('email').focus();
@@ -643,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
     .usuario-deshabilitado td:not(:last-child) {
         opacity: 0.4;
     }
-    
+
     /* Efecto hover para mejorar legibilidad al pasar el mouse */
     .usuario-deshabilitado:hover td:not(:last-child) {
         opacity: 0.7;
