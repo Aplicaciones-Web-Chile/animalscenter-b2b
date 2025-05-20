@@ -39,3 +39,6 @@ public/tmp/*
 
 # windsurf rules
 .windsurfrules
+
+# Backup files
+*.bak.*
