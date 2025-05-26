@@ -330,3 +330,82 @@ function getMarcasProveedor($proveedorId) {
     $marcas = fetchAll("SELECT marca_id FROM proveedores_marcas WHERE proveedor_id = ?", [$proveedorId]);
     return array_column($marcas, 'marca_id');
 }
+
+/**
+ * Obtiene el monto de venta neto de un periodo específico desde la API
+ *
+ * @param string $fechaInicio Fecha de inicio
+ * @param string $fechaFin Fecha de término
+ * @return int Monto de venta neto
+ */
+function getMontoVentaNetoFromAPI($fechaInicio, $fechaFin) {
+    try {
+
+        $response = callApi('kpi_venta_neta', [
+            'FINI' => $fechaInicio,
+            'FTER' => $fechaFin
+        ]);
+
+        if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
+            // Transformar el formato para que sea más fácil de usar en la aplicación
+            $valorNeto = isset($response['datos'][0]['NETO']) ? $response['datos'][0]['NETO'] : 0;
+
+            return $valorNeto;
+        }
+    } catch (Exception $e) {
+        logError("Error al obtener el monto de venta neto para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
+    }
+
+    return 0;
+}
+
+/**
+ * Obtiene la cantidad de unidades vendidas de un periodo específico desde la API
+ *
+ * @param string $fechaInicio Fecha de inicio
+ * @param string $fechaFin Fecha de término
+ * @return int Monto de venta neto
+ */
+function getCantidadVendidaFromAPI($fechaInicio, $fechaFin) {
+    try {
+
+        $response = callApi('kpi_unidades_vendidas', [
+            'FINI' => $fechaInicio,
+            'FTER' => $fechaFin
+        ]);
+
+        if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
+            // Transformar el formato para que sea más fácil de usar en la aplicación
+            $cantidad = isset($response['datos'][0]['CANT']) ? $response['datos'][0]['CANT'] : 0;
+
+            return $cantidad;
+        }
+    } catch (Exception $e) {
+        logError("Error al obtener cantidad de unidades vendidas para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
+    }
+
+    return 0;
+}
+
+/**
+ * Obtiene la cantidad de Sku activos desde la API
+ *
+ * @return int Cantidad de Sku
+ */
+function getCantidadSkuActivosFromAPI() {
+    try {
+
+        $response = callApi('kpi_sku_activos');
+
+        if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
+            // Transformar el formato para que sea más fácil de usar en la aplicación
+            $cantidad = isset($response['datos'][0]['CANT']) ? $response['datos'][0]['CANT'] : 0;
+
+            return $cantidad;
+        }
+    } catch (Exception $e) {
+        logError('Error al obtener cantidad de sku activos desde API: ' . $e->getMessage());
+    }
+
+    return 0;
+}

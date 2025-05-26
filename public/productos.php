@@ -9,6 +9,7 @@ require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/api_client.php';
 
 // Iniciar sesión
 startSession();
@@ -49,7 +50,7 @@ function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor)
     // URL y configuración de la API
     $url = "https://api2.aplicacionesweb.cl/apiacenter/productos/vtayrepxsuc";
     $token = "94ec33d0d75949c298f47adaa78928c2";
-    
+
     // Datos a enviar
     $data = [
         "Distribuidor" => $distribuidor,
@@ -57,7 +58,7 @@ function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor)
         "FTER" => $fechaFin,
         "KPRV" => $proveedor
     ];
-    
+
     // Configuración de la petición
     $options = [
         'http' => [
@@ -67,31 +68,31 @@ function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor)
             'content' => json_encode($data)
         ]
     ];
-    
+
     // Crear contexto y realizar petición
     $context = stream_context_create($options);
-    
+
     try {
         // Registrar la llamada a la API en el log
         error_log("Llamando a API: $url con datos: " . json_encode($data));
-        
+
         // Realizar la petición
         $result = file_get_contents($url, false, $context);
-        
+
         if ($result === false) {
             error_log("Error al obtener datos de la API: No se pudo conectar");
             return ['estado' => 0, 'datos' => [], 'error' => 'No se pudo conectar con la API'];
         }
-        
+
         // Decodificar respuesta
         $response = json_decode($result, true);
-        
+
         // Verificar estructura de respuesta
         if (json_last_error() !== JSON_ERROR_NONE) {
             error_log("Error al decodificar respuesta JSON: " . json_last_error_msg());
             return ['estado' => 0, 'datos' => [], 'error' => 'Error al procesar la respuesta'];
         }
-        
+
         return $response;
     } catch (Exception $e) {
         error_log("Excepción al llamar a la API: " . $e->getMessage());
@@ -102,15 +103,25 @@ function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor)
 // Obtener productos desde la API
 $respuestaAPI = obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor);
 
+
+// Valor monto neto
+$valorNeto = getMontoVentaNetoFromAPI($fechaInicio, $fechaFin);
+
+// Cantidad unidades vendidas
+$unidadesVendidas = getCantidadVendidaFromAPI($fechaInicio, $fechaFin);
+
+// SKU activos
+$skuActivos = getCantidadSkuActivosFromAPI();
+
 // Verificar que la respuesta sea correcta
 if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
     $productos = [];
     $mensajeError = $respuestaAPI['error'] ?? 'Error al obtener productos de la API';
 } else {
     $productosAPI = $respuestaAPI['datos'] ?? [];
-    
-    /* 
-        Guardo $productosAPI en un json con los datos de los productos en un archivo 
+
+    /*
+        Guardo $productosAPI en un json con los datos de los productos en un archivo
         físico en la carpeta tmp con un nombre descriptivo de la fecha en que se ejecutó.
         Antes de guardarlo, lo limpio para que no tenga datos duplicados.
     */
@@ -123,27 +134,26 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
     // Filtrar por búsqueda si se especifica
     if (!empty($busqueda)) {
         $productosAPI = array_filter($productosAPI, function($producto) use ($busqueda) {
-            return (stripos($producto['PRODUCTO_DESCRIPCION'], $busqueda) !== false) || 
+            return (stripos($producto['PRODUCTO_DESCRIPCION'], $busqueda) !== false) ||
                    (stripos($producto['PRODUCTO_CODIGO'], $busqueda) !== false) ||
                    (stripos($producto['MARCA_DESCRIPCION'], $busqueda) !== false);
         });
     }
-    
+
     // Contar total de productos después del filtro
     $totalProductos = count($productosAPI);
     $totalPaginas = ceil($totalProductos / $porPagina);
-    
+
     // Ordenar productos según criterio
     // Por defecto ordenamos por descripción del producto
     usort($productosAPI, function($a, $b) {
         return strcmp($a['PRODUCTO_DESCRIPCION'], $b['PRODUCTO_DESCRIPCION']);
     });
-    
+
     // Aplicar paginación
     $offset = ($pagina - 1) * $porPagina;
     $productos = array_slice($productosAPI, $offset, $porPagina);
 }
-
 ?>
 
 <div class="container mt-4">
@@ -158,6 +168,68 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                 <a href="exportar.php?tipo=productos&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-success">
                     <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                 </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tarjetas de información -->
+    <div class="row mb-4">
+        <!-- Tarjeta 1: Monto de venta neto -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Venta</h5>
+                    <h2 class="display-4 fw-bold"><?php echo formatCurrency($valorNeto); ?></h2>
+                    <p class="card-text">Monto de venta neto del período</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="productos.php" class="text-white text-decoration-none">Ver detalles</a>
+                    <div class="small text-white"><i class="fas fa-box"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta 2: Unidades vendidas -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Venta Unidades</h5>
+                    <h2 class="display-4 fw-bold"><?php echo $unidadesVendidas; ?></h2>
+                    <p class="card-text">Cantidad total de unidades vendidas</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="#" class="text-white text-decoration-none">Ver detalles</a>
+                    <div class="small text-white"><i class="fas fa-shopping-cart"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta 3: SKU activos -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Productos</h5>
+                    <h2 class="display-4 fw-bold"><?php echo $skuActivos; ?></h2>
+                    <p class="card-text">Total de SKU activos</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="#" class="text-white text-decoration-none">Ver detalles</a>
+                    <div class="small text-white"><i class="fas fa-file-invoice"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta 4: Pendiente -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Pendientes</h5>
+                    <p class="card-text">Pendiente para activar más adelante</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="#" class="text-white text-decoration-none">Ver detalles</a>
+                    <div class="small text-white"><i class="fas fa-clock"></i></div>
+                </div>
             </div>
         </div>
     </div>
@@ -181,7 +253,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                         <div class="col-md-3">
                             <label for="busqueda" class="form-label">Búsqueda</label>
                             <div class="input-group">
-                                <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                                <input type="text" class="form-control" id="busqueda" name="busqueda"
                                     placeholder="Nombre, código o marca" value="<?php echo htmlspecialchars($busqueda); ?>">
                                 <button class="btn btn-primary" type="submit">
                                     <i class="fas fa-search"></i>
@@ -190,18 +262,18 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                         </div>
                         <div class="col-md-3">
                             <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
-                            <input type="text" class="form-control date-input" id="fecha_inicio" name="fecha_inicio" 
+                            <input type="text" class="form-control date-input" id="fecha_inicio" name="fecha_inicio"
                                 value="<?php echo htmlspecialchars($fechaInicio); ?>" placeholder="dd/mm/yyyy">
                         </div>
                         <div class="col-md-3">
                             <label for="fecha_fin" class="form-label">Fecha Fin</label>
-                            <input type="text" class="form-control date-input" id="fecha_fin" name="fecha_fin" 
+                            <input type="text" class="form-control date-input" id="fecha_fin" name="fecha_fin"
                                 value="<?php echo htmlspecialchars($fechaFin); ?>" placeholder="dd/mm/yyyy">
                         </div>
                         <?php if ($esAdmin): ?>
                         <div class="col-md-3">
                             <label for="proveedor" class="form-label">Código Proveedor</label>
-                            <input type="text" class="form-control" id="proveedor" name="proveedor" 
+                            <input type="text" class="form-control" id="proveedor" name="proveedor"
                                 value="<?php echo htmlspecialchars($proveedor); ?>" placeholder="Código Proveedor">
                         </div>
                         <?php else: ?>
@@ -267,7 +339,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                 </thead>
                                 <tbody>
                                     <?php foreach ($productos as $producto): ?>
-                                        <?php 
+                                        <?php
                                         // Determinar clase para indicadores de stock
                                         $stockClass1 = $producto['STOCK_BODEGA01'] <= 5 ? 'low' : ($producto['STOCK_BODEGA01'] <= 20 ? 'medium' : '');
                                         $stockClass2 = $producto['STOCK_BODEGA02'] <= 5 ? 'low' : ($producto['STOCK_BODEGA02'] <= 20 ? 'medium' : '');
@@ -317,7 +389,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                                 </span>
                                             </td>
                                             <td>
-                                                <button class="btn btn-action btn-info" onclick="verDetalles('<?php echo $producto['PRODUCTO_CODIGO']; ?>')" 
+                                                <button class="btn btn-action btn-info" onclick="verDetalles('<?php echo $producto['PRODUCTO_CODIGO']; ?>')"
                                                     data-tooltip="Ver detalles del producto">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
@@ -327,7 +399,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                 </tbody>
                             </table>
                         </div>
-                        
+
                         <!-- Paginación -->
                         <?php if ($totalPaginas > 1): ?>
                             <nav aria-label="Paginación de productos">
@@ -339,7 +411,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                             </a>
                                         </li>
                                     <?php endif; ?>
-                                    
+
                                     <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
                                         <li class="page-item <?php echo $i === $pagina ? 'active' : ''; ?>">
                                             <a class="page-link" href="?pagina=<?php echo $i; ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
@@ -347,7 +419,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                             </a>
                                         </li>
                                     <?php endfor; ?>
-                                    
+
                                     <?php if ($pagina < $totalPaginas): ?>
                                         <li class="page-item">
                                             <a class="page-link" href="?pagina=<?php echo ($pagina + 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
@@ -395,42 +467,42 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
 // Función para mostrar detalles del producto
 function verDetalles(codigo) {
     const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
-    
+
     // Mostrar el modal
     modal.show();
-    
+
     // Buscar el producto en la tabla actual
     const productos = <?php echo json_encode($productos); ?>;
     let producto = null;
-    
+
     for (let i = 0; i < productos.length; i++) {
         if (productos[i].PRODUCTO_CODIGO === codigo) {
             producto = productos[i];
             break;
         }
     }
-    
+
     if (producto) {
         // Calcular el total de stock y ventas
         const totalStock = (
-            (producto.STOCK_BODEGA01 || 0) + 
-            (producto.STOCK_BODEGA02 || 0) + 
-            (producto.STOCK_BODEGA03 || 0) + 
-            (producto.STOCK_BODEGA04 || 0) + 
+            (producto.STOCK_BODEGA01 || 0) +
+            (producto.STOCK_BODEGA02 || 0) +
+            (producto.STOCK_BODEGA03 || 0) +
+            (producto.STOCK_BODEGA04 || 0) +
             (producto.STOCK_BODEGA05 || 0)
         );
-        
+
         const totalVentas = (
-            (producto.VENTA_SUCURSAL01 || 0) + 
-            (producto.VENTA_SUCURSAL02 || 0) + 
-            (producto.VENTA_SUCURSAL03 || 0) + 
-            (producto.VENTA_SUCURSAL04 || 0) + 
+            (producto.VENTA_SUCURSAL01 || 0) +
+            (producto.VENTA_SUCURSAL02 || 0) +
+            (producto.VENTA_SUCURSAL03 || 0) +
+            (producto.VENTA_SUCURSAL04 || 0) +
             (producto.VENTA_SUCURSAL05 || 0)
         );
-        
+
         // Calcular la rotación
         const rotacion = totalVentas > 0 && totalStock > 0 ? (totalStock / totalVentas).toFixed(2) : 0;
-        
+
         document.getElementById('detallesProducto').innerHTML = `
             <div class="row g-0">
                 <div class="col-md-4 bg-light">
@@ -444,7 +516,7 @@ function verDetalles(codigo) {
                                 <div class="text-muted small">Código de Producto</div>
                             </div>
                         </div>
-                        
+
                         <div class="mb-4">
                             <h5 class="border-bottom pb-2">Información General</h5>
                             <div class="row mb-2">
@@ -468,7 +540,7 @@ function verDetalles(codigo) {
                                 <div class="col-7">${producto.SUBFAMILIA_DESCRIPCION || 'N/A'}</div>
                             </div>
                         </div>
-                        
+
                         <div>
                             <h5 class="border-bottom pb-2">Resumen</h5>
                             <div class="row mb-2">
@@ -486,11 +558,11 @@ function verDetalles(codigo) {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-8">
                     <div class="p-4">
                         <h5 class="border-bottom pb-2 mb-3">Detalle por Sucursal</h5>
-                        
+
                         <div class="table-responsive">
                             <table class="table table-sm table-hover">
                                 <thead>
@@ -553,12 +625,12 @@ function verDetalles(codigo) {
                 </div>
             </div>
         `;
-        
+
         // Mostrar botón de exportar producto
         const exportarBtn = document.getElementById('exportarProductoBtn');
         exportarBtn.classList.remove('d-none');
         exportarBtn.href = `exportar.php?tipo=productos&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=${producto.PRODUCTO_CODIGO}`;
-    
+
     } else {
         document.getElementById('detallesProducto').innerHTML = `
             <div class="alert alert-danger">
@@ -578,20 +650,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabla = document.querySelector('.table-striped');
     const filas = tabla ? Array.from(tabla.querySelectorAll('tbody tr')) : [];
     let totalFilas = filas.length;
-    
+
     // Función para actualizar el contador de resultados
     function actualizarContadorResultados(mostrados) {
         resultadosInfo.textContent = `Mostrando ${mostrados} de ${totalFilas} productos`;
     }
-    
+
     // Inicializar el contador
     actualizarContadorResultados(totalFilas);
-    
+
     // Función para filtrar las filas de la tabla
     function filtrarTabla() {
         const textoBusqueda = buscador.value.toLowerCase().trim();
         let filasVisibles = 0;
-        
+
         // Si no hay texto de búsqueda, mostrar todas las filas
         if (textoBusqueda === '') {
             filas.forEach(fila => {
@@ -606,11 +678,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const producto = fila.cells[1].textContent.toLowerCase();
                 const marca = fila.cells[2].textContent.toLowerCase();
                 const familia = fila.cells[3].textContent.toLowerCase();
-                
+
                 // Comprobar si el texto de búsqueda está en alguna de las celdas
-                if (codigo.includes(textoBusqueda) || 
-                    producto.includes(textoBusqueda) || 
-                    marca.includes(textoBusqueda) || 
+                if (codigo.includes(textoBusqueda) ||
+                    producto.includes(textoBusqueda) ||
+                    marca.includes(textoBusqueda) ||
                     familia.includes(textoBusqueda)) {
                     fila.style.display = '';
                     filasVisibles++;
@@ -619,10 +691,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
-        
+
         // Actualizar contador de resultados
         actualizarContadorResultados(filasVisibles);
-        
+
         // Mostrar/ocultar el botón de limpiar según haya texto o no
         if (textoBusqueda === '') {
             limpiarBtn.classList.add('d-none');
@@ -630,17 +702,17 @@ document.addEventListener('DOMContentLoaded', function() {
             limpiarBtn.classList.remove('d-none');
         }
     }
-    
+
     // Evento para filtrar al escribir en el buscador
     buscador.addEventListener('input', filtrarTabla);
-    
+
     // Evento para limpiar la búsqueda
     limpiarBtn.addEventListener('click', function() {
         buscador.value = '';
         filtrarTabla();
         buscador.focus();
     });
-    
+
     // Ocultar el botón de limpiar al inicio
     limpiarBtn.classList.add('d-none');
 });
