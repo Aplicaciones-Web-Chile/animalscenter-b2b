@@ -163,7 +163,6 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                 <h1 class="mb-0">
                     <i class="fas fa-boxes me-2" style="color: var(--primary-color);"></i>
                     <span>Gestión de Productos</span>
-                    <span class="badge bg-primary ms-2" style="font-size: 0.5em; vertical-align: middle;"><?php echo $totalProductos ?? 0; ?> productos</span>
                 </h1>
                 <a href="exportar.php?tipo=productos&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-success">
                     <i class="fas fa-file-excel me-2"></i>Exportar a Excel
@@ -176,63 +175,147 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
     <div class="row mb-4">
         <!-- Tarjeta 1: Monto de venta neto -->
         <div class="col-md-3 mb-3">
-            <div class="card bg-primary text-white h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Venta</h5>
-                    <h2 class="display-4 fw-bold"><?php echo formatCurrency($valorNeto); ?></h2>
-                    <p class="card-text">Monto de venta neto del período</p>
+            <div class="card dashboard-card dashboard-card-primary h-100 shadow-sm">
+                <div class="card-body position-relative">
+                    <div class="dashboard-card-icon-wrapper bg-primary shadow">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <h5 class="card-title text-primary mt-3">Venta</h5>
+                    <h2 class="dashboard-card-value"><?php echo formatCurrency($valorNeto); ?></h2>
+                    <p class="card-text text-muted small">Monto de venta neto del período</p>
                 </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="productos.php" class="text-white text-decoration-none">Ver detalles</a>
-                    <div class="small text-white"><i class="fas fa-box"></i></div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="productos.php" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                        Ver detalles <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
                 </div>
             </div>
         </div>
 
         <!-- Tarjeta 2: Unidades vendidas -->
         <div class="col-md-3 mb-3">
-            <div class="card bg-success text-white h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Venta Unidades</h5>
-                    <h2 class="display-4 fw-bold"><?php echo $unidadesVendidas; ?></h2>
-                    <p class="card-text">Cantidad total de unidades vendidas</p>
+            <div class="card dashboard-card dashboard-card-success h-100 shadow-sm">
+                <div class="card-body position-relative">
+                    <div class="dashboard-card-icon-wrapper bg-success shadow">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <h5 class="card-title text-success mt-3">Venta Unidades</h5>
+                    <h2 class="dashboard-card-value"><?php echo $unidadesVendidas; ?></h2>
+                    <p class="card-text text-muted small">Cantidad total de unidades vendidas</p>
                 </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="#" class="text-white text-decoration-none">Ver detalles</a>
-                    <div class="small text-white"><i class="fas fa-shopping-cart"></i></div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="#" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                        Ver detalles <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
                 </div>
             </div>
         </div>
 
         <!-- Tarjeta 3: SKU activos -->
         <div class="col-md-3 mb-3">
-            <div class="card bg-info text-white h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Productos</h5>
-                    <h2 class="display-4 fw-bold"><?php echo $skuActivos; ?></h2>
-                    <p class="card-text">Total de SKU activos</p>
+            <div class="card dashboard-card dashboard-card-info h-100 shadow-sm">
+                <div class="card-body position-relative">
+                    <div class="dashboard-card-icon-wrapper bg-info shadow">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <h5 class="card-title text-info mt-3">Productos</h5>
+                    <h2 class="dashboard-card-value"><?php echo $skuActivos; ?></h2>
+                    <p class="card-text text-muted small">Total de SKU activos</p>
                 </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="#" class="text-white text-decoration-none">Ver detalles</a>
-                    <div class="small text-white"><i class="fas fa-file-invoice"></i></div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="#" class="btn btn-sm btn-outline-info rounded-pill px-3">
+                        Ver detalles <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
                 </div>
             </div>
         </div>
 
         <!-- Tarjeta 4: Pendiente -->
         <div class="col-md-3 mb-3">
-            <div class="card bg-warning text-white h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Pendientes</h5>
-                    <p class="card-text">Pendiente para activar más adelante</p>
+            <div class="card dashboard-card dashboard-card-warning h-100 shadow-sm">
+                <div class="card-body position-relative">
+                    <div class="dashboard-card-icon-wrapper bg-warning shadow">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h5 class="card-title text-warning mt-3">Pendientes</h5>
+                    <h2 class="dashboard-card-value">-</h2>
+                    <p class="card-text text-muted small">Pendiente para activar más adelante</p>
                 </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="#" class="text-white text-decoration-none">Ver detalles</a>
-                    <div class="small text-white"><i class="fas fa-clock"></i></div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="#" class="btn btn-sm btn-outline-warning rounded-pill px-3">
+                        Ver detalles <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Estilos personalizados para las tarjetas modernas -->
+    <style>
+        .dashboard-card {
+            border-radius: 12px;
+            border: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+        
+        .dashboard-card-icon-wrapper {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .dashboard-card-icon-wrapper i {
+            font-size: 20px;
+            color: white;
+        }
+        
+        .dashboard-card-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .dashboard-card-primary .dashboard-card-value { color: #0d6efd; }
+        .dashboard-card-success .dashboard-card-value { color: #198754; }
+        .dashboard-card-info .dashboard-card-value { color: #0dcaf0; }
+        .dashboard-card-warning .dashboard-card-value { color: #ffc107; }
+        
+        /* Efecto de brillo en hover */
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            transform: rotate(30deg);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .dashboard-card:hover::before {
+            animation: shine 1.5s ease;
+        }
+        
+        @keyframes shine {
+            0% { opacity: 0; transform: rotate(30deg) translateX(-300%); }
+            30% { opacity: 1; }
+            100% { opacity: 0; transform: rotate(30deg) translateX(300%); }
+        }
+    </style>
 
     <!-- Filtros y búsqueda -->
     <div class="row mb-4">
@@ -643,21 +726,24 @@ function verDetalles(codigo) {
 
 <!-- Script para el buscador de la tabla -->
 <script>
+// Pasar el total de productos desde PHP a JavaScript
+const totalProductosGeneral = <?php echo isset($totalProductos) ? (int)$totalProductos : 0; ?>;
+
 document.addEventListener('DOMContentLoaded', function() {
     const buscador = document.getElementById('tablaBuscador');
     const limpiarBtn = document.getElementById('limpiarBusqueda');
     const resultadosInfo = document.getElementById('resultadosBusqueda');
     const tabla = document.querySelector('.table-striped');
     const filas = tabla ? Array.from(tabla.querySelectorAll('tbody tr')) : [];
-    let totalFilas = filas.length;
+    let totalFilasPagina = filas.length;
 
     // Función para actualizar el contador de resultados
     function actualizarContadorResultados(mostrados) {
-        resultadosInfo.textContent = `Mostrando ${mostrados} de ${totalFilas} productos`;
+        resultadosInfo.textContent = `Mostrando ${mostrados} de ${totalProductosGeneral} productos`;
     }
 
     // Inicializar el contador
-    actualizarContadorResultados(totalFilas);
+    actualizarContadorResultados(totalFilasPagina);
 
     // Función para filtrar las filas de la tabla
     function filtrarTabla() {
