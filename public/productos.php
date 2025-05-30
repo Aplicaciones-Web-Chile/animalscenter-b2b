@@ -105,13 +105,13 @@ $respuestaAPI = obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $pro
 
 
 // Valor monto neto
-$valorNeto = getMontoVentaNetoFromAPI($fechaInicio, $fechaFin);
+$valorNeto = getMontoVentaNetoFromAPI($fechaInicio, $fechaFin, $proveedor);
 
 // Cantidad unidades vendidas
-$unidadesVendidas = getCantidadVendidaFromAPI($fechaInicio, $fechaFin);
+$unidadesVendidas = getCantidadVendidaFromAPI($fechaInicio, $fechaFin, $proveedor);
 
 // SKU activos
-$skuActivos = getCantidadSkuActivosFromAPI();
+$skuActivos = getCantidadSkuActivosFromAPI($proveedor);
 
 // Verificar que la respuesta sea correcta
 if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
@@ -249,7 +249,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             </div>
         </div>
     </div>
-    
+
     <!-- Estilos personalizados para las tarjetas modernas -->
     <style>
         .dashboard-card {
@@ -258,12 +258,12 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             overflow: hidden;
         }
-        
+
         .dashboard-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
         }
-        
+
         .dashboard-card-icon-wrapper {
             position: absolute;
             top: 15px;
@@ -275,23 +275,23 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             align-items: center;
             justify-content: center;
         }
-        
+
         .dashboard-card-icon-wrapper i {
             font-size: 20px;
             color: white;
         }
-        
+
         .dashboard-card-value {
             font-size: 2.2rem;
             font-weight: 700;
             margin: 10px 0;
         }
-        
+
         .dashboard-card-primary .dashboard-card-value { color: #0d6efd; }
         .dashboard-card-success .dashboard-card-value { color: #198754; }
         .dashboard-card-info .dashboard-card-value { color: #0dcaf0; }
         .dashboard-card-warning .dashboard-card-value { color: #ffc107; }
-        
+
         /* Efecto de brillo en hover */
         .dashboard-card::before {
             content: '';
@@ -305,11 +305,11 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             opacity: 0;
             transition: opacity 0.5s ease;
         }
-        
+
         .dashboard-card:hover::before {
             animation: shine 1.5s ease;
         }
-        
+
         @keyframes shine {
             0% { opacity: 0; transform: rotate(30deg) translateX(-300%); }
             30% { opacity: 1; }

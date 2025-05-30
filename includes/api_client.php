@@ -336,14 +336,16 @@ function getMarcasProveedor($proveedorId) {
  *
  * @param string $fechaInicio Fecha de inicio
  * @param string $fechaFin Fecha de término
+ * @param string $rutProveedor Rut del proveedor
  * @return int Monto de venta neto
  */
-function getMontoVentaNetoFromAPI($fechaInicio, $fechaFin) {
+function getMontoVentaNetoFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
     try {
 
         $response = callApi('kpi_venta_neta', [
             'FINI' => $fechaInicio,
-            'FTER' => $fechaFin
+            'FTER' => $fechaFin,
+            'KPRV' => $rutProveedor
         ]);
 
         if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
@@ -364,14 +366,16 @@ function getMontoVentaNetoFromAPI($fechaInicio, $fechaFin) {
  *
  * @param string $fechaInicio Fecha de inicio
  * @param string $fechaFin Fecha de término
+ * @param string $rutProveedor Rut del proveedor
  * @return int Monto de venta neto
  */
-function getCantidadVendidaFromAPI($fechaInicio, $fechaFin) {
+function getCantidadVendidaFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
     try {
 
         $response = callApi('kpi_unidades_vendidas', [
             'FINI' => $fechaInicio,
-            'FTER' => $fechaFin
+            'FTER' => $fechaFin,
+            'KPRV' => $rutProveedor
         ]);
 
         if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
@@ -390,12 +394,13 @@ function getCantidadVendidaFromAPI($fechaInicio, $fechaFin) {
 /**
  * Obtiene la cantidad de Sku activos desde la API
  *
+ * @param string $rutProveedor Rut del proveedor
  * @return int Cantidad de Sku
  */
-function getCantidadSkuActivosFromAPI() {
+function getCantidadSkuActivosFromAPI($rutProveedor) {
     try {
 
-        $response = callApi('kpi_sku_activos');
+        $response = callApi('kpi_sku_activos', ['KPRV' => $rutProveedor]);
 
         if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
             // Transformar el formato para que sea más fácil de usar en la aplicación
