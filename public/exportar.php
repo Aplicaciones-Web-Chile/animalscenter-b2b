@@ -1,6 +1,11 @@
 <?php
 /**
  * Controlador para la generación y descarga de archivos Excel
+ *
+ * Incluye funciones para exportar detalles de:
+ * - Venta neta
+ * - Unidades vendidas
+ * - SKU activos
  */
 
 // Iniciar buffer de salida para evitar problemas con headers
@@ -28,7 +33,7 @@ $pageTitle = 'Exportar a Excel';
 $tipo = isset($_GET['tipo']) ? $_GET['tipo'] : '';
 
 // Validar el tipo de exportación solicitado
-if (!in_array($tipo, ['productos', 'ventas', 'facturas'])) {
+if (!in_array($tipo, ['productos', 'ventas', 'facturas', 'detalle_venta_neta', 'detalle_unidades_vendidas', 'detalle_sku_activos'])) {
     // Si no hay tipo o no es válido, mostrar página de selección
     include 'header.php';
     ?>
@@ -38,7 +43,7 @@ if (!in_array($tipo, ['productos', 'ventas', 'facturas'])) {
                 <h1 class="mb-0"><i class="fas fa-file-export me-2"></i>Exportación de Datos</h1>
             </div>
         </div>
-        
+
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
@@ -95,7 +100,7 @@ if (!in_array($tipo, ['productos', 'ventas', 'facturas'])) {
 }
 
 // Obtener fechas para filtrar (si aplica)
-$fechaInicio        = $_GET['fecha_inicio'] ?? date('d/m/Y');
+$fechaInicio    = $_GET['fecha_inicio'] ?? date('d/m/Y');
 $fechaFin       = $_GET['fecha_fin'] ?? date('d/m/Y');
 $productoId     = $_GET['producto_id'] ?? '';
 $estado         = $_GET['estado'] ?? '';
@@ -159,6 +164,15 @@ switch ($tipo) {
         break;
     case 'facturas':
         exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin, $estado);
+        break;
+    case 'detalle_venta_neta':
+        exportarDetalleVentaNeta($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin);
+        break;
+    case 'detalle_unidades_vendidas':
+        exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin);
+        break;
+    case 'detalle_sku_activos':
+        exportarDetalleSkuActivos($sheet, $row_idx, $proveedorRut);
         break;
 }
 
@@ -227,11 +241,11 @@ try {
  */
 function exportarProductos($sheet, $row_idx, $proveedorRut) {
     global $fechaInicio, $fechaFin, $codigoProveedor, $distribuidor;
-    
+
     // URL y configuración de la API (igual que en productos.php)
     $url = "https://api2.aplicacionesweb.cl/apiacenter/productos/vtayrepxsuc";
     $token = "94ec33d0d75949c298f47adaa78928c2";
-    
+
     // Datos a enviar a la API
     $data = [
         "Distribuidor" => $distribuidor,
@@ -239,7 +253,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         "FTER" => $fechaFin,
         "KPRV" => $codigoProveedor
     ];
-    
+
     // Configuración de la petición
     $options = [
         'http' => [
@@ -249,40 +263,40 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             'content' => json_encode($data)
         ]
     ];
-    
+
     // Crear contexto y realizar petición
     $context = stream_context_create($options);
-    
+
     try {
         // Realizar la petición
         $result = file_get_contents($url, false, $context);
-        
+
         if ($result === false) {
             return;
         }
-        
+
         // Decodificar respuesta
         $response = json_decode($result, true);
-        
+
         // Verificar estructura de respuesta
         if (json_last_error() !== JSON_ERROR_NONE || !isset($response['estado']) || $response['estado'] !== 1) {
             return;
         }
-        
+
         $productos = $response['datos'] ?? [];
-        
+
         // Configurar el título principal del informe
         $sheet->setCellValue('A1', 'TIENDA DE MASCOTAS ANIMALS CENTER LTDA');
         $sheet->mergeCells('A1:W1');
-        
+
         // Configurar subtítulo del informe
         $sheet->setCellValue('A2', 'Informe B2B');
         $sheet->mergeCells('A2:W2');
-        
+
         // Establecer fechas del informe
         $sheet->setCellValue('A3', 'Desde el ' . $fechaInicio . ' hasta el ' . $fechaFin);
         $sheet->mergeCells('A3:W3');
-        
+
         // Aplicar estilos al encabezado
         $headerStyle = [
             'font' => [
@@ -308,21 +322,21 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
                 ],
             ],
         ];
-        
+
         $sheet->getStyle('A1:W3')->applyFromArray($headerStyle);
-        
+
         // Saltar una fila para iniciar el contenido
         $row_idx = 5;
-        
+
         // Texto "ORDENADO POR CÓDIGO"
         $sheet->setCellValue('A' . $row_idx, 'ORDENADO POR CÓDIGO');
         $sheet->mergeCells('A' . $row_idx . ':W' . $row_idx);
         $sheet->getStyle('A' . $row_idx)->getFont()->setBold(true);
-        
+
         // Crear encabezados de columna con sucursales agrupadas
         $row_idx++;
         $headerRow1 = $row_idx;
-        
+
         // Primera fila del encabezado - Nombres generales y sucursales
         // Ajustamos el auto-size para estas columnas
         $sheet->getColumnDimension('A')->setAutoSize(true); // Código
@@ -333,7 +347,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->getColumnDimension('F')->setAutoSize(true); // Subcategoría
         $sheet->getColumnDimension('G')->setAutoSize(true); // Kilo (antes Unidad Compra)
         $sheet->getColumnDimension('H')->setAutoSize(true); // Venta Distribución
-        
+
         $sheet->setCellValue('A' . $headerRow1, '');
         $sheet->setCellValue('B' . $headerRow1, '');
         $sheet->setCellValue('C' . $headerRow1, '');
@@ -341,7 +355,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->setCellValue('E' . $headerRow1, '');
         $sheet->setCellValue('F' . $headerRow1, '');
         $sheet->setCellValue('G' . $headerRow1, '');
-        
+
         // Campo de Venta Distribución
         $sheet->setCellValue('H' . $headerRow1, 'DISTRIB');
 
@@ -351,27 +365,27 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         // Sucursales
         $sheet->setCellValue('J' . $headerRow1, 'VERGARA');
         $sheet->mergeCells('J' . $headerRow1 . ':K' . $headerRow1);
-        
+
         $sheet->setCellValue('L' . $headerRow1, 'LAMPA');
         $sheet->mergeCells('L' . $headerRow1 . ':M' . $headerRow1);
-        
+
         $sheet->setCellValue('N' . $headerRow1, 'PANAMERICANA');
         $sheet->mergeCells('N' . $headerRow1 . ':O' . $headerRow1);
-        
+
         $sheet->setCellValue('P' . $headerRow1, 'MATTA');
         $sheet->mergeCells('P' . $headerRow1 . ':Q' . $headerRow1);
-        
+
         $sheet->setCellValue('R' . $headerRow1, 'PROVIDENCIA');
         $sheet->mergeCells('R' . $headerRow1 . ':S' . $headerRow1);
 
         // Totales
         $sheet->setCellValue('T' . $headerRow1, 'TOTALES');
         $sheet->mergeCells('T' . $headerRow1 . ':W' . $headerRow1);
-        
+
         // Segunda fila del encabezado - Detalle de columnas
         $row_idx++;
         $headerRow2 = $row_idx;
-        
+
         // Datos básicos
         $sheet->setCellValue('A' . $headerRow2, 'Código');
         $sheet->setCellValue('B' . $headerRow2, 'Código Barra');
@@ -382,7 +396,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->setCellValue('G' . $headerRow2, 'Kilo');
         $sheet->setCellValue('H' . $headerRow2, 'Venta Distribución');
         $sheet->setCellValue('I' . $headerRow2, 'Venta Web');
-        
+
         // Detalle de sucursales - Venta y Stock
         $sheet->setCellValue('J' . $headerRow2, 'Venta');
         $sheet->setCellValue('K' . $headerRow2, 'Stock');
@@ -394,7 +408,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->setCellValue('Q' . $headerRow2, 'Stock');
         $sheet->setCellValue('R' . $headerRow2, 'Venta');
         $sheet->setCellValue('S' . $headerRow2, 'Stock');
-        
+
         // Totales - Con comentarios explicativos
         $sheet->setCellValue('T' . $headerRow2, 'Stock Valorizado');
         $comentarioStockValorizado = $sheet->getComment('T' . $headerRow2);
@@ -411,7 +425,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->setCellValue('W' . $headerRow2, 'Rotación');
         $comentarioRotacion = $sheet->getComment('W' . $headerRow2);
         $comentarioRotacion->getText()->createTextRun('Velocidad con que se vende el producto: Ventas / Stock');
-        
+
         // Estilo para encabezados de columna
         $columnHeaderStyle = [
             'font' => ['bold' => true],
@@ -429,7 +443,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
                 ],
             ],
         ];
-        
+
         // Estilo para sucursales (primera fila)
         $sucursalHeaderStyle = [
             'font' => ['bold' => true, 'size' => 11],
@@ -447,38 +461,38 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
                 ],
             ],
         ];
-        
+
         // Aplicar estilos a los encabezados
         $sheet->getStyle('A' . $headerRow1 . ':G' . $headerRow2)->applyFromArray($columnHeaderStyle);
         $sheet->getStyle('H' . $headerRow1 . ':R' . $headerRow1)->applyFromArray($sucursalHeaderStyle);
         $sheet->getStyle('H' . $headerRow2 . ':R' . $headerRow2)->applyFromArray($columnHeaderStyle);
-        
+
         // Aplicar colores específicos para la sección de totales
         $sheet->getStyle('S' . $headerRow1)->getFill()->getStartColor()->setRGB('FFFF00'); // Amarillo
         $sheet->getStyle('S' . $headerRow1 . ':V' . $headerRow1)->applyFromArray($sucursalHeaderStyle);
         $sheet->getStyle('S' . $headerRow1 . ':V' . $headerRow1)->getFill()->getStartColor()->setRGB('FFFF00'); // Amarillo
-        
+
         // Estilo del encabezado - Colores para sucursales y totales
         $sheet->getStyle('H' . $headerRow1)->getFill()
             ->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('DDEBF7'); // Azul muy claro para distribución
-            
+
         $sheet->getStyle('I' . $headerRow1 . ':J' . $headerRow1)->getFill()
             ->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('B8CCE4'); // Azul claro
-        
+
         $sheet->getStyle('K' . $headerRow1 . ':L' . $headerRow1)->getFill()
             ->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('E6B8B7'); // Rojo claro
-            
+
         $sheet->getStyle('M' . $headerRow1 . ':N' . $headerRow1)->getFill()
             ->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('C5E0B3'); // Verde claro
-            
+
         $sheet->getStyle('O' . $headerRow1 . ':P' . $headerRow1)->getFill()
             ->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('FFE699'); // Amarillo claro
-            
+
         $sheet->getStyle('Q' . $headerRow1 . ':R' . $headerRow1)->getFill()
             ->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('D9D9D9'); // Gris claro
@@ -486,11 +500,11 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->getStyle('S' . $headerRow1 . ':V' . $headerRow1)->getFill()
             ->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('F4B084'); // Naranja claro
-            
+
         // Iniciar las filas de datos
         $row_idx++;
         $startDataRow = $row_idx;
-        
+
         // Llenar datos
         foreach ($productos as $producto) {
             $sheet->setCellValue('A' . $row_idx, $producto['PRODUCTO_CODIGO']);
@@ -500,7 +514,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             $sheet->setCellValue('E' . $row_idx, $producto['FAMILIA_DESCRIPCION']); // Categoría
             $sheet->setCellValue('F' . $row_idx, $producto['SUBFAMILIA_DESCRIPCION'] ?? ''); // Subcategoría
             $sheet->setCellValue('G' . $row_idx, $producto['KG'] ?? 'No disponible');
-            
+
             // Sucursales y stock (usar los datos de la API o valores predeterminados si no están disponibles)
             // Venta Distribución y sucursales (usar los datos de la API o valores predeterminados si no están disponibles)
             // Convertimos todos los valores a numéricos para evitar errores
@@ -516,7 +530,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             $sheet->setCellValue('Q' . $row_idx, floatval($producto['STOCK_BODEGA04'] ?? 0));
             $sheet->setCellValue('R' . $row_idx, floatval($producto['VENTA_SUCURSAL05'] ?? 0));
             $sheet->setCellValue('S' . $row_idx, floatval($producto['STOCK_BODEGA05'] ?? 0));
-            
+
             // Valor unitario y datos de ventas - aseguramos que sean numéricos
             $valorUnitario = floatval($producto['PRECIO_VENTA'] ?? 0);
             $ventaSuc1 = floatval($producto['VENTA_SUCURSAL01'] ?? 0);
@@ -525,27 +539,27 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             $ventaSuc4 = floatval($producto['VENTA_SUCURSAL04'] ?? 0);
             $ventaSuc5 = floatval($producto['VENTA_SUCURSAL05'] ?? 0);
             $ventaWeb = floatval($producto['VENTA_SUCURSAL07'] ?? 0);
-            
+
             // Fórmula T: Stock valorizado (suma de stocks * unidad de compra)
             // Calculamos directamente el valor en lugar de usar una fórmula para evitar problemas de formato
             // Aseguramos que todos los valores sean numéricos con floatval()
-            $stockTotal = floatval($producto['STOCK_BODEGA01'] ?? 0) + floatval($producto['STOCK_BODEGA02'] ?? 0) + 
-                        floatval($producto['STOCK_BODEGA03'] ?? 0) + floatval($producto['STOCK_BODEGA04'] ?? 0) + 
+            $stockTotal = floatval($producto['STOCK_BODEGA01'] ?? 0) + floatval($producto['STOCK_BODEGA02'] ?? 0) +
+                        floatval($producto['STOCK_BODEGA03'] ?? 0) + floatval($producto['STOCK_BODEGA04'] ?? 0) +
                         floatval($producto['STOCK_BODEGA05'] ?? 0);
             $unidadCompra = floatval($producto['UNIDAD_COMPRA'] ?? 1);
             $stockValorizado = $stockTotal * $unidadCompra;
             $sheet->setCellValue('T' . $row_idx, $stockValorizado);
-            
+
             // Columna U: Suma de ventas por sucursal
             // Asignar directamente el valor numérico para evitar problemas con las fórmulas
             $sumaVentas = $ventaSuc1 + $ventaSuc2 + $ventaSuc3 + $ventaSuc4 + $ventaSuc5;
             $sheet->setCellValue('U' . $row_idx, $sumaVentas);
-            
+
             // Columna V: Suma Stock (total de stock en todas las sucursales)
             // Usamos el valor de $stockTotal que ya calculamos antes y convertimos a numérico
             $sumaStock = $stockTotal; // Ya es numérico porque lo calculamos arriba
             $sheet->setCellValue('V' . $row_idx, $sumaStock);
-            
+
             // Columna W: Rotación (ventas / stock, evitando división por cero)
             if ($sumaStock > 0) {
                 $rotacion = $sumaVentas / $sumaStock;
@@ -553,10 +567,10 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             } else {
                 $sheet->setCellValue('W' . $row_idx, 0);
             }
-            
+
             $row_idx++;
         }
-        
+
         // Dar formato a todas las celdas de datos
         $lastDataRow = $row_idx - 1;
         if ($lastDataRow >= $startDataRow) {
@@ -564,42 +578,42 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             $sheet->getStyle('A' . $startDataRow . ':W' . $lastDataRow)->getBorders()->getAllBorders()->setBorderStyle(
                 PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
             );
-            
+
             // Formato numérico para las columnas de stock
             $columnRanges = ['I:I', 'J:J', 'L:L', 'N:N', 'P:P', 'R:R', 'T:T', 'U:U'];
             foreach ($columnRanges as $range) {
                 $sheet->getStyle($range . $startDataRow . ':' . $range . $lastDataRow)
                     ->getNumberFormat()->setFormatCode('#,##0');
             }
-            
+
             // Formato moneda para valores
             $sheet->getStyle('S' . $startDataRow . ':S' . $lastDataRow)
                 ->getNumberFormat()->setFormatCode('_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)');
-            
+
             // Formato decimal para rotación
             $sheet->getStyle('V' . $startDataRow . ':V' . $lastDataRow)
                 ->getNumberFormat()->setFormatCode('0.00');
         }
-        
+
         // Ajustar anchos de columnas automáticamente
         foreach (range('A', 'W') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
-        
+
         // Congelar paneles para facilitar navegación
         $sheet->freezePane('A8');
-        
+
         // Establecer configuración de impresión
         $sheet->getPageSetup()->setOrientation(PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
         $sheet->getPageSetup()->setPaperSize(PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_A4);
         $sheet->getPageSetup()->setFitToPage(true);
         $sheet->getPageSetup()->setFitToWidth(1);
         $sheet->getPageSetup()->setFitToHeight(0);
-        
+
         // Establecer encabezado y pie de página para impresión
         $sheet->getHeaderFooter()->setOddHeader('&C&BInforme B2B - ' . date('d/m/Y'));
         $sheet->getHeaderFooter()->setOddFooter('&L&B' . $sheet->getTitle() . '&R&PTienda de Mascotas Animals Center');
-        
+
     } catch (Exception $e) {
         // Si hay un error, dejamos que el proceso continúe pero registramos el error
         error_log("Error en exportación a Excel: " . $e->getMessage());
@@ -617,7 +631,7 @@ function exportarVentas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin
     $sheet->setCellValue('D' . $row_idx, 'SKU');
     $sheet->setCellValue('E' . $row_idx, 'Cantidad');
     $sheet->setCellValue('F' . $row_idx, 'Proveedor');
-    
+
     // Estilo para encabezados
     $sheet->getStyle('A' . $row_idx . ':F' . $row_idx)->applyFromArray([
         'font' => ['bold' => true],
@@ -629,35 +643,35 @@ function exportarVentas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin
             'allBorders' => ['borderStyle' => PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
         ],
     ]);
-    
+
     $row_idx++;
-    
+
     // Preparar consulta
     $condiciones = ["v.fecha BETWEEN ? AND ?"];
     $params = [$fechaInicio . " 00:00:00", $fechaFin . " 23:59:59"];
-    
+
     if (!empty($productoId)) {
         $condiciones[] = "v.producto_id = ?";
         $params[] = $productoId;
     }
-    
+
     if ($proveedorRut) {
         $condiciones[] = "v.proveedor_rut = ?";
         $params[] = $proveedorRut;
     }
-    
+
     $where = "WHERE " . implode(" AND ", $condiciones);
-    
+
     $sql = "SELECT v.*, p.nombre as producto, p.sku, u.nombre as proveedor
             FROM ventas v
             JOIN productos p ON v.producto_id = p.id
             LEFT JOIN usuarios u ON v.proveedor_rut = u.rut
             $where
             ORDER BY v.fecha DESC";
-    
+
     // Obtener datos
     $ventas = fetchAll($sql, $params);
-    
+
     // Llenar datos
     foreach ($ventas as $venta) {
         $sheet->setCellValue('A' . $row_idx, $venta['id']);
@@ -666,10 +680,10 @@ function exportarVentas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin
         $sheet->setCellValue('D' . $row_idx, $venta['sku']);
         $sheet->setCellValue('E' . $row_idx, $venta['cantidad']);
         $sheet->setCellValue('F' . $row_idx, $venta['proveedor']);
-        
+
         $row_idx++;
     }
-    
+
     // Dar formato a las celdas
     $sheet->getStyle('E' . ($row_idx - count($ventas)) . ':E' . ($row_idx - 1))->getNumberFormat()
         ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
@@ -686,7 +700,7 @@ function exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaF
     $sheet->setCellValue('D' . $row_idx, 'Monto');
     $sheet->setCellValue('E' . $row_idx, 'Estado');
     $sheet->setCellValue('F' . $row_idx, 'Proveedor');
-    
+
     // Estilo para encabezados
     $sheet->getStyle('A' . $row_idx . ':F' . $row_idx)->applyFromArray([
         'font' => ['bold' => true],
@@ -698,25 +712,25 @@ function exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaF
             'allBorders' => ['borderStyle' => PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
         ],
     ]);
-    
+
     $row_idx++;
-    
+
     // Preparar consulta
     $condiciones = ["f.fecha BETWEEN ? AND ?"];
     $params = [$fechaInicio . " 00:00:00", $fechaFin . " 23:59:59"];
-    
+
     if (!empty($estado)) {
         $condiciones[] = "f.estado = ?";
         $params[] = $estado;
     }
-    
+
     if ($proveedorRut) {
         $condiciones[] = "f.proveedor_rut = ?";
         $params[] = $proveedorRut;
     }
-    
+
     $where = "WHERE " . implode(" AND ", $condiciones);
-    
+
     $sql = "SELECT f.*, v.producto_id, p.nombre as producto, p.sku, u.nombre as proveedor
             FROM facturas f
             JOIN ventas v ON f.venta_id = v.id
@@ -724,10 +738,10 @@ function exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaF
             LEFT JOIN usuarios u ON f.proveedor_rut = u.rut
             $where
             ORDER BY f.fecha DESC";
-    
+
     // Obtener datos
     $facturas = fetchAll($sql, $params);
-    
+
     // Llenar datos
     foreach ($facturas as $factura) {
         $sheet->setCellValue('A' . $row_idx, $factura['id']);
@@ -736,11 +750,178 @@ function exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaF
         $sheet->setCellValue('D' . $row_idx, $factura['monto']);
         $sheet->setCellValue('E' . $row_idx, ucfirst($factura['estado']));
         $sheet->setCellValue('F' . $row_idx, $factura['proveedor']);
-        
+
         $row_idx++;
     }
-    
+
     // Dar formato a las celdas
     $sheet->getStyle('D' . ($row_idx - count($facturas)) . ':D' . ($row_idx - 1))->getNumberFormat()
         ->setFormatCode('$#,##0');
+}
+
+/**
+ * Función para exportar detalle de venta neta a Excel
+ */
+function exportarDetalleVentaNeta($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin) {
+    // Establecer encabezados de columna
+    $sheet->setCellValue('A' . $row_idx, 'Tipo');
+    $sheet->setCellValue('B' . $row_idx, 'Folio');
+    $sheet->setCellValue('C' . $row_idx, 'Fecha');
+    $sheet->setCellValue('D' . $row_idx, 'Código');
+    $sheet->setCellValue('E' . $row_idx, 'Producto');
+    $sheet->setCellValue('F' . $row_idx, 'Marca');
+    $sheet->setCellValue('G' . $row_idx, 'Cantidad');
+    $sheet->setCellValue('H' . $row_idx, 'Precio Unit.');
+    $sheet->setCellValue('I' . $row_idx, 'Total Neto');
+
+    // Estilo para encabezados
+    $sheet->getStyle('A' . $row_idx . ':I' . $row_idx)->applyFromArray([
+        'font' => ['bold' => true],
+        'fill' => [
+            'fillType' => PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+            'startColor' => ['rgb' => '4285F4'], // Color azul para coincidir con el modal
+        ],
+        'font' => [
+            'bold' => true,
+            'color' => ['rgb' => 'FFFFFF'],
+        ],
+        'borders' => [
+            'allBorders' => ['borderStyle' => PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+        ],
+    ]);
+
+    $row_idx++;
+
+    // Incluir el archivo con la función getDetalleVentaNeta
+    require_once __DIR__ . '/../includes/api_client.php';
+
+    // Obtener datos usando la misma función que en productos.php
+    $detalleValorNeto = getDetalleVentaNeta($fechaInicio, $fechaFin, $proveedorRut);
+
+    // Llenar datos
+    foreach ($detalleValorNeto as $item) {
+        $sheet->setCellValue('A' . $row_idx, $item['TIPO']);
+        // Formatear folios como texto para evitar notación científica
+        $sheet->setCellValueExplicit('B' . $row_idx, $item['FOLIO'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('C' . $row_idx, $item['FECHA_DE_EMISION']);
+        // Formatear códigos de producto como texto
+        $sheet->setCellValueExplicit('D' . $row_idx, $item['PRODUCTO_CODIGO'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('E' . $row_idx, $item['PRODUCTO_DESCRIPCION']);
+        $sheet->setCellValue('F' . $row_idx, $item['MARCA_DESCRIPCION']);
+        $sheet->setCellValue('G' . $row_idx, $item['CANTIDAD']);
+        $sheet->setCellValue('H' . $row_idx, $item['PRECIO_UNITARIO_NETO']);
+        $sheet->setCellValue('I' . $row_idx, $item['TOTAL_NETO']);
+
+        $row_idx++;
+    }
+
+    // Dar formato a las celdas numéricas
+    $sheet->getStyle('G' . ($row_idx - count($detalleValorNeto)) . ':G' . ($row_idx - 1))->getNumberFormat()
+        ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
+    $sheet->getStyle('H' . ($row_idx - count($detalleValorNeto)) . ':I' . ($row_idx - 1))->getNumberFormat()
+        ->setFormatCode('$#,##0');
+}
+
+/**
+ * Función para exportar detalle de unidades vendidas a Excel
+ */
+function exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin) {
+    // Establecer encabezados de columna
+    $sheet->setCellValue('A' . $row_idx, 'Tipo');
+    $sheet->setCellValue('B' . $row_idx, 'Folio');
+    $sheet->setCellValue('C' . $row_idx, 'Fecha');
+    $sheet->setCellValue('D' . $row_idx, 'Código');
+    $sheet->setCellValue('E' . $row_idx, 'Producto');
+    $sheet->setCellValue('F' . $row_idx, 'Marca');
+    $sheet->setCellValue('G' . $row_idx, 'Cantidad');
+
+    // Estilo para encabezados
+    $sheet->getStyle('A' . $row_idx . ':G' . $row_idx)->applyFromArray([
+        'font' => ['bold' => true],
+        'fill' => [
+            'fillType' => PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+            'startColor' => ['rgb' => '28A745'], // Color verde para coincidir con el modal
+        ],
+        'font' => [
+            'bold' => true,
+            'color' => ['rgb' => 'FFFFFF'],
+        ],
+        'borders' => [
+            'allBorders' => ['borderStyle' => PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+        ],
+    ]);
+
+    $row_idx++;
+
+    // Incluir el archivo con la función getDetalleUnidadesVendidas
+    require_once __DIR__ . '/../includes/api_client.php';
+
+    // Obtener datos usando la misma función que en productos.php
+    $detalleUnidadesVendidas = getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $proveedorRut);
+
+    // Llenar datos
+    foreach ($detalleUnidadesVendidas as $item) {
+        $sheet->setCellValue('A' . $row_idx, $item['TIPO']);
+        // Formatear folios como texto para evitar notación científica
+        $sheet->setCellValueExplicit('B' . $row_idx, $item['FOLIO'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('C' . $row_idx, $item['FECHA_DE_EMISION']);
+        // Formatear códigos de producto como texto
+        $sheet->setCellValueExplicit('D' . $row_idx, $item['PRODUCTO_CODIGO'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('E' . $row_idx, $item['PRODUCTO_DESCRIPCION']);
+        $sheet->setCellValue('F' . $row_idx, $item['MARCA_DESCRIPCION']);
+        $sheet->setCellValue('G' . $row_idx, $item['CANTIDAD']);
+
+        $row_idx++;
+    }
+
+    // Dar formato a las celdas numéricas
+    $sheet->getStyle('G' . ($row_idx - count($detalleUnidadesVendidas)) . ':G' . ($row_idx - 1))->getNumberFormat()
+        ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
+}
+
+/**
+ * Función para exportar detalle de SKU activos a Excel
+ */
+function exportarDetalleSkuActivos($sheet, $row_idx, $proveedorRut) {
+    // Establecer encabezados de columna
+    $sheet->setCellValue('A' . $row_idx, 'Código');
+    $sheet->setCellValue('B' . $row_idx, 'Producto');
+    $sheet->setCellValue('C' . $row_idx, 'Código de Barra');
+    $sheet->setCellValue('D' . $row_idx, 'Marca');
+
+    // Estilo para encabezados
+    $sheet->getStyle('A' . $row_idx . ':D' . $row_idx)->applyFromArray([
+        'font' => ['bold' => true],
+        'fill' => [
+            'fillType' => PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+            'startColor' => ['rgb' => '17A2B8'], // Color celeste para coincidir con el modal
+        ],
+        'font' => [
+            'bold' => true,
+            'color' => ['rgb' => 'FFFFFF'],
+        ],
+        'borders' => [
+            'allBorders' => ['borderStyle' => PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+        ],
+    ]);
+
+    $row_idx++;
+
+    // Incluir el archivo con la función getDetalleSkuActivos
+    require_once __DIR__ . '/../includes/api_client.php';
+
+    // Obtener datos usando la misma función que en productos.php
+    $detalleSkuActivos = getDetalleSkuActivos($proveedorRut);
+
+    // Llenar datos
+    foreach ($detalleSkuActivos as $item) {
+        // Formatear código de producto como texto para evitar notación científica
+        $sheet->setCellValueExplicit('A' . $row_idx, $item['PRODUCTO_CODIGO'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('B' . $row_idx, $item['PRODUCTO_DESCRIPCION']);
+        // Añadir un apóstrofe al inicio para forzar formato de texto en Excel
+        $sheet->setCellValueExplicit('C' . $row_idx, $item['CODIGO_DE_BARRA'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('D' . $row_idx, $item['MARCA_DESCRIPCION']);
+
+        $row_idx++;
+    }
 }

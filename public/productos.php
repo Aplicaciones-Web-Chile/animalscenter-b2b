@@ -113,6 +113,16 @@ $unidadesVendidas = getCantidadVendidaFromAPI($fechaInicio, $fechaFin, $proveedo
 // SKU activos
 $skuActivos = getCantidadSkuActivosFromAPI($proveedor);
 
+// Detalle Valor monto neto
+$detalleValorNeto = getDetalleVentaNeta($fechaInicio, $fechaFin, $proveedor);
+
+// Detalle Cantidad unidades vendidas
+$detalleUnidadesVendidas = getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $proveedor);
+
+// Detalle SKU activos
+$detalleSkuActivos = getDetalleSkuActivos($proveedor);
+
+
 // Verificar que la respuesta sea correcta
 if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
     $productos = [];
@@ -185,9 +195,9 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                     <p class="card-text text-muted small">Monto de venta neto del período</p>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="productos.php" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalVentaNeta">
                         Ver detalles <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -204,9 +214,9 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                     <p class="card-text text-muted small">Cantidad total de unidades vendidas</p>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="#" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalUnidadesVendidas">
                         Ver detalles <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -223,9 +233,9 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                     <p class="card-text text-muted small">Total de SKU activos</p>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="#" class="btn btn-sm btn-outline-info rounded-pill px-3">
+                    <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalSkuActivos">
                         Ver detalles <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -242,9 +252,9 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                     <p class="card-text text-muted small">Pendiente para activar más adelante</p>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <a href="#" class="btn btn-sm btn-outline-warning rounded-pill px-3">
+                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" disabled>
                         Ver detalles <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -803,6 +813,239 @@ document.addEventListener('DOMContentLoaded', function() {
     limpiarBtn.classList.add('d-none');
 });
 </script>
+
+<!-- Modales para detalles de tarjetas -->
+
+<!-- Modal Detalle Venta Neta -->
+<div class="modal fade" id="modalVentaNeta" tabindex="-1" aria-labelledby="modalVentaNetaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalVentaNetaLabel">
+                    <i class="fas fa-dollar-sign me-2"></i> Detalle de Venta Neta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Folio</th>
+                                <th>Fecha</th>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Marca</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unit.</th>
+                                <th>Total Neto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($detalleValorNeto)): ?>
+                                <?php foreach ($detalleValorNeto as $item): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($item['TIPO']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['FOLIO']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['FECHA_DE_EMISION']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['PRODUCTO_CODIGO']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['PRODUCTO_DESCRIPCION']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['MARCA_DESCRIPCION']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['CANTIDAD']); ?></td>
+                                        <td><?php echo formatCurrency($item['PRECIO_UNITARIO_NETO']); ?></td>
+                                        <td><?php echo formatCurrency($item['TOTAL_NETO']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="9" class="text-center">No hay datos disponibles</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar estos datos directamente a Excel</span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
+                    <a href="exportar.php?tipo=detalle_venta_neta&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-primary btn-lg">
+                        <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detalle Unidades Vendidas -->
+<div class="modal fade" id="modalUnidadesVendidas" tabindex="-1" aria-labelledby="modalUnidadesVendidasLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalUnidadesVendidasLabel">
+                    <i class="fas fa-shopping-cart me-2"></i> Detalle de Unidades Vendidas
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Folio</th>
+                                <th>Fecha</th>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Marca</th>
+                                <th>Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($detalleUnidadesVendidas)): ?>
+                                <?php foreach ($detalleUnidadesVendidas as $item): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($item['TIPO']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['FOLIO']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['FECHA_DE_EMISION']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['PRODUCTO_CODIGO']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['PRODUCTO_DESCRIPCION']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['MARCA_DESCRIPCION']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['CANTIDAD']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7" class="text-center">No hay datos disponibles</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar estos datos directamente a Excel</span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
+                    <a href="exportar.php?tipo=detalle_unidades_vendidas&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-success btn-lg">
+                        <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detalle SKU Activos -->
+<div class="modal fade" id="modalSkuActivos" tabindex="-1" aria-labelledby="modalSkuActivosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalSkuActivosLabel">
+                    <i class="fas fa-box me-2"></i> Detalle de SKU Activos
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Código de Barra</th>
+                                <th>Marca</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($detalleSkuActivos)): ?>
+                                <?php foreach ($detalleSkuActivos as $item): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($item['PRODUCTO_CODIGO']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['PRODUCTO_DESCRIPCION']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['CODIGO_DE_BARRA']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['MARCA_DESCRIPCION']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="4" class="text-center">No hay datos disponibles</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar estos datos directamente a Excel</span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
+                    <a href="exportar.php?tipo=detalle_sku_activos&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-info btn-lg">
+                        <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estilos adicionales para los modales -->
+<style>
+    .modal-content {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    }
+    
+    .modal-header {
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .modal-header .btn-close:focus {
+        box-shadow: none;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .modal .table {
+        margin-bottom: 0;
+    }
+    
+    .modal .table th {
+        position: sticky;
+        top: 0;
+        background-color: #f8f9fa;
+        z-index: 1;
+    }
+    
+    /* Animación para el modal */
+    .modal.fade .modal-dialog {
+        transform: scale(0.9);
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    .modal.show .modal-dialog {
+        transform: scale(1);
+        opacity: 1;
+    }
+</style>
 
 <?php
 // Incluir el pie de página

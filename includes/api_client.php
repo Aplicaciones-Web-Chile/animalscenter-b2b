@@ -414,3 +414,89 @@ function getCantidadSkuActivosFromAPI($rutProveedor) {
 
     return 0;
 }
+
+/**
+ * Obtiene detalle de venta neta desde la API
+ *
+ * @param string $fechaInicio Fecha de inicio
+ * @param string $fechaFin Fecha de término
+ * @param string $rutProveedor Rut del proveedor
+ * @return int Monto de venta neto
+ */
+function getDetalleVentaNeta($fechaInicio, $fechaFin, $rutProveedor) {
+    try {
+
+        $response = callApi('kpi_venta_neta_detalle', [
+            'FINI' => $fechaInicio,
+            'FTER' => $fechaFin,
+            'KPRV' => $rutProveedor
+        ]);
+
+        if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
+            // Transformar el formato para que sea más fácil de usar en la aplicación
+            $datos = isset($response['datos']) ? $response['datos'] : [];
+
+            return $datos;
+        }
+    } catch (Exception $e) {
+        logError("Error al obtener detalle de ventas netas para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
+    }
+
+    return 0;
+}
+
+/**
+ * Obtiene detalle de unidades vendidas desde la API
+ *
+ * @param string $fechaInicio Fecha de inicio
+ * @param string $fechaFin Fecha de término
+ * @param string $rutProveedor Rut del proveedor
+ * @return int Monto de venta neto
+ */
+function getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $rutProveedor) {
+    try {
+
+        $response = callApi('kpi_unidades_vendidas_detalle', [
+            'FINI' => $fechaInicio,
+            'FTER' => $fechaFin,
+            'KPRV' => $rutProveedor
+        ]);
+
+        if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
+            // Transformar el formato para que sea más fácil de usar en la aplicación
+            $datos = isset($response['datos']) ? $response['datos'] : [];
+
+            return $datos;
+        }
+    } catch (Exception $e) {
+        logError("Error al obtener detalle de unidades vendidas para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
+    }
+
+    return 0;
+}
+
+/**
+ * Obtiene detalle de SKUs activos desde la API
+ *
+ * @param string $rutProveedor Rut del proveedor
+ * @return int Monto de venta neto
+ */
+function getDetalleSkuActivos($rutProveedor) {
+    try {
+
+        $response = callApi('kpi_sku_activos_detalle', [
+            'KPRV' => $rutProveedor
+        ]);
+
+        if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
+            // Transformar el formato para que sea más fácil de usar en la aplicación
+            $datos = isset($response['datos']) ? $response['datos'] : [];
+
+            return $datos;
+        }
+    } catch (Exception $e) {
+        logError("Error al obtener detalle de sku activos para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
+    }
+
+    return 0;
+}
