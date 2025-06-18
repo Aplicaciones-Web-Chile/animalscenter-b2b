@@ -177,9 +177,9 @@ switch ($tipo) {
 }
 
 // Ajustar anchos de columnas automáticamente - algunas columnas ya se configuraron previamente
-foreach (range('H', 'V') as $col) {
+foreach (range('H', 'X') as $col) {
     // Para las columnas de Venta y Stock usamos un ancho fijo para mejor visualización
-    if (in_array($col, ['H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V'])) {
+    if (in_array($col, ['H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'W'])) {
         $sheet->getColumnDimension($col)->setWidth(10); // Ancho fijo para columnas numéricas
     } else {
         $sheet->getColumnDimension($col)->setAutoSize(true); // Autosize para el resto
@@ -287,15 +287,15 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
 
         // Configurar el título principal del informe
         $sheet->setCellValue('A1', 'TIENDA DE MASCOTAS ANIMALS CENTER LTDA');
-        $sheet->mergeCells('A1:W1');
+        $sheet->mergeCells('A1:X1');
 
         // Configurar subtítulo del informe
         $sheet->setCellValue('A2', 'Informe B2B');
-        $sheet->mergeCells('A2:W2');
+        $sheet->mergeCells('A2:X2');
 
         // Establecer fechas del informe
         $sheet->setCellValue('A3', 'Desde el ' . $fechaInicio . ' hasta el ' . $fechaFin);
-        $sheet->mergeCells('A3:W3');
+        $sheet->mergeCells('A3:X3');
 
         // Aplicar estilos al encabezado
         $headerStyle = [
@@ -323,14 +323,14 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             ],
         ];
 
-        $sheet->getStyle('A1:W3')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:X3')->applyFromArray($headerStyle);
 
         // Saltar una fila para iniciar el contenido
         $row_idx = 5;
 
         // Texto "ORDENADO POR CÓDIGO"
         $sheet->setCellValue('A' . $row_idx, 'ORDENADO POR CÓDIGO');
-        $sheet->mergeCells('A' . $row_idx . ':W' . $row_idx);
+        $sheet->mergeCells('A' . $row_idx . ':X' . $row_idx);
         $sheet->getStyle('A' . $row_idx)->getFont()->setBold(true);
 
         // Crear encabezados de columna con sucursales agrupadas
@@ -380,7 +380,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
 
         // Totales
         $sheet->setCellValue('T' . $headerRow1, 'TOTALES');
-        $sheet->mergeCells('T' . $headerRow1 . ':W' . $headerRow1);
+        $sheet->mergeCells('T' . $headerRow1 . ':X' . $headerRow1);
 
         // Segunda fila del encabezado - Detalle de columnas
         $row_idx++;
@@ -426,6 +426,10 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $comentarioRotacion = $sheet->getComment('W' . $headerRow2);
         $comentarioRotacion->getText()->createTextRun('Velocidad con que se vende el producto: Ventas / Stock');
 
+        $sheet->setCellValue('X' . $headerRow2, 'Costo Valorizado');
+        $comentarioCostoValorizado = $sheet->getComment('X' . $headerRow2);
+        $comentarioCostoValorizado->getText()->createTextRun('Costo valorizado del producto: Precio de compra * Cantidad vendida');
+
         // Estilo para encabezados de columna
         $columnHeaderStyle = [
             'font' => ['bold' => true],
@@ -466,11 +470,10 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->getStyle('A' . $headerRow1 . ':G' . $headerRow2)->applyFromArray($columnHeaderStyle);
         $sheet->getStyle('H' . $headerRow1 . ':R' . $headerRow1)->applyFromArray($sucursalHeaderStyle);
         $sheet->getStyle('H' . $headerRow2 . ':R' . $headerRow2)->applyFromArray($columnHeaderStyle);
-
-        // Aplicar colores específicos para la sección de totales
-        $sheet->getStyle('S' . $headerRow1)->getFill()->getStartColor()->setRGB('FFFF00'); // Amarillo
-        $sheet->getStyle('S' . $headerRow1 . ':V' . $headerRow1)->applyFromArray($sucursalHeaderStyle);
-        $sheet->getStyle('S' . $headerRow1 . ':V' . $headerRow1)->getFill()->getStartColor()->setRGB('FFFF00'); // Amarillo
+        
+        // Aplicar estilos a la sección de totales (S a X)
+        $sheet->getStyle('S' . $headerRow1 . ':X' . $headerRow1)->applyFromArray($sucursalHeaderStyle);
+        $sheet->getStyle('S' . $headerRow2 . ':X' . $headerRow2)->applyFromArray($columnHeaderStyle);
 
         // Estilo del encabezado - Colores para sucursales y totales
         $sheet->getStyle('H' . $headerRow1)->getFill()
@@ -497,9 +500,9 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             ->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('D9D9D9'); // Gris claro
 
-        $sheet->getStyle('S' . $headerRow1 . ':V' . $headerRow1)->getFill()
+        $sheet->getStyle('S' . $headerRow1 . ':X' . $headerRow1)->getFill()
             ->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('F4B084'); // Naranja claro
+            ->getStartColor()->setRGB('F4B084'); // Naranja claro para toda la sección de totales
 
         // Iniciar las filas de datos
         $row_idx++;
@@ -508,12 +511,12 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         // Llenar datos
         foreach ($productos as $producto) {
             $sheet->setCellValue('A' . $row_idx, $producto['PRODUCTO_CODIGO']);
-            $sheet->setCellValue('B' . $row_idx, $producto['CODIGO_DE_BARRA'] ?? '');
+            $sheet->setCellValueExplicit('B' . $row_idx, $producto['CODIGO_DE_BARRA'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
             $sheet->setCellValue('C' . $row_idx, $producto['PRODUCTO_DESCRIPCION']);
             $sheet->setCellValue('D' . $row_idx, $producto['MARCA_DESCRIPCION']);
             $sheet->setCellValue('E' . $row_idx, $producto['FAMILIA_DESCRIPCION']); // Categoría
             $sheet->setCellValue('F' . $row_idx, $producto['SUBFAMILIA_DESCRIPCION'] ?? ''); // Subcategoría
-            $sheet->setCellValue('G' . $row_idx, $producto['KG'] ?? 'No disponible');
+            $sheet->setCellValueExplicit('G' . $row_idx, $producto['KG'] ?? 'No disponible', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
 
             // Sucursales y stock (usar los datos de la API o valores predeterminados si no están disponibles)
             // Venta Distribución y sucursales (usar los datos de la API o valores predeterminados si no están disponibles)
@@ -561,13 +564,15 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             $sheet->setCellValue('V' . $row_idx, $sumaStock);
 
             // Columna W: Rotación (ventas / stock, evitando división por cero)
-            if ($sumaStock > 0) {
+            if ($sumaStock != 0) {
                 $rotacion = $sumaVentas / $sumaStock;
                 $sheet->setCellValue('W' . $row_idx, number_format($rotacion, 2)); // Formateamos a 2 decimales para mejor legibilidad
             } else {
                 $sheet->setCellValue('W' . $row_idx, 0);
             }
 
+            // Columna X: Costo Valorizado
+            $sheet->setCellValue('X' . $row_idx, floatval($producto['PRECIO_ULTIMA_COMPRA'] ?? 0));
             $row_idx++;
         }
 
@@ -575,7 +580,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $lastDataRow = $row_idx - 1;
         if ($lastDataRow >= $startDataRow) {
             // Aplicar bordes a los datos
-            $sheet->getStyle('A' . $startDataRow . ':W' . $lastDataRow)->getBorders()->getAllBorders()->setBorderStyle(
+            $sheet->getStyle('A' . $startDataRow . ':X' . $lastDataRow)->getBorders()->getAllBorders()->setBorderStyle(
                 PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
             );
 
@@ -591,13 +596,19 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
                 ->getNumberFormat()->setFormatCode('_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)');
 
             // Formato decimal para rotación
-            $sheet->getStyle('V' . $startDataRow . ':V' . $lastDataRow)
+            $sheet->getStyle('W' . $startDataRow . ':W' . $lastDataRow)
                 ->getNumberFormat()->setFormatCode('0.00');
+
         }
 
         // Ajustar anchos de columnas automáticamente
-        foreach (range('A', 'W') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
+        foreach (range('A', 'X') as $col) {
+            // Ancho específico para Costo Valorizado por ser un texto largo
+            if (in_array($col, ['T','U','V','X'])) {
+                $sheet->getColumnDimension($col)->setWidth(30); // Ancho más amplio para "Costo Valorizado"
+            } else {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
         }
 
         // Congelar paneles para facilitar navegación
