@@ -410,9 +410,9 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->setCellValue('S' . $headerRow2, 'Stock');
 
         // Totales - Con comentarios explicativos
-        $sheet->setCellValue('T' . $headerRow2, 'Stock Valorizado');
+        $sheet->setCellValue('T' . $headerRow2, 'Peso Total (KG)');
         $comentarioStockValorizado = $sheet->getComment('T' . $headerRow2);
-        $comentarioStockValorizado->getText()->createTextRun('Valor total del stock: Suma de todos los stocks multiplicado por el valor unitario');
+        $comentarioStockValorizado->getText()->createTextRun('Peso total: Suma de todos los stocks multiplicado por el peso del producto');
 
         $sheet->setCellValue('U' . $headerRow2, 'Suma Ventas (U)');
         $comentarioSumaVentas = $sheet->getComment('U' . $headerRow2);
@@ -474,7 +474,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->getStyle('A' . $headerRow1 . ':G' . $headerRow2)->applyFromArray($columnHeaderStyle);
         $sheet->getStyle('H' . $headerRow1 . ':R' . $headerRow1)->applyFromArray($sucursalHeaderStyle);
         $sheet->getStyle('H' . $headerRow2 . ':R' . $headerRow2)->applyFromArray($columnHeaderStyle);
-        
+
         // Aplicar estilos a la sección de totales (S a Y)
         $sheet->getStyle('S' . $headerRow1 . ':Y' . $headerRow1)->applyFromArray($sucursalHeaderStyle);
         $sheet->getStyle('S' . $headerRow2 . ':Y' . $headerRow2)->applyFromArray($columnHeaderStyle);
@@ -540,6 +540,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
 
             // Valor unitario y datos de ventas - aseguramos que sean numéricos
             $valorUnitario = floatval($producto['PRECIO_VENTA'] ?? 0);
+            $ventaDis = floatval($producto['VENTA_DISTRIBUCION'] ?? 0);
             $ventaSuc1 = floatval($producto['VENTA_SUCURSAL01'] ?? 0);
             $ventaSuc2 = floatval($producto['VENTA_SUCURSAL02'] ?? 0);
             $ventaSuc3 = floatval($producto['VENTA_SUCURSAL03'] ?? 0);
@@ -553,13 +554,13 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             $stockTotal = floatval($producto['STOCK_BODEGA01'] ?? 0) + floatval($producto['STOCK_BODEGA02'] ?? 0) +
                         floatval($producto['STOCK_BODEGA03'] ?? 0) + floatval($producto['STOCK_BODEGA04'] ?? 0) +
                         floatval($producto['STOCK_BODEGA05'] ?? 0);
-            $unidadCompra = floatval($producto['UNIDAD_COMPRA'] ?? 1);
-            $stockValorizado = $stockTotal * $unidadCompra;
-            $sheet->setCellValue('T' . $row_idx, $stockValorizado);
+            $pesoKG = floatval($producto['KG'] ?? 1);
+            $pesoTotalKG = $stockTotal * $pesoKG;
+            $sheet->setCellValue('T' . $row_idx, $pesoTotalKG);
 
             // Columna U: Suma de ventas por sucursal
             // Asignar directamente el valor numérico para evitar problemas con las fórmulas
-            $sumaVentas = $ventaSuc1 + $ventaSuc2 + $ventaSuc3 + $ventaSuc4 + $ventaSuc5;
+            $sumaVentas = $ventaDis + $ventaSuc1 + $ventaSuc2 + $ventaSuc3 + $ventaSuc4 + $ventaSuc5;
             $sheet->setCellValue('U' . $row_idx, $sumaVentas);
 
             // Columna V: Suma Stock (total de stock en todas las sucursales)
