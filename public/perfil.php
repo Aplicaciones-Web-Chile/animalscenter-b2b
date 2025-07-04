@@ -33,42 +33,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_perfil']))
     //     setFlashMessage('error', 'Error de seguridad. Por favor, intenta nuevamente.');
     //     redirect('perfil.php');
     // }
-    
+
     // Obtener y sanear datos del formulario
     $nombre = sanitizeInput($_POST['nombre']);
     $email = sanitizeInput($_POST['email']);
     $rut = sanitizeInput($_POST['rut']);
     $password = $_POST['password'] ?? '';
     $confirmarPassword = $_POST['confirmar_password'] ?? '';
-    
+
     // Validaciones básicas
     $errores = [];
-    
+
     if (empty($nombre)) {
         $errores[] = 'El nombre es obligatorio.';
     }
-    
+
     // El email no es obligatorio, pero si se proporciona debe ser válido
     if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errores[] = 'El formato del email es inválido.';
     }
-    
+
     if (empty($rut)) {
         $errores[] = 'El RUT es obligatorio.';
     }
-    
+
     // Validar RUT chileno (acepta con o sin formato)
-    $rutOriginal = $rut; // Guardar el formato original para mostrar errores
-    
-    // Ver si tiene formato y validarlo
-    if (preg_match('/^[0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK]$/', $rut)) {
-        // Si tiene formato, limpiarlo para almacenamiento
-        $rut = limpiarRut($rut);
-    } else if (!preg_match('/^[0-9]{7,8}[0-9kK]$/', $rut)) {
-        // Si no tiene formato válido ni es un RUT limpio válido
-        $errores[] = 'El formato del RUT debe ser XX.XXX.XXX-X o bien un RUT numérico';
+    $rutOriginal = $rut; // Guardar el original para mostrar errores
+
+    // Validar que el RUT tenga solo números y máximo 6 dígitos
+    if (!preg_match('/^[0-9]{1,8}$/', $rut)) {
+        $errores[] = 'El RUT debe contener solo números, sin puntos ni guión, y tener un máximo de 8 dígitos. Ejemplo válido: 781392';
     }
-    
+
+
     // Verificar si el email ya existe para otro usuario
     if (!empty($email) && $email !== $usuario['email']) {
         $existeEmail = fetchOne("SELECT id FROM usuarios WHERE email = ? AND id != ?", [$email, $userId]);
@@ -76,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_perfil']))
             $errores[] = 'El email ya está registrado por otro usuario.';
         }
     }
-    
+
     // Verificar si el RUT ya existe para otro usuario
     if ($rut !== $usuario['rut']) {
         $existeRut = fetchOne("SELECT id FROM usuarios WHERE rut = ? AND id != ?", [$rut, $userId]);
@@ -84,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_perfil']))
             $errores[] = 'El RUT ya está registrado por otro usuario.';
         }
     }
-    
+
     // Validar contraseña si se proporcionó una nueva
     if (!empty($password)) {
         if (strlen($password) < 6) {
@@ -93,25 +90,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_perfil']))
             $errores[] = 'Las contraseñas no coinciden.';
         }
     }
-    
+
     // Si no hay errores, actualizar el perfil
     if (empty($errores)) {
         // Preparar la consulta SQL según si se cambió la contraseña o no
         $sql = "UPDATE usuarios SET nombre = ?, email = ?, rut = ? WHERE id = ?";
         $params = [$nombre, $email, $rut, $userId];
-        
+
         if (!empty($password)) {
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
             $sql = "UPDATE usuarios SET nombre = ?, email = ?, rut = ?, password_hash = ? WHERE id = ?";
             $params = [$nombre, $email, $rut, $passwordHash, $userId];
         }
-        
+
         if (executeQuery($sql, $params)) {
             // Actualizar la información de sesión
             $_SESSION['nombre'] = $nombre;
             $_SESSION['email'] = $email;
             $_SESSION['rut'] = $rut;
-            
+
             setFlashMessage('success', 'Tu perfil ha sido actualizado correctamente.');
             redirect('perfil.php');
         } else {
@@ -140,7 +137,7 @@ include 'header.php';
             </div>
         </div>
     </div>
-    
+
     <div class="row">
         <div class="col-md-8 mx-auto">
             <div class="card">
@@ -151,24 +148,24 @@ include 'header.php';
                     <form action="perfil.php" method="POST">
                         <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
                         <input type="hidden" name="actualizar_perfil" value="1">
-                        
+
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="nombre" class="form-label">Nombre completo</label>
-                                <input type="text" class="form-control" id="nombre" name="nombre" 
+                                <input type="text" class="form-control" id="nombre" name="nombre"
                                        value="<?php echo htmlspecialchars($usuario['nombre']); ?>" required>
                             </div>
                             <div class="col-md-6">
                                 <label for="email" class="form-label">Email</label>
-                                <input type="email" class="form-control" id="email" name="email" 
+                                <input type="email" class="form-control" id="email" name="email"
                                        value="<?php echo htmlspecialchars($usuario['email'] ?? ''); ?>" autocomplete="off">
                             </div>
                         </div>
-                        
+
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="rut" class="form-label">RUT</label>
-                                <input type="text" class="form-control" id="rut" name="rut" 
+                                <label for="rut" class="form-label"> (Sin digito verificador)</label>
+                                <input type="text" class="form-control" id="rut" name="rut"
                                        placeholder="Ej: 12.345.678-9"
                                        value="<?php echo !empty($usuario['rut']) ? htmlspecialchars($usuario['rut']) : ''; ?>" required>
                             </div>
@@ -177,7 +174,7 @@ include 'header.php';
                                 <input type="text" class="form-control" value="<?php echo $usuario['rol'] === 'admin' ? 'Administrador' : 'Proveedor'; ?>" disabled>
                             </div>
                         </div>
-                        
+
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="password" class="form-label">Nueva contraseña</label>
@@ -189,7 +186,7 @@ include 'header.php';
                                 <input type="password" class="form-control" id="confirmar_password" name="confirmar_password" autocomplete="new-password">
                             </div>
                         </div>
-                        
+
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <a href="dashboard.php" class="btn btn-secondary me-md-2">Cancelar</a>
                             <button type="submit" class="btn btn-primary">Actualizar Perfil</button>

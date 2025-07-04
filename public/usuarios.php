@@ -86,16 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
         $errores[] = 'El RUT es obligatorio.';
     }
 
-    // Validar RUT chileno (acepta con o sin formato)
-    $rutOriginal = $rut; // Guardar el formato original para mostrar errores
+    $rutOriginal = $rut; // Guardar el original para mostrar errores
 
-    // Ver si tiene formato y validarlo
-    if (preg_match('/^[0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK]$/', $rut)) {
-        // Si tiene formato, limpiarlo para almacenamiento
-        $rut = limpiarRut($rut);
-    } else if (!preg_match('/^[0-9]{7,8}[0-9kK]$/', $rut)) {
-        // Si no tiene formato válido ni es un RUT limpio válido
-        $errores[] = 'El formato del RUT debe ser XX.XXX.XXX-X o bien un RUT numérico';
+    // Validar que el RUT tenga solo números y máximo 6 dígitos
+    if (!preg_match('/^[0-9]{1,8}$/', $rut)) {
+        $errores[] = 'El RUT debe contener solo números, sin puntos ni guión, y tener un máximo de 8 dígitos. Ejemplo válido: 781392';
     }
 
     // Validar contraseña para usuarios nuevos
@@ -361,7 +356,7 @@ include 'header.php';
                                 <tr class="<?php echo $claseDeshabilitado; ?>">
                                     <td><?php echo htmlspecialchars($u['nombre'] ?? ''); ?></td>
                                     <td><?php echo htmlspecialchars($u['email'] ?? ''); ?></td>
-                                    <td><?php echo htmlspecialchars(formatearRut($u['rut'] ?? '')); ?></td>
+                                    <td><?php echo htmlspecialchars($u['rut'] ?? ''); ?></td>
                                     <td>
                                         <span class="badge bg-<?php echo $u['rol'] === 'admin' ? 'danger' : 'success'; ?>">
                                             <?php echo $u['rol'] === 'admin' ? 'Administrador' : 'Proveedor'; ?>
@@ -466,10 +461,10 @@ include 'header.php';
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="rut" class="form-label">RUT</label>
+                            <label for="rut" class="form-label">RUT (Sin dígito verificador)</label>
                             <input type="text" class="form-control" id="rut" name="rut"
-                                   placeholder="Ej: 12.345.678-9"
-                                   value="<?php echo !empty($usuario['rut']) ? htmlspecialchars(formatearRut($usuario['rut'])) : ''; ?>" required>
+                                   placeholder="Ej: 12345678"
+                                   value="<?php echo !empty($usuario['rut']) ? htmlspecialchars($usuario['rut']) : ''; ?>" required>
                         </div>
                         <div class="col-md-6">
                             <label for="rol" class="form-label">Rol</label>
