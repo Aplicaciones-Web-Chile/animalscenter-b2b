@@ -332,25 +332,27 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
         <div class="col-md-12">
             <div class="card filtros-card">
                 <div class="card-header bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-filter me-2" style="color: var(--primary-color);"></i>Filtros de búsqueda</h5>
-                        <?php if (!empty($busqueda)): ?>
-                            <a href="productos.php" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i>Limpiar filtros
-                            </a>
-                        <?php endif; ?>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center">
+                        <h5 class="mb-2 mb-md-0">
+                            <i class="fas fa-filter me-2" style="color: var(--primary-color);"></i>Filtros de búsqueda
+                        </h5>
+
+                        <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
+                            <?php if (!empty($busqueda)): ?>
+                                <a href="productos.php" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Limpiar filtros
+                                </a>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
-                    <form action="" method="GET" class="row g-3 filtros-form">
+                    <form id="form-filtros" action="" method="GET" class="row g-3 filtros-form">
                         <div class="col-md-3">
                             <label for="busqueda" class="form-label">Búsqueda</label>
                             <div class="input-group">
                                 <input type="text" class="form-control" id="busqueda" name="busqueda"
                                     placeholder="Nombre, código o marca" value="<?php echo htmlspecialchars($busqueda); ?>">
-                                <button class="btn btn-primary" type="submit">
-                                    <i class="fas fa-search"></i>
-                                </button>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -373,6 +375,15 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                         <!-- Para usuarios no administradores, enviamos el valor del proveedor como campo oculto -->
                         <input type="hidden" name="proveedor" value="<?php echo htmlspecialchars($proveedor); ?>">
                         <?php endif; ?>
+
+                        <!-- Botón BUSCAR dentro del formulario -->
+                        <?php if ($esAdmin): ?>
+                            <div class="col-12 d-flex justify-content-end">
+                        <?php else:?>
+                            <div class="col-md-3 d-flex align-items-end">
+                        <?php endif;?>
+                            <button type="submit" class="btn btn-primary">BUSCAR</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -1005,46 +1016,47 @@ document.addEventListener('DOMContentLoaded', function() {
         overflow: hidden;
         box-shadow: 0 15px 35px rgba(0,0,0,0.2);
     }
-    
+
     .modal-header {
         padding: 1.2rem 1.5rem;
     }
-    
+
     .modal-header .btn-close:focus {
         box-shadow: none;
     }
-    
+
     .modal-body {
         padding: 1.5rem;
     }
-    
+
     .modal-footer {
         padding: 1rem 1.5rem;
         border-top: 1px solid rgba(0,0,0,0.05);
     }
-    
+
     .modal .table {
         margin-bottom: 0;
     }
-    
+
     .modal .table th {
         position: sticky;
         top: 0;
         background-color: #f8f9fa;
         z-index: 1;
     }
-    
+
     /* Animación para el modal */
     .modal.fade .modal-dialog {
         transform: scale(0.9);
         opacity: 0;
         transition: transform 0.3s ease, opacity 0.3s ease;
     }
-    
+
     .modal.show .modal-dialog {
         transform: scale(1);
         opacity: 1;
     }
+
 </style>
 
 <?php
