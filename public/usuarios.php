@@ -47,7 +47,7 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
     // Verificar token CSRF
     if (!checkCsrfToken()) {
-        setFlashMessage('error', 'Error de seguridad: Token CSRF inválido.');
+        setFlashMessage('danger', 'Error de seguridad: Token CSRF inválido.');
         redirect('usuarios.php');
     }
 
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             if (!empty($email)) {
                 $existeEmail = fetchOne("SELECT id FROM usuarios WHERE email = ?", [$email]);
                 if ($existeEmail) {
-                    setFlashMessage('error', 'El email ya está registrado.');
+                    setFlashMessage('danger', 'El email ya está registrado.');
                     redirect('usuarios.php');
                 }
             }
@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             // Verificar si el RUT ya existe
             $existeRut = fetchOne("SELECT id FROM usuarios WHERE rut = ?", [$rut]);
             if ($existeRut) {
-                setFlashMessage('error', 'El RUT ya está registrado.');
+                setFlashMessage('danger', 'El RUT ya está registrado.');
                 redirect('usuarios.php');
             }
 
@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                 setFlashMessage('success', 'Usuario creado correctamente.');
                 redirect('usuarios.php');
             } else {
-                setFlashMessage('error', 'Error al crear el usuario.');
+                setFlashMessage('danger', 'Error al crear el usuario.');
                 redirect('usuarios.php');
             }
         }
@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             if (!empty($email)) {
                 $existeEmail = fetchOne("SELECT id FROM usuarios WHERE email = ? AND id != ?", [$email, $id]);
                 if ($existeEmail) {
-                    setFlashMessage('error', 'El email ya está registrado por otro usuario.');
+                    setFlashMessage('danger', 'El email ya está registrado por otro usuario.');
                     redirect('usuarios.php?id=' . $id);
                 }
             }
@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             // Verificar si el RUT ya existe para otro usuario
             $existeRut = fetchOne("SELECT id FROM usuarios WHERE rut = ? AND id != ?", [$rut, $id]);
             if ($existeRut) {
-                setFlashMessage('error', 'El RUT ya está registrado por otro usuario.');
+                setFlashMessage('danger', 'El RUT ya está registrado por otro usuario.');
                 redirect('usuarios.php?id=' . $id);
             }
 
@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             // Si se proporcionó una nueva contraseña, actualizarla también
             if (!empty($password)) {
                 if ($password !== $confirmarPassword) {
-                    setFlashMessage('error', 'Las contraseñas no coinciden.');
+                    setFlashMessage('danger', 'Las contraseñas no coinciden.');
                     redirect('usuarios.php?id=' . $id);
                 }
 
@@ -211,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                 setFlashMessage('success', 'Usuario actualizado correctamente.');
                 redirect('usuarios.php');
             } else {
-                setFlashMessage('error', 'Error al actualizar el usuario.');
+                setFlashMessage('danger', 'Error al actualizar el usuario.');
                 redirect('usuarios.php?id=' . $id);
             }
         }
@@ -245,7 +245,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     }
 
     if (!$usuario) {
-        setFlashMessage('error', 'Usuario no encontrado.');
+        setFlashMessage('danger', 'Usuario no encontrado.');
         redirect('usuarios.php');
     }
 }
@@ -256,7 +256,7 @@ if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar'])) {
 
     // No permitir eliminar al usuario actual
     if ($id === (int)$_SESSION['user']['id']) {
-        setFlashMessage('error', 'No puedes eliminar tu propio usuario.');
+        setFlashMessage('danger', 'No puedes eliminar tu propio usuario.');
         redirect('usuarios.php');
     }
 
@@ -288,7 +288,7 @@ if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar'])) {
         // Revertir la transacción en caso de error
         $db->rollBack();
         logError('Error al eliminar usuario: ' . $e->getMessage());
-        setFlashMessage('error', 'Error al eliminar el usuario: ' . $e->getMessage());
+        setFlashMessage('danger', 'Error al eliminar el usuario: ' . $e->getMessage());
     }
 
     redirect('usuarios.php');
