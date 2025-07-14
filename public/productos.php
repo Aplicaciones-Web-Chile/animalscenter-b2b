@@ -122,6 +122,11 @@ $detalleUnidadesVendidas = getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $
 // Detalle SKU activos
 $detalleSkuActivos = getDetalleSkuActivos($proveedor);
 
+// Stock unidades
+$stockUnidades = getStockUnidadesFromAPI($fechaInicio, $fechaFin, $proveedor);
+
+// Detalle Total Stock Unidades
+$detalleStockUnidades = getDetalleStockUnidadesFromAPI($fechaInicio, $fechaFin, $proveedor);
 
 // Verificar que la respuesta sea correcta
 if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
@@ -202,7 +207,26 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             </div>
         </div>
 
-        <!-- Tarjeta 2: Unidades vendidas -->
+        <!-- Tarjeta 2: Total Stock Valorizado -->
+        <div class="col-md-3 mb-3">
+            <div class="card dashboard-card dashboard-card-info h-100 shadow-sm">
+                <div class="card-body position-relative">
+                    <div class="dashboard-card-icon-wrapper bg-info shadow">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <h5 class="card-title text-info mt-3">Total Stock Valorizado</h5>
+                    <h2 class="dashboard-card-value"><?php echo 'Pendiente...' ?></h2>
+                    <p class="card-text text-muted small">Cantidad total de stock valorizado</p>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalStockValorizado">
+                        Ver detalles <i class="fas fa-arrow-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tarjeta 3: Unidades vendidas -->
         <div class="col-md-3 mb-3">
             <div class="card dashboard-card dashboard-card-success h-100 shadow-sm">
                 <div class="card-body position-relative">
@@ -221,25 +245,6 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             </div>
         </div>
 
-        <!-- Tarjeta 3: SKU activos -->
-        <div class="col-md-3 mb-3">
-            <div class="card dashboard-card dashboard-card-info h-100 shadow-sm">
-                <div class="card-body position-relative">
-                    <div class="dashboard-card-icon-wrapper bg-info shadow">
-                        <i class="fas fa-box"></i>
-                    </div>
-                    <h5 class="card-title text-info mt-3">Productos</h5>
-                    <h2 class="dashboard-card-value"><?php echo $skuActivos; ?></h2>
-                    <p class="card-text text-muted small">Total de SKU activos</p>
-                </div>
-                <div class="card-footer bg-transparent border-0 pb-3">
-                    <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalSkuActivos">
-                        Ver detalles <i class="fas fa-arrow-right ms-1"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <!-- Tarjeta 4: Pendiente -->
         <div class="col-md-3 mb-3">
             <div class="card dashboard-card dashboard-card-warning h-100 shadow-sm">
@@ -247,12 +252,12 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                     <div class="dashboard-card-icon-wrapper bg-warning shadow">
                         <i class="fas fa-clock"></i>
                     </div>
-                    <h5 class="card-title text-warning mt-3">Pendientes</h5>
-                    <h2 class="dashboard-card-value">-</h2>
-                    <p class="card-text text-muted small">Pendiente para activar más adelante</p>
+                    <h5 class="card-title text-warning mt-3">Total stock unidades</h5>
+                    <h2 class="dashboard-card-value"><?php echo $stockUnidades; ?></h2>
+                    <p class="card-text text-muted small">Cantidad total de stock unidades</p>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" disabled>
+                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalStockUnidades">
                         Ver detalles <i class="fas fa-arrow-right ms-1"></i>
                     </button>
                 </div>
@@ -1000,6 +1005,98 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
                     <a href="exportar.php?tipo=detalle_sku_activos&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-info btn-lg">
+                        <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detalle Stock Unidades -->
+<div class="modal fade" id="modalStockUnidades" tabindex="-1" aria-labelledby="modalStockUnidadesLabel" aria-hidden="true">
+    <!-- Estilos específicos para este modal -->
+    <style>
+        .large-column {
+            width: 120px !important;
+            max-width: 120px !important;
+            min-width: 120px !important;
+        }
+        /* Estilo para la columna Unidad */
+        #modalStockUnidades .unidad-column {
+            width: 80px !important;
+            max-width: 80px !important;
+            min-width: 80px !important;
+        }
+        
+        /* Asegurar que la tabla respete los anchos de columna */
+        #modalStockUnidades .table {
+            table-layout: fixed;
+        }
+    </style>
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title" id="modalStockUnidadesLabel">
+                    <i class="fas fa-boxes me-2"></i> Detalle de Stock Unidades
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th class="large-column">Descripción</th>
+                                <th class="large-column">Marca</th>
+                                <th class="large-column">Categoría</th>
+                                <th class="large-column">Subcategoría</th>
+                                <th class="unidad-column">Unidad</th>
+                                <th>Cant. Envase</th>
+                                <th>Stock Suc.1</th>
+                                <th>Stock Suc.2</th>
+                                <th>Stock Suc.3</th>
+                                <th>Stock Suc.4</th>
+                                <th>Stock Suc.5</th>
+                                <th>Stock Web</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($detalleStockUnidades)): ?>
+                                <?php foreach ($detalleStockUnidades as $item): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($item['KINS']); ?></td>
+                                        <td class="large-column"><?php echo htmlspecialchars($item['DINS']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['DMAR']); ?></td>
+                                        <td class="large-column"><?php echo htmlspecialchars($item['DFAI']); ?></td>
+                                        <td class="large-column"><?php echo htmlspecialchars($item['DSUI']); ?></td>
+                                        <td class="unidad-column"><?php echo htmlspecialchars($item['UINS']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['CENV']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST01']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST02']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST03']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST04']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST05']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST07']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="13" class="text-center">No hay datos disponibles</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar estos datos directamente a Excel</span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
+                    <a href="exportar.php?tipo=detalle_stock_unidades&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-warning btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>

@@ -8,6 +8,98 @@
  * - SKU activos
  */
 
+/**
+ * Función para exportar detalle de stock unidades a Excel
+ */
+function exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin) {
+    // Establecer encabezados de columna
+    $sheet->setCellValue('A' . $row_idx, 'Código');
+    $sheet->setCellValue('B' . $row_idx, 'Descripción');
+    $sheet->setCellValue('C' . $row_idx, 'Marca');
+    $sheet->setCellValue('D' . $row_idx, 'Categoría');
+    $sheet->setCellValue('E' . $row_idx, 'Subcategoría');
+    $sheet->setCellValue('F' . $row_idx, 'Unidad');
+    $sheet->setCellValue('G' . $row_idx, 'Cant. Envase');
+    $sheet->setCellValue('H' . $row_idx, 'Stock Suc.1');
+    $sheet->setCellValue('I' . $row_idx, 'Stock Suc.2');
+    $sheet->setCellValue('J' . $row_idx, 'Stock Suc.3');
+    $sheet->setCellValue('K' . $row_idx, 'Stock Suc.4');
+    $sheet->setCellValue('L' . $row_idx, 'Stock Suc.5');
+    $sheet->setCellValue('M' . $row_idx, 'Stock Web');
+
+    // Estilo para encabezados
+    $sheet->getStyle('A' . $row_idx . ':M' . $row_idx)->applyFromArray([
+        'font' => ['bold' => true],
+        'fill' => [
+            'fillType' => PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+            'startColor' => ['rgb' => 'FFC107'], // Color amarillo para coincidir con el modal
+        ],
+        'font' => [
+            'bold' => true,
+            'color' => ['rgb' => '000000'], // Texto negro para mejor contraste con fondo amarillo
+        ],
+        'borders' => [
+            'allBorders' => ['borderStyle' => PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+        ],
+    ]);
+
+    $row_idx++;
+
+    // Incluir el archivo con la función getDetalleStockUnidadesFromAPI
+    require_once __DIR__ . '/../includes/api_client.php';
+
+    // Obtener datos usando la misma función que en productos.php
+    $detalleStockUnidades = getDetalleStockUnidadesFromAPI($fechaInicio, $fechaFin, $proveedorRut);
+
+    // Llenar datos
+    foreach ($detalleStockUnidades as $item) {
+        // Formatear códigos de producto como texto
+        $sheet->setCellValueExplicit('A' . $row_idx, $item['KINS'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('B' . $row_idx, $item['DINS']);
+        $sheet->setCellValue('C' . $row_idx, $item['DMAR']);
+        $sheet->setCellValue('D' . $row_idx, $item['DFAI']);
+        $sheet->setCellValue('E' . $row_idx, $item['DSUI']);
+        $sheet->setCellValue('F' . $row_idx, $item['UINS']);
+        $sheet->setCellValue('G' . $row_idx, $item['CENV']);
+        $sheet->setCellValue('H' . $row_idx, $item['ST01']);
+        $sheet->setCellValue('I' . $row_idx, $item['ST02']);
+        $sheet->setCellValue('J' . $row_idx, $item['ST03']);
+        $sheet->setCellValue('K' . $row_idx, $item['ST04']);
+        $sheet->setCellValue('L' . $row_idx, $item['ST05']);
+        $sheet->setCellValue('M' . $row_idx, $item['ST07']); // ST07 corresponde a Stock Web
+
+        $row_idx++;
+    }
+
+    // Dar formato a las celdas numéricas (stock y cantidad envase)
+    $lastDataRow = $row_idx - 1;
+    $firstDataRow = $row_idx - count($detalleStockUnidades);
+    
+    if (count($detalleStockUnidades) > 0) {
+        // Formato para cantidad envase
+        $sheet->getStyle('G' . $firstDataRow . ':G' . $lastDataRow)->getNumberFormat()
+            ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
+        
+        // Formato para columnas de stock
+        $sheet->getStyle('H' . $firstDataRow . ':M' . $lastDataRow)->getNumberFormat()
+            ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
+    }
+    
+    // Ajustar ancho de columnas
+    $sheet->getColumnDimension('A')->setWidth(12); // Código
+    $sheet->getColumnDimension('B')->setWidth(30); // Descripción
+    $sheet->getColumnDimension('C')->setWidth(15); // Marca
+    $sheet->getColumnDimension('D')->setWidth(15); // Categoría
+    $sheet->getColumnDimension('E')->setWidth(15); // Subcategoría
+    $sheet->getColumnDimension('F')->setWidth(10); // Unidad
+    $sheet->getColumnDimension('G')->setWidth(12); // Cant. Envase
+    
+    // Columnas de stock con mismo ancho
+    for ($col = 'H'; $col <= 'M'; $col++) {
+        $sheet->getColumnDimension($col)->setWidth(12);
+    }
+}
+
 // Iniciar buffer de salida para evitar problemas con headers
 ob_start();
 
@@ -33,7 +125,7 @@ $pageTitle = 'Exportar a Excel';
 $tipo = isset($_GET['tipo']) ? $_GET['tipo'] : '';
 
 // Validar el tipo de exportación solicitado
-if (!in_array($tipo, ['productos', 'ventas', 'facturas', 'detalle_venta_neta', 'detalle_unidades_vendidas', 'detalle_sku_activos'])) {
+if (!in_array($tipo, ['productos', 'ventas', 'facturas', 'detalle_venta_neta', 'detalle_unidades_vendidas', 'detalle_sku_activos', 'detalle_stock_unidades'])) {
     // Si no hay tipo o no es válido, mostrar página de selección
     include 'header.php';
     ?>
@@ -173,6 +265,9 @@ switch ($tipo) {
         break;
     case 'detalle_sku_activos':
         exportarDetalleSkuActivos($sheet, $row_idx, $proveedorRut);
+        break;
+    case 'detalle_stock_unidades':
+        exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin);
         break;
 }
 
