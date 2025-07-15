@@ -128,6 +128,13 @@ $stockUnidades = getStockUnidadesFromAPI($fechaInicio, $fechaFin, $proveedor);
 // Detalle Total Stock Unidades
 $detalleStockUnidades = getDetalleStockUnidadesFromAPI($fechaInicio, $fechaFin, $proveedor);
 
+// Stock total valor
+$stockTotalValor = getTotalStockFromAPI($fechaInicio, $fechaFin, $proveedor);
+
+// Detalle Total Stock valor
+$detalleStockTotalValor = getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $proveedor);
+
+
 // Verificar que la respuesta sea correcta
 if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
     $productos = [];
@@ -215,7 +222,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                         <i class="fas fa-box"></i>
                     </div>
                     <h5 class="card-title text-info mt-3">Total Stock Valorizado</h5>
-                    <h2 class="dashboard-card-value"><?php echo 'Pendiente...' ?></h2>
+                    <h2 class="dashboard-card-value"><?php echo formatCurrency($stockTotalValor); ?></h2>
                     <p class="card-text text-muted small">Cantidad total de stock valorizado</p>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
@@ -225,7 +232,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                 </div>
             </div>
         </div>
-        
+
         <!-- Tarjeta 3: Unidades vendidas -->
         <div class="col-md-3 mb-3">
             <div class="card dashboard-card dashboard-card-success h-100 shadow-sm">
@@ -1028,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', function() {
             max-width: 80px !important;
             min-width: 80px !important;
         }
-        
+
         /* Asegurar que la tabla respete los anchos de columna */
         #modalStockUnidades .table {
             table-layout: fixed;
@@ -1104,6 +1111,173 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
+
+<!-- Modal Detalle Stock Total Valorizado -->
+<div class="modal fade" id="modalStockValorizado" tabindex="-1" aria-labelledby="modalStockValorizadoLabel" aria-hidden="true">
+    <!-- Estilos específicos para este modal -->
+    <style>
+        /* Configuración para mejor visualización de la tabla */
+        #modalStockValorizado .table {
+            width: 100%;
+            margin-bottom: 0;
+            table-layout: auto;
+        }
+        
+        /* Estilos para encabezados */
+        #modalStockValorizado th {
+            white-space: nowrap;
+            padding: 10px 8px;
+            font-size: 0.9rem;
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 10;
+            vertical-align: middle;
+            text-align: center;
+        }
+        
+        /* Estilos para celdas */
+        #modalStockValorizado td {
+            padding: 8px;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        
+        /* Columnas con anchos específicos */
+        #modalStockValorizado .codigo-column {
+            min-width: 70px;
+        }
+        
+        #modalStockValorizado .descripcion-column {
+            min-width: 180px;
+        }
+        
+        #modalStockValorizado .marca-column {
+            min-width: 100px;
+        }
+        
+        #modalStockValorizado .cod-marca-column,
+        #modalStockValorizado .unidad-column {
+            min-width: 80px;
+        }
+        
+        #modalStockValorizado .cod-barras-column {
+            min-width: 110px;
+        }
+        
+        #modalStockValorizado .categoria-column,
+        #modalStockValorizado .subcategoria-column {
+            min-width: 100px;
+        }
+        
+        #modalStockValorizado .cant-envase-column {
+            min-width: 70px;
+            text-align: center;
+        }
+        
+        /* Columnas de stock */
+        #modalStockValorizado .stock-column {
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        /* Columnas monetarias */
+        #modalStockValorizado .precio-column,
+        #modalStockValorizado .valor-column {
+            min-width: 120px;
+            text-align: right;
+        }
+        
+        /* Mejorar scroll de la tabla */
+        #modalStockValorizado .modal-body {
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        
+        #modalStockValorizado .table-responsive {
+            overflow-x: auto;
+            max-height: calc(100vh - 220px);
+        }
+    </style>
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalStockValorizadoLabel">
+                    <i class="fas fa-shopping-cart me-2"></i> Detalle del Stock Total Valorizado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th class="codigo-column">Código</th>
+                                <th class="descripcion-column">Descripción</th>
+                                <th class="cod-marca-column">Cód. Marca</th>
+                                <th class="cod-barras-column">Cód. Barras</th>
+                                <th class="unidad-column">Unidad</th>
+                                <th class="marca-column">Marca</th>
+                                <th class="categoria-column">Categoría</th>
+                                <th class="subcategoria-column">Subcategoría</th>
+                                <th class="cant-envase-column">Cant. Envase</th>
+                                <th class="precio-column">Precio Últ. Compra</th>
+                                <th class="stock-column">Stock Suc.1</th>
+                                <th class="stock-column">Stock Suc.2</th>
+                                <th class="stock-column">Stock Suc.3</th>
+                                <th class="stock-column">Stock Suc.4</th>
+                                <th class="stock-column">Stock Suc.5</th>
+                                <th class="stock-column">Stock Web</th>
+                                <th class="valor-column">Valor Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($detalleStockTotalValor)): ?>
+                                <?php foreach ($detalleStockTotalValor as $item): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($item['KINS'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['DINS'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['KMAR'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['BCOD'] ?? ''); ?></td>
+                                        <td class="unidad-column"><?php echo htmlspecialchars($item['UINS'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['DMAR'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['DFAI'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['DSUI'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['CENV'] ?? ''); ?></td>
+                                        <td class="precio-column"><?php echo '$' . number_format($item['PRUL'] ?? 0, 0, ',', '.'); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST01'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST02'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST03'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST04'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST05'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($item['ST07'] ?? ''); ?></td>
+                                        <td class="valor-column"><?php echo '$' . number_format($item['VALO'], 0, ',', '.'); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="17" class="text-center">No hay datos disponibles</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar estos datos directamente a Excel</span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
+                    <a href="exportar.php?tipo=detalle_stock_valorizado&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-info btn-lg">
+                        <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <!-- Estilos adicionales para los modales -->
 <style>

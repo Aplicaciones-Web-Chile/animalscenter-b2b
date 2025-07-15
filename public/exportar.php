@@ -6,7 +6,122 @@
  * - Venta neta
  * - Unidades vendidas
  * - SKU activos
+ * - Stock total valorizado
  */
+
+/**
+ * Función para exportar detalle de stock total valorizado a Excel
+ */
+function exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin) {
+    // Establecer encabezados de columna
+    $sheet->setCellValue('A' . $row_idx, 'Código');
+    $sheet->setCellValue('B' . $row_idx, 'Descripción');
+    $sheet->setCellValue('C' . $row_idx, 'Cód. Marca');
+    $sheet->setCellValue('D' . $row_idx, 'Cód. Barras');
+    $sheet->setCellValue('E' . $row_idx, 'Unidad');
+    $sheet->setCellValue('F' . $row_idx, 'Marca');
+    $sheet->setCellValue('G' . $row_idx, 'Categoría');
+    $sheet->setCellValue('H' . $row_idx, 'Subcategoría');
+    $sheet->setCellValue('I' . $row_idx, 'Cant. Envase');
+    $sheet->setCellValue('J' . $row_idx, 'Precio Últ. Compra');
+    $sheet->setCellValue('K' . $row_idx, 'Stock Suc.1');
+    $sheet->setCellValue('L' . $row_idx, 'Stock Suc.2');
+    $sheet->setCellValue('M' . $row_idx, 'Stock Suc.3');
+    $sheet->setCellValue('N' . $row_idx, 'Stock Suc.4');
+    $sheet->setCellValue('O' . $row_idx, 'Stock Suc.5');
+    $sheet->setCellValue('P' . $row_idx, 'Stock Web');
+    $sheet->setCellValue('Q' . $row_idx, 'Valor Total');
+
+    // Estilo para encabezados
+    $sheet->getStyle('A' . $row_idx . ':Q' . $row_idx)->applyFromArray([
+        'font' => ['bold' => true],
+        'fill' => [
+            'fillType' => PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+            'startColor' => ['rgb' => '28A745'], // Color verde para coincidir con el modal
+        ],
+        'font' => [
+            'bold' => true,
+            'color' => ['rgb' => 'FFFFFF'], // Texto blanco para mejor contraste
+        ],
+        'borders' => [
+            'allBorders' => ['borderStyle' => PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+        ],
+    ]);
+
+    $row_idx++;
+
+    // Incluir el archivo con la función getDetalleTotalStockFromAPI
+    require_once __DIR__ . '/../includes/api_client.php';
+
+    // Obtener datos usando la misma función que en productos.php
+    $detalleStockTotalValor = getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $proveedorRut);
+
+    // Llenar datos
+    foreach ($detalleStockTotalValor as $item) {
+        // Formatear códigos de producto como texto
+        $sheet->setCellValueExplicit('A' . $row_idx, $item['KINS'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('B' . $row_idx, $item['DINS']);
+        $sheet->setCellValueExplicit('C' . $row_idx, $item['KMAR'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('D' . $row_idx, $item['BCOD'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('E' . $row_idx, $item['UINS']);
+        $sheet->setCellValue('F' . $row_idx, $item['DMAR']);
+        $sheet->setCellValue('G' . $row_idx, $item['DFAI']);
+        $sheet->setCellValue('H' . $row_idx, $item['DSUI']);
+        $sheet->setCellValue('I' . $row_idx, $item['CENV']);
+        $sheet->setCellValue('J' . $row_idx, $item['PRUL']);
+        $sheet->setCellValue('K' . $row_idx, $item['ST01']);
+        $sheet->setCellValue('L' . $row_idx, $item['ST02']);
+        $sheet->setCellValue('M' . $row_idx, $item['ST03']);
+        $sheet->setCellValue('N' . $row_idx, $item['ST04']);
+        $sheet->setCellValue('O' . $row_idx, $item['ST05']);
+        $sheet->setCellValue('P' . $row_idx, $item['ST07']); // ST07 corresponde a Stock Web
+        $sheet->setCellValue('Q' . $row_idx, $item['VALO']);
+
+        $row_idx++;
+    }
+
+    // Dar formato a las celdas numéricas
+    $lastDataRow = $row_idx - 1;
+    $firstDataRow = $row_idx - count($detalleStockTotalValor);
+    
+    if (count($detalleStockTotalValor) > 0) {
+        // Formato para cantidad envase
+        $sheet->getStyle('I' . $firstDataRow . ':I' . $lastDataRow)->getNumberFormat()
+            ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
+        
+        // Formato para precio última compra (moneda en pesos chilenos)
+        $sheet->getStyle('J' . $firstDataRow . ':J' . $lastDataRow)->getNumberFormat()
+            ->setFormatCode('"$"#,##0;-"$"#,##0');
+        
+        // Formato para columnas de stock
+        $sheet->getStyle('K' . $firstDataRow . ':P' . $lastDataRow)->getNumberFormat()
+            ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
+            
+        // Formato para valor total (moneda en pesos chilenos)
+        $sheet->getStyle('Q' . $firstDataRow . ':Q' . $lastDataRow)->getNumberFormat()
+            ->setFormatCode('"$"#,##0;-"$"#,##0');
+    }
+    
+    // Ajustar ancho de columnas
+    $sheet->getColumnDimension('A')->setWidth(12); // Código
+    $sheet->getColumnDimension('B')->setWidth(30); // Descripción
+    $sheet->getColumnDimension('C')->setWidth(10); // Cód. Marca
+    $sheet->getColumnDimension('D')->setWidth(15); // Cód. Barras
+    $sheet->getColumnDimension('E')->setWidth(10); // Unidad
+    $sheet->getColumnDimension('F')->setWidth(15); // Marca
+    $sheet->getColumnDimension('G')->setWidth(15); // Categoría
+    $sheet->getColumnDimension('H')->setWidth(15); // Subcategoría
+    $sheet->getColumnDimension('I')->setWidth(12); // Cant. Envase
+    $sheet->getColumnDimension('J')->setWidth(15); // Precio Últ. Compra
+    
+    // Columnas de stock con mismo ancho
+    for ($col = 'K'; $col <= 'P'; $col++) {
+        $sheet->getColumnDimension($col)->setWidth(12);
+    }
+    
+    // Valor total
+    $sheet->getColumnDimension('Q')->setWidth(15);
+}
 
 /**
  * Función para exportar detalle de stock unidades a Excel
@@ -125,7 +240,7 @@ $pageTitle = 'Exportar a Excel';
 $tipo = isset($_GET['tipo']) ? $_GET['tipo'] : '';
 
 // Validar el tipo de exportación solicitado
-if (!in_array($tipo, ['productos', 'ventas', 'facturas', 'detalle_venta_neta', 'detalle_unidades_vendidas', 'detalle_sku_activos', 'detalle_stock_unidades'])) {
+if (!in_array($tipo, ['productos', 'ventas', 'facturas', 'detalle_venta_neta', 'detalle_unidades_vendidas', 'detalle_sku_activos', 'detalle_stock_unidades', 'detalle_stock_valorizado'])) {
     // Si no hay tipo o no es válido, mostrar página de selección
     include 'header.php';
     ?>
@@ -268,6 +383,9 @@ switch ($tipo) {
         break;
     case 'detalle_stock_unidades':
         exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin);
+        break;
+    case 'detalle_stock_valorizado':
+        exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin);
         break;
 }
 
