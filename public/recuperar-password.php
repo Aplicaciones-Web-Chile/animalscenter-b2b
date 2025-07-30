@@ -10,30 +10,34 @@
  * @version 1.1
  */
 
-// Iniciar sesión si no está iniciada
+// Cargar dependencias y configuraciones ANTES de iniciar la sesión
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config/app.php';
+
+// Iniciar sesión después de cargar las configuraciones
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-// Cargar dependencias
-require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/Logger.php';
 require_once __DIR__ . '/../includes/ErrorHandler.php';
-require_once __DIR__ . '/../controllers/AuthController.php';
+require_once __DIR__ . '/../includes/AuthHandler.php';
 require_once __DIR__ . '/../controllers/PasswordController.php';
 
 // Inicializar los controladores
-$authController = new AuthController();
+$authHandler = new AuthHandler();
 $passwordController = new PasswordController();
 
-// Generar un nuevo token CSRF
-$csrfToken = $authController->generateCSRFToken();
+// Generar un nuevo token CSRF solo si no existe
+if (!isset($_SESSION['csrf_token'])) {
+    $csrfToken = $authHandler->generateCSRFToken();
+} else {
+    $csrfToken = $_SESSION['csrf_token'];
+}
 
 // Redirigir si ya está autenticado
-if ($authController->isLoggedIn()) {
+if ($authHandler->isLoggedIn()) {
     header("Location: dashboard.php");
     exit;
 }
@@ -47,8 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
     $csrf_token = $_POST['csrf_token'] ?? '';
     
-    // Validar token CSRF
-    if (!$authController->validateCSRFToken($csrf_token)) {
+    // Validación CSRF simplificada
+    $tokenValido = false;
+    if (isset($_SESSION['csrf_token']) && !empty($csrf_token)) {
+        $tokenValido = hash_equals($_SESSION['csrf_token'], $csrf_token);
+    }
+    
+    if (!$tokenValido) {
         $error = "Error de seguridad: token CSRF inválido. Por favor, recargue la página e intente de nuevo.";
     } else {
         // Procesar la solicitud de recuperación usando el controlador
@@ -61,8 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Generar un nuevo token CSRF después de cada intento
-    $csrfToken = $authController->generateCSRFToken();
+    // Mantener el token existente para evitar problemas de validación
+    $csrfToken = $_SESSION['csrf_token'] ?? $authHandler->generateCSRFToken();
 }
 
 // Incluir encabezado simplificado para login

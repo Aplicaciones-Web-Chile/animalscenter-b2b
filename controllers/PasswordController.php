@@ -64,7 +64,7 @@ class PasswordController {
                 
                 // Aquí normalmente enviaríamos un correo electrónico
                 // Por ahora, simplemente mostraremos un mensaje de éxito
-                
+
                 // Registrar el evento
                 Logger::info("Solicitud de recuperación de contraseña generada para: $email", 
                     Logger::SECURITY, [
@@ -90,7 +90,7 @@ class PasswordController {
                               recibirá un enlace para restablecer su contraseña."
                 ];
             }
-        } catch (Exception $e) {
+        } catch (Exception $e) {        
             // Registrar el error
             Logger::error("Error en recuperación de contraseña: " . $e->getMessage(), 
                 Logger::SECURITY, [

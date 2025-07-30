@@ -11,30 +11,30 @@
  * @version 1.1
  */
 
-// Iniciar sesión si no está iniciada
+// Cargar dependencias y configuraciones ANTES de iniciar la sesión
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config/app.php';
+
+// Iniciar sesión después de cargar las configuraciones
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-// Cargar dependencias
-require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/Logger.php';
 require_once __DIR__ . '/../includes/ErrorHandler.php';
-require_once __DIR__ . '/../controllers/AuthController.php';
+require_once __DIR__ . '/../includes/AuthHandler.php';
 require_once __DIR__ . '/../controllers/PasswordController.php';
 
 // Inicializar los controladores
-$authController = new AuthController();
+$authHandler = new AuthHandler();
 $passwordController = new PasswordController();
 
 // Generar un nuevo token CSRF
-$csrfToken = $authController->generateCSRFToken();
+$csrfToken = $authHandler->generateCSRFToken();
 
 // Redirigir si ya está autenticado
-if ($authController->isLoggedIn()) {
+if ($authHandler->isLoggedIn()) {
     header("Location: dashboard.php");
     exit;
 }
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValido) {
     $csrf_token = $_POST['csrf_token'] ?? '';
     
     // Validar token CSRF
-    if (!$authController->validateCSRFToken($csrf_token)) {
+    if (!$authHandler->validateCSRFToken($csrf_token)) {
         $error = "Error de seguridad: token CSRF inválido. Por favor, recargue la página e intente de nuevo.";
     }
     // Validar que los datos del token coincidan
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValido) {
     }
     
     // Generar un nuevo token CSRF después de cada intento
-    $csrfToken = $authController->generateCSRFToken();
+    $csrfToken = $authHandler->generateCSRFToken();
 }
 
 // Incluir encabezado simplificado
