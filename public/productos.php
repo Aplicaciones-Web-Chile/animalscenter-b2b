@@ -193,13 +193,76 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
         </div>
     </div>
 
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card filtros-card">
+                <div class="card-header bg-light">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center">
+                        <h5 class="mb-2 mb-md-0">
+                            <i class="fas fa-filter me-2" style="color: var(--primary-color);"></i>Filtros de búsqueda
+                        </h5>
+
+                        <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
+                            <?php if (!empty($busqueda)): ?>
+                                <a href="productos.php" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Limpiar filtros
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="form-filtros" action="" method="GET" class="row g-3 filtros-form">
+                        <div class="col-md-3">
+                            <label for="busqueda" class="form-label">Búsqueda</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="busqueda" name="busqueda"
+                                    placeholder="Nombre, código o marca" value="<?php echo htmlspecialchars($busqueda); ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                            <input type="text" class="form-control date-input" id="fecha_inicio" name="fecha_inicio"
+                                value="<?php echo htmlspecialchars($fechaInicio); ?>" placeholder="dd/mm/yyyy">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                            <input type="text" class="form-control date-input" id="fecha_fin" name="fecha_fin"
+                                value="<?php echo htmlspecialchars($fechaFin); ?>" placeholder="dd/mm/yyyy">
+                        </div>
+                        <?php if ($esAdmin): ?>
+                        <div class="col-md-3">
+                            <label for="proveedor" class="form-label">Código Proveedor</label>
+                            <input type="text" class="form-control" id="proveedor" name="proveedor"
+                                value="<?php echo htmlspecialchars($proveedor); ?>" placeholder="Código Proveedor">
+                        </div>
+                        <?php else: ?>
+                        <!-- Para usuarios no administradores, enviamos el valor del proveedor como campo oculto -->
+                        <input type="hidden" name="proveedor" value="<?php echo htmlspecialchars($proveedor); ?>">
+                        <?php endif; ?>
+
+                        <!-- Botón BUSCAR dentro del formulario -->
+                        <?php if ($esAdmin): ?>
+                            <div class="col-12 d-flex justify-content-end">
+                        <?php else:?>
+                            <div class="col-md-3 d-flex align-items-end">
+                        <?php endif;?>
+                            <button type="submit" class="btn btn-primary">BUSCAR</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tarjetas de información -->
     <div class="row mb-4">
         <!-- Tarjeta 1: Monto de venta neto -->
         <div class="col-md-3 mb-3">
             <div class="card dashboard-card dashboard-card-primary h-100 shadow-sm">
                 <div class="card-body position-relative">
-                    <div class="dashboard-card-icon-wrapper bg-primary shadow">
+                    <div class="dashboard-card-icon-wrapper bg-venta shadow">
                         <i class="fas fa-dollar-sign"></i>
                     </div>
                     <h5 class="card-title text-primary mt-3">Venta</h5>
@@ -297,6 +360,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             align-items: center;
             justify-content: center;
         }
+        
 
         .dashboard-card-icon-wrapper i {
             font-size: 20px;
@@ -339,64 +403,32 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
         }
     </style>
 
-    <!-- Filtros y búsqueda -->
+    <!-- Sección de gráficos con ApexCharts -->
     <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card filtros-card">
+        <!-- Gráfico de línea - Últimos 6 meses -->
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
                 <div class="card-header bg-light">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center">
-                        <h5 class="mb-2 mb-md-0">
-                            <i class="fas fa-filter me-2" style="color: var(--primary-color);"></i>Filtros de búsqueda
-                        </h5>
-
-                        <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
-                            <?php if (!empty($busqueda)): ?>
-                                <a href="productos.php" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-times me-1"></i>Limpiar filtros
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2 text-primary"></i>Últimos 6 meses
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <form id="form-filtros" action="" method="GET" class="row g-3 filtros-form">
-                        <div class="col-md-3">
-                            <label for="busqueda" class="form-label">Búsqueda</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="busqueda" name="busqueda"
-                                    placeholder="Nombre, código o marca" value="<?php echo htmlspecialchars($busqueda); ?>">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
-                            <input type="text" class="form-control date-input" id="fecha_inicio" name="fecha_inicio"
-                                value="<?php echo htmlspecialchars($fechaInicio); ?>" placeholder="dd/mm/yyyy">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="fecha_fin" class="form-label">Fecha Fin</label>
-                            <input type="text" class="form-control date-input" id="fecha_fin" name="fecha_fin"
-                                value="<?php echo htmlspecialchars($fechaFin); ?>" placeholder="dd/mm/yyyy">
-                        </div>
-                        <?php if ($esAdmin): ?>
-                        <div class="col-md-3">
-                            <label for="proveedor" class="form-label">Código Proveedor</label>
-                            <input type="text" class="form-control" id="proveedor" name="proveedor"
-                                value="<?php echo htmlspecialchars($proveedor); ?>" placeholder="Código Proveedor">
-                        </div>
-                        <?php else: ?>
-                        <!-- Para usuarios no administradores, enviamos el valor del proveedor como campo oculto -->
-                        <input type="hidden" name="proveedor" value="<?php echo htmlspecialchars($proveedor); ?>">
-                        <?php endif; ?>
-
-                        <!-- Botón BUSCAR dentro del formulario -->
-                        <?php if ($esAdmin): ?>
-                            <div class="col-12 d-flex justify-content-end">
-                        <?php else:?>
-                            <div class="col-md-3 d-flex align-items-end">
-                        <?php endif;?>
-                            <button type="submit" class="btn btn-primary">BUSCAR</button>
-                        </div>
-                    </form>
+                    <div id="lineChart"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfico de columnas - Por Definir -->
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2 text-primary"></i>Por Definir
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="columnChart"></div>
                 </div>
             </div>
         </div>
@@ -843,7 +875,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="modal fade" id="modalVentaNeta" tabindex="-1" aria-labelledby="modalVentaNetaLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header bg-venta text-white">
                 <h5 class="modal-title" id="modalVentaNetaLabel">
                     <i class="fas fa-dollar-sign me-2"></i> Detalle de Venta Neta
                 </h5>
@@ -895,7 +927,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_venta_neta&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-primary btn-lg">
+                    <a href="exportar.php?tipo=detalle_venta_neta&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-venta btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -1329,6 +1361,121 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 </style>
+
+<!-- ApexCharts CDN -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+// Configuración del gráfico de línea - Últimos 6 meses
+var lineChartOptions = {
+    series: [{
+        name: 'Ventas',
+        data: [30, 40, 35, 50, 49, 60]
+    }],
+    chart: {
+        height: 350,
+        type: 'line',
+        toolbar: {
+            show: false
+        }
+    },
+    colors: ['#0d6efd'],
+    dataLabels: {
+        enabled: false
+    },
+    stroke: {
+        curve: 'smooth',
+        width: 3
+    },
+    xaxis: {
+        categories: ['Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    },
+    yaxis: {
+        title: {
+            text: 'Cantidad'
+        }
+    },
+    grid: {
+        borderColor: '#e7e7e7',
+        row: {
+            colors: ['#f3f3f3', 'transparent'],
+            opacity: 0.5
+        }
+    },
+    markers: {
+        size: 6,
+        colors: ['#0d6efd'],
+        strokeColors: '#fff',
+        strokeWidth: 2,
+        hover: {
+            size: 8
+        }
+    }
+};
+
+// Configuración del gráfico de columnas - Por Definir
+var columnChartOptions = {
+    series: [{
+        name: 'Productos',
+        data: [44, 55, 57, 56, 61, 58]
+    }],
+    chart: {
+        type: 'bar',
+        height: 350,
+        toolbar: {
+            show: false
+        }
+    },
+    colors: ['#198754'],
+    plotOptions: {
+        bar: {
+            horizontal: false,
+            columnWidth: '55%',
+            endingShape: 'rounded'
+        }
+    },
+    dataLabels: {
+        enabled: false
+    },
+    stroke: {
+        show: true,
+        width: 2,
+        colors: ['transparent']
+    },
+    xaxis: {
+        categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun']
+    },
+    yaxis: {
+        title: {
+            text: 'Cantidad'
+        }
+    },
+    fill: {
+        opacity: 1
+    },
+    tooltip: {
+        y: {
+            formatter: function (val) {
+                return val + " productos"
+            }
+        }
+    },
+    grid: {
+        borderColor: '#e7e7e7'
+    }
+};
+
+// Renderizar los gráficos cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de línea
+    var lineChart = new ApexCharts(document.querySelector("#lineChart"), lineChartOptions);
+    lineChart.render();
+    
+    // Gráfico de columnas
+    var columnChart = new ApexCharts(document.querySelector("#columnChart"), columnChartOptions);
+    columnChart.render();
+});
+</script>
 
 <?php
 // Incluir el pie de página

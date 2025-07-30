@@ -61,7 +61,7 @@ $pageTitle = $pageTitle ?? 'Sistema B2B';
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="dashboard.php">
-                <img src="img/logo.png" alt="Logo" height="40" class="d-inline-block me-2">
+                <img src="img/logo-acenter-fondo.png" alt="Logo" height="50" class="d-inline-block me-2">
                 Sistema B2B
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" 
