@@ -624,3 +624,31 @@ function getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
 
     return 0;
 }
+
+
+/**
+ * Obtiene venta neta de los últimos 6 meses
+ *
+ * @param string $rutProveedor Rut del proveedor
+ * @return int Total de stock
+ */
+function getVentaNetaSeisMeses($fechaFin, $rutProveedor) {
+    try {
+
+        $response = callApi('kpi_venta_neta6meses', [
+            'FTER' => $fechaFin,
+            'KPRV' => $rutProveedor
+        ]);
+
+        if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
+            // Transformar el formato para que sea más fácil de usar en la aplicación
+            $datos = isset($response['datos']) ? $response['datos'] : [];
+
+            return $datos;
+        }
+    } catch (Exception $e) {
+        logError("Error al obtener venta neta de los últimos 6 meses desde API: " . $e->getMessage());
+    }
+
+    return 0;
+}

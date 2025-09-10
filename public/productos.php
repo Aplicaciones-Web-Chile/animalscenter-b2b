@@ -134,6 +134,8 @@ $stockTotalValor = getTotalStockFromAPI($fechaInicio, $fechaFin, $proveedor);
 // Detalle Total Stock valor
 $detalleStockTotalValor = getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $proveedor);
 
+// Venta neta últimos 6 meses
+$ventaNetaSeisMeses = getVentaNetaSeisMeses($fechaFin, $proveedor);
 
 // Verificar que la respuesta sea correcta
 if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
@@ -1367,10 +1369,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 // Configuración del gráfico de línea - Últimos 6 meses
+let ventaNetaSeisMeses = <?php echo json_encode($ventaNetaSeisMeses); ?>;
+
 var lineChartOptions = {
     series: [{
-        name: 'Ventas',
-        data: [30, 40, 35, 50, 49, 60]
+        name: 'Ventas Netas',
+        data: ventaNetaSeisMeses.map(item => parseInt(item.TOTAL_NETO))
     }],
     chart: {
         height: 350,
@@ -1388,11 +1392,23 @@ var lineChartOptions = {
         width: 3
     },
     xaxis: {
-        categories: ['Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+        categories: ventaNetaSeisMeses.map(item => item.MES_PALABRA + ' ' + item.ANO)
     },
     yaxis: {
         title: {
-            text: 'Cantidad'
+            text: 'Monto ($)'
+        },
+        labels: {
+            formatter: function(value) {
+                return '$' + value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            }
+        }
+    },
+    tooltip: {
+        y: {
+            formatter: function(value) {
+                return '$' + value.toLocaleString('es-CL');
+            }
         }
     },
     grid: {
