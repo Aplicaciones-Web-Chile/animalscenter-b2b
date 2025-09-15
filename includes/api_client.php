@@ -101,10 +101,6 @@ function getMarcasFromAPI($distribuidor = null)
     return [];
 }
 
-// La función guardarMarcasProveedor ha sido consolidada y solo existe la versión completa más abajo en este archivo
-
-// La función getMarcasProveedor ha sido consolidada y solo existe la versión más eficiente al final del archivo
-
 /**
  * Obtiene todos los proveedores desde la API
  *

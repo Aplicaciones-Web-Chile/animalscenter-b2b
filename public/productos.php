@@ -236,11 +236,22 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                             <input type="text" class="form-control date-input" id="fecha_fin" name="fecha_fin"
                                 value="<?php echo htmlspecialchars($fechaFin); ?>" placeholder="dd/mm/yyyy">
                         </div>
-                        <?php if ($esAdmin): ?>
+                        <?php
+                        if ($esAdmin):
+                            $listaProveedores = getProveedoresFromAPI();
+                            ?>
                             <div class="col-md-3">
                                 <label for="proveedor" class="form-label">Código Proveedor</label>
-                                <input type="text" class="form-control" id="proveedor" name="proveedor"
-                                    value="<?php echo htmlspecialchars($proveedor); ?>" placeholder="Código Proveedor">
+
+                                <select class="form-control" name="proveedor" id="proveedor">
+                                    <?php foreach ($listaProveedores as $val):
+                                        $selected = $val['KPRV'] === $proveedor ? 'selected' : '';
+                                        ?>
+                                        <option value="<?php echo htmlspecialchars($val['KPRV']); ?>" <?php echo $selected; ?>>
+                                            <?php echo htmlspecialchars($val['RAZO']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                         <?php else: ?>
                             <!-- Para usuarios no administradores, enviamos el valor del proveedor como campo oculto -->
