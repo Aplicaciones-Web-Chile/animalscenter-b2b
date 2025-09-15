@@ -24,10 +24,10 @@ $pageTitle = 'Gestión de Productos';
 include 'header.php';
 
 // Inicializar variables para filtros
-$busqueda       = $_GET['busqueda'] ?? '';
-$fechaInicio    = $_GET['fecha_inicio'] ?? date('d/m/Y'); // Por defecto el día actual
-$fechaFin       = $_GET['fecha_fin'] ?? date('d/m/Y'); // Por defecto el día actual
-$distribuidor   = $_GET['distribuidor'] ?? '001'; // Código del distribuidor por defecto
+$busqueda = $_GET['busqueda'] ?? '';
+$fechaInicio = $_GET['fecha_inicio'] ?? date('d/m/Y'); // Por defecto el día actual
+$fechaFin = $_GET['fecha_fin'] ?? date('d/m/Y'); // Por defecto el día actual
+$distribuidor = $_GET['distribuidor'] ?? '001'; // Código del distribuidor por defecto
 
 // Determinar el rol del usuario actual
 $esAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] === 'admin';
@@ -42,11 +42,12 @@ if ($esAdmin) {
 }
 
 // Inicializar variables para paginación
-$pagina = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
+$pagina = isset($_GET['pagina']) ? (int) $_GET['pagina'] : 1;
 $porPagina = 20;
 
 // Función para consumir la API de productos
-function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor) {
+function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor)
+{
     // URL y configuración de la API
     $url = "https://api2.aplicacionesweb.cl/apiacenter/productos/vtayrepxsuc";
     $token = "94ec33d0d75949c298f47adaa78928c2";
@@ -63,7 +64,7 @@ function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor)
     $options = [
         'http' => [
             'header' => "Authorization: $token\r\n" .
-                       "Content-Type: application/json\r\n",
+                "Content-Type: application/json\r\n",
             'method' => 'POST',
             'content' => json_encode($data)
         ]
@@ -157,10 +158,10 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
 
     // Filtrar por búsqueda si se especifica
     if (!empty($busqueda)) {
-        $productosAPI = array_filter($productosAPI, function($producto) use ($busqueda) {
+        $productosAPI = array_filter($productosAPI, function ($producto) use ($busqueda) {
             return (stripos($producto['PRODUCTO_DESCRIPCION'], $busqueda) !== false) ||
-                   (stripos($producto['PRODUCTO_CODIGO'], $busqueda) !== false) ||
-                   (stripos($producto['MARCA_DESCRIPCION'], $busqueda) !== false);
+                (stripos($producto['PRODUCTO_CODIGO'], $busqueda) !== false) ||
+                (stripos($producto['MARCA_DESCRIPCION'], $busqueda) !== false);
         });
     }
 
@@ -170,7 +171,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
 
     // Ordenar productos según criterio
     // Por defecto ordenamos por descripción del producto
-    usort($productosAPI, function($a, $b) {
+    usort($productosAPI, function ($a, $b) {
         return strcmp($a['PRODUCTO_DESCRIPCION'], $b['PRODUCTO_DESCRIPCION']);
     });
 
@@ -188,7 +189,8 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                     <i class="fas fa-boxes me-2" style="color: var(--primary-color);"></i>
                     <span>Gestión de Productos</span>
                 </h1>
-                <a href="exportar.php?tipo=productos&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-success">
+                <a href="exportar.php?tipo=productos&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
+                    class="btn btn-success">
                     <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                 </a>
             </div>
@@ -220,7 +222,8 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                             <label for="busqueda" class="form-label">Búsqueda</label>
                             <div class="input-group">
                                 <input type="text" class="form-control" id="busqueda" name="busqueda"
-                                    placeholder="Nombre, código o marca" value="<?php echo htmlspecialchars($busqueda); ?>">
+                                    placeholder="Nombre, código o marca"
+                                    value="<?php echo htmlspecialchars($busqueda); ?>">
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -234,24 +237,24 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                 value="<?php echo htmlspecialchars($fechaFin); ?>" placeholder="dd/mm/yyyy">
                         </div>
                         <?php if ($esAdmin): ?>
-                        <div class="col-md-3">
-                            <label for="proveedor" class="form-label">Código Proveedor</label>
-                            <input type="text" class="form-control" id="proveedor" name="proveedor"
-                                value="<?php echo htmlspecialchars($proveedor); ?>" placeholder="Código Proveedor">
-                        </div>
+                            <div class="col-md-3">
+                                <label for="proveedor" class="form-label">Código Proveedor</label>
+                                <input type="text" class="form-control" id="proveedor" name="proveedor"
+                                    value="<?php echo htmlspecialchars($proveedor); ?>" placeholder="Código Proveedor">
+                            </div>
                         <?php else: ?>
-                        <!-- Para usuarios no administradores, enviamos el valor del proveedor como campo oculto -->
-                        <input type="hidden" name="proveedor" value="<?php echo htmlspecialchars($proveedor); ?>">
+                            <!-- Para usuarios no administradores, enviamos el valor del proveedor como campo oculto -->
+                            <input type="hidden" name="proveedor" value="<?php echo htmlspecialchars($proveedor); ?>">
                         <?php endif; ?>
 
                         <!-- Botón BUSCAR dentro del formulario -->
                         <?php if ($esAdmin): ?>
                             <div class="col-12 d-flex justify-content-end">
-                        <?php else:?>
-                            <div class="col-md-3 d-flex align-items-end">
-                        <?php endif;?>
-                            <button type="submit" class="btn btn-primary">BUSCAR</button>
-                        </div>
+                            <?php else: ?>
+                                <div class="col-md-3 d-flex align-items-end">
+                                <?php endif; ?>
+                                <button type="submit" class="btn btn-primary">BUSCAR</button>
+                            </div>
                     </form>
                 </div>
             </div>
@@ -260,76 +263,80 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
 
     <!-- Tarjetas de información -->
     <div class="row mb-4">
-        <!-- Tarjeta 1: Monto de venta neto -->
+        <!-- Tarjeta 1: Total Venta Valorizada -->
         <div class="col-md-3 mb-3">
             <div class="card dashboard-card dashboard-card-primary h-100 shadow-sm">
                 <div class="card-body position-relative">
                     <div class="dashboard-card-icon-wrapper bg-venta shadow">
                         <i class="fas fa-dollar-sign"></i>
                     </div>
-                    <h5 class="card-title text-primary mt-3">Venta</h5>
+                    <h5 class="card-title text-primary mt-3">Total Venta Valorizada</h5>
                     <h2 class="dashboard-card-value"><?php echo formatCurrency($valorNeto); ?></h2>
                     <p class="card-text text-muted small">Monto de venta neto del período</p>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalVentaNeta">
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                        data-bs-toggle="modal" data-bs-target="#modalVentaNeta">
                         Ver detalles <i class="fas fa-arrow-right ms-1"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Tarjeta 2: Total Stock Valorizado -->
+        <!-- Tarjeta 2: Venta Total Toneladas -->
         <div class="col-md-3 mb-3">
-            <div class="card dashboard-card dashboard-card-info h-100 shadow-sm">
+            <div class="card dashboard-card dashboard-card-primary h-100 shadow-sm">
                 <div class="card-body position-relative">
-                    <div class="dashboard-card-icon-wrapper bg-info shadow">
+                    <div class="dashboard-card-icon-wrapper bg-venta shadow">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <h5 class="card-title text-primary mt-3">Venta Total Toneladas</h5>
+                    <h2 class="dashboard-card-value"><?php echo $unidadesVendidas; ?></h2>
+                    <p class="card-text text-muted small">Cantidad total de toneladas vendidas</p>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                        data-bs-toggle="modal" data-bs-target="#modalUnidadesVendidas">
+                        Ver detalles <i class="fas fa-arrow-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta 3: Total Stock Valorizado -->
+        <div class="col-md-3 mb-3">
+            <div class="card dashboard-card dashboard-card-warning h-100 shadow-sm">
+                <div class="card-body position-relative">
+                    <div class="dashboard-card-icon-wrapper bg-warning shadow">
                         <i class="fas fa-box"></i>
                     </div>
-                    <h5 class="card-title text-info mt-3">Total Stock Valorizado</h5>
+                    <h5 class="card-title text-warning mt-3">Total Stock Valorizado</h5>
                     <h2 class="dashboard-card-value"><?php echo formatCurrency($stockTotalValor); ?></h2>
                     <p class="card-text text-muted small">Cantidad total de stock valorizado</p>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalStockValorizado">
+                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3"
+                        data-bs-toggle="modal" data-bs-target="#modalStockValorizado">
                         Ver detalles <i class="fas fa-arrow-right ms-1"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Tarjeta 3: Unidades vendidas -->
-        <div class="col-md-3 mb-3">
-            <div class="card dashboard-card dashboard-card-success h-100 shadow-sm">
-                <div class="card-body position-relative">
-                    <div class="dashboard-card-icon-wrapper bg-success shadow">
-                        <i class="fas fa-shopping-cart"></i>
-                    </div>
-                    <h5 class="card-title text-success mt-3">Venta Unidades</h5>
-                    <h2 class="dashboard-card-value"><?php echo $unidadesVendidas; ?></h2>
-                    <p class="card-text text-muted small">Cantidad total de unidades vendidas</p>
-                </div>
-                <div class="card-footer bg-transparent border-0 pb-3">
-                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalUnidadesVendidas">
-                        Ver detalles <i class="fas fa-arrow-right ms-1"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tarjeta 4: Pendiente -->
+        <!-- Tarjeta 4: Total Stock Toneladas -->
         <div class="col-md-3 mb-3">
             <div class="card dashboard-card dashboard-card-warning h-100 shadow-sm">
                 <div class="card-body position-relative">
                     <div class="dashboard-card-icon-wrapper bg-warning shadow">
                         <i class="fas fa-clock"></i>
                     </div>
-                    <h5 class="card-title text-warning mt-3">Total stock unidades</h5>
+                    <h5 class="card-title text-warning mt-3">Total Stock Toneladas</h5>
                     <h2 class="dashboard-card-value"><?php echo $stockUnidades; ?></h2>
-                    <p class="card-text text-muted small">Cantidad total de stock unidades</p>
+                    <p class="card-text text-muted small">Cantidad total de stock toneladas</p>
                 </div>
                 <div class="card-footer bg-transparent border-0 pb-3">
-                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalStockUnidades">
+                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3"
+                        data-bs-toggle="modal" data-bs-target="#modalStockUnidades">
                         Ver detalles <i class="fas fa-arrow-right ms-1"></i>
                     </button>
                 </div>
@@ -348,7 +355,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
 
         .dashboard-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
         }
 
         .dashboard-card-icon-wrapper {
@@ -362,7 +369,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             align-items: center;
             justify-content: center;
         }
-        
+
 
         .dashboard-card-icon-wrapper i {
             font-size: 20px;
@@ -375,10 +382,21 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             margin: 10px 0;
         }
 
-        .dashboard-card-primary .dashboard-card-value { color: #0d6efd; }
-        .dashboard-card-success .dashboard-card-value { color: #198754; }
-        .dashboard-card-info .dashboard-card-value { color: #0dcaf0; }
-        .dashboard-card-warning .dashboard-card-value { color: #ffc107; }
+        .dashboard-card-primary .dashboard-card-value {
+            color: #0d6efd;
+        }
+
+        .dashboard-card-success .dashboard-card-value {
+            color: #198754;
+        }
+
+        .dashboard-card-info .dashboard-card-value {
+            color: #0dcaf0;
+        }
+
+        .dashboard-card-warning .dashboard-card-value {
+            color: #ffc107;
+        }
 
         /* Efecto de brillo en hover */
         .dashboard-card::before {
@@ -388,7 +406,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             left: -50%;
             width: 200%;
             height: 200%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%);
             transform: rotate(30deg);
             opacity: 0;
             transition: opacity 0.5s ease;
@@ -399,20 +417,30 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
         }
 
         @keyframes shine {
-            0% { opacity: 0; transform: rotate(30deg) translateX(-300%); }
-            30% { opacity: 1; }
-            100% { opacity: 0; transform: rotate(30deg) translateX(300%); }
+            0% {
+                opacity: 0;
+                transform: rotate(30deg) translateX(-300%);
+            }
+
+            30% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+                transform: rotate(30deg) translateX(300%);
+            }
         }
     </style>
 
     <!-- Sección de gráficos con ApexCharts -->
     <div class="row mb-4">
-        <!-- Gráfico de línea - Últimos 6 meses -->
+        <!-- Gráfico de línea - Venta Últimos 6 meses -->
         <div class="col-md-6">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-light">
                     <h5 class="mb-0">
-                        <i class="fas fa-chart-line me-2 text-primary"></i>Últimos 6 meses
+                        <i class="fas fa-chart-line me-2 text-primary"></i>Venta Últimos 6 meses
                     </h5>
                 </div>
                 <div class="card-body">
@@ -420,13 +448,13 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                 </div>
             </div>
         </div>
-        
-        <!-- Gráfico de columnas - Por Definir -->
+
+        <!-- Gráfico de columnas - Stock Tonelada Últimos 6 meses -->
         <div class="col-md-6">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-light">
                     <h5 class="mb-0">
-                        <i class="fas fa-chart-bar me-2 text-primary"></i>Por Definir
+                        <i class="fas fa-chart-bar me-2 text-primary"></i>Stock Tonelada Últimos 6 meses
                     </h5>
                 </div>
                 <div class="card-body">
@@ -450,7 +478,8 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                             <span class="input-group-text bg-white">
                                 <i class="fas fa-search text-muted"></i>
                             </span>
-                            <input type="text" id="tablaBuscador" class="form-control" placeholder="Buscar por código, nombre, marca o familia..." autocomplete="off">
+                            <input type="text" id="tablaBuscador" class="form-control"
+                                placeholder="Buscar por código, nombre, marca o familia..." autocomplete="off">
                             <button class="btn btn-outline-secondary" type="button" id="limpiarBusqueda">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -461,7 +490,8 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                 <div class="card-body">
                     <?php if (empty($productos)): ?>
                         <div class="alert alert-info">
-                            No se encontraron productos. <?php echo !empty($busqueda) ? 'Intente con otra búsqueda.' : ''; ?>
+                            No se encontraron productos.
+                            <?php echo !empty($busqueda) ? 'Intente con otra búsqueda.' : ''; ?>
                         </div>
                     <?php else: ?>
                         <div class="table-responsive mb-3">
@@ -495,12 +525,15 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                         $stockClass2 = $producto['STOCK_BODEGA02'] <= 5 ? 'low' : ($producto['STOCK_BODEGA02'] <= 20 ? 'medium' : '');
                                         ?>
                                         <tr>
-                                            <td class="fw-bold"><?php echo htmlspecialchars($producto['PRODUCTO_CODIGO']); ?></td>
+                                            <td class="fw-bold"><?php echo htmlspecialchars($producto['PRODUCTO_CODIGO']); ?>
+                                            </td>
                                             <td>
                                                 <div class="d-flex flex-column">
-                                                    <span class="fw-medium"><?php echo htmlspecialchars($producto['PRODUCTO_DESCRIPCION']); ?></span>
+                                                    <span
+                                                        class="fw-medium"><?php echo htmlspecialchars($producto['PRODUCTO_DESCRIPCION']); ?></span>
                                                     <?php if (!empty($producto['CODIGO_DE_BARRA'])): ?>
-                                                        <small class="text-muted">COD: <?php echo htmlspecialchars($producto['CODIGO_DE_BARRA']); ?></small>
+                                                        <small class="text-muted">COD:
+                                                            <?php echo htmlspecialchars($producto['CODIGO_DE_BARRA']); ?></small>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -539,7 +572,8 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                                 </span>
                                             </td>
                                             <td>
-                                                <button class="btn btn-action btn-info" onclick="verDetalles('<?php echo $producto['PRODUCTO_CODIGO']; ?>')"
+                                                <button class="btn btn-action btn-info"
+                                                    onclick="verDetalles('<?php echo $producto['PRODUCTO_CODIGO']; ?>')"
                                                     data-tooltip="Ver detalles del producto">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
@@ -556,7 +590,8 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                 <ul class="pagination justify-content-center">
                                     <?php if ($pagina > 1): ?>
                                         <li class="page-item">
-                                            <a class="page-link" href="?pagina=<?php echo ($pagina - 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
+                                            <a class="page-link"
+                                                href="?pagina=<?php echo ($pagina - 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
                                                 &laquo; Anterior
                                             </a>
                                         </li>
@@ -564,7 +599,8 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
 
                                     <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
                                         <li class="page-item <?php echo $i === $pagina ? 'active' : ''; ?>">
-                                            <a class="page-link" href="?pagina=<?php echo $i; ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
+                                            <a class="page-link"
+                                                href="?pagina=<?php echo $i; ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
                                                 <?php echo $i; ?>
                                             </a>
                                         </li>
@@ -572,7 +608,8 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
 
                                     <?php if ($pagina < $totalPaginas): ?>
                                         <li class="page-item">
-                                            <a class="page-link" href="?pagina=<?php echo ($pagina + 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
+                                            <a class="page-link"
+                                                href="?pagina=<?php echo ($pagina + 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
                                                 Siguiente &raquo;
                                             </a>
                                         </li>
@@ -592,8 +629,10 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalDetallesLabel"><i class="fas fa-box-open me-2"></i>Detalles del Producto</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="modalDetallesLabel"><i class="fas fa-box-open me-2"></i>Detalles del
+                    Producto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body p-0" id="detallesProducto">
                 <div class="text-center py-5">
@@ -614,46 +653,46 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
 </div>
 
 <script>
-// Función para mostrar detalles del producto
-function verDetalles(codigo) {
-    const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
+    // Función para mostrar detalles del producto
+    function verDetalles(codigo) {
+        const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
 
-    // Mostrar el modal
-    modal.show();
+        // Mostrar el modal
+        modal.show();
 
-    // Buscar el producto en la tabla actual
-    const productos = <?php echo json_encode($productos); ?>;
-    let producto = null;
+        // Buscar el producto en la tabla actual
+        const productos = <?php echo json_encode($productos); ?>;
+        let producto = null;
 
-    for (let i = 0; i < productos.length; i++) {
-        if (productos[i].PRODUCTO_CODIGO === codigo) {
-            producto = productos[i];
-            break;
+        for (let i = 0; i < productos.length; i++) {
+            if (productos[i].PRODUCTO_CODIGO === codigo) {
+                producto = productos[i];
+                break;
+            }
         }
-    }
 
-    if (producto) {
-        // Calcular el total de stock y ventas
-        const totalStock = (
-            (producto.STOCK_BODEGA01 || 0) +
-            (producto.STOCK_BODEGA02 || 0) +
-            (producto.STOCK_BODEGA03 || 0) +
-            (producto.STOCK_BODEGA04 || 0) +
-            (producto.STOCK_BODEGA05 || 0)
-        );
+        if (producto) {
+            // Calcular el total de stock y ventas
+            const totalStock = (
+                (producto.STOCK_BODEGA01 || 0) +
+                (producto.STOCK_BODEGA02 || 0) +
+                (producto.STOCK_BODEGA03 || 0) +
+                (producto.STOCK_BODEGA04 || 0) +
+                (producto.STOCK_BODEGA05 || 0)
+            );
 
-        const totalVentas = (
-            (producto.VENTA_SUCURSAL01 || 0) +
-            (producto.VENTA_SUCURSAL02 || 0) +
-            (producto.VENTA_SUCURSAL03 || 0) +
-            (producto.VENTA_SUCURSAL04 || 0) +
-            (producto.VENTA_SUCURSAL05 || 0)
-        );
+            const totalVentas = (
+                (producto.VENTA_SUCURSAL01 || 0) +
+                (producto.VENTA_SUCURSAL02 || 0) +
+                (producto.VENTA_SUCURSAL03 || 0) +
+                (producto.VENTA_SUCURSAL04 || 0) +
+                (producto.VENTA_SUCURSAL05 || 0)
+            );
 
-        // Calcular la rotación
-        const rotacion = totalVentas > 0 && totalStock > 0 ? (totalStock / totalVentas).toFixed(2) : 0;
+            // Calcular la rotación
+            const rotacion = totalVentas > 0 && totalStock > 0 ? (totalStock / totalVentas).toFixed(2) : 0;
 
-        document.getElementById('detallesProducto').innerHTML = `
+            document.getElementById('detallesProducto').innerHTML = `
             <div class="row g-0">
                 <div class="col-md-4 bg-light">
                     <div class="p-4">
@@ -776,99 +815,99 @@ function verDetalles(codigo) {
             </div>
         `;
 
-        // Mostrar botón de exportar producto
-        const exportarBtn = document.getElementById('exportarProductoBtn');
-        exportarBtn.classList.remove('d-none');
-        exportarBtn.href = `exportar.php?tipo=productos&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=${producto.PRODUCTO_CODIGO}`;
+            // Mostrar botón de exportar producto
+            const exportarBtn = document.getElementById('exportarProductoBtn');
+            exportarBtn.classList.remove('d-none');
+            exportarBtn.href = `exportar.php?tipo=productos&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=${producto.PRODUCTO_CODIGO}`;
 
-    } else {
-        document.getElementById('detallesProducto').innerHTML = `
+        } else {
+            document.getElementById('detallesProducto').innerHTML = `
             <div class="alert alert-danger">
                 No se pudo encontrar la información del producto con código ${codigo}.
             </div>
         `;
+        }
     }
-}
 </script>
 
 <!-- Script para el buscador de la tabla -->
 <script>
-// Pasar el total de productos desde PHP a JavaScript
-const totalProductosGeneral = <?php echo isset($totalProductos) ? (int)$totalProductos : 0; ?>;
+    // Pasar el total de productos desde PHP a JavaScript
+    const totalProductosGeneral = <?php echo isset($totalProductos) ? (int) $totalProductos : 0; ?>;
 
-document.addEventListener('DOMContentLoaded', function() {
-    const buscador = document.getElementById('tablaBuscador');
-    const limpiarBtn = document.getElementById('limpiarBusqueda');
-    const resultadosInfo = document.getElementById('resultadosBusqueda');
-    const tabla = document.querySelector('.table-striped');
-    const filas = tabla ? Array.from(tabla.querySelectorAll('tbody tr')) : [];
-    let totalFilasPagina = filas.length;
+    document.addEventListener('DOMContentLoaded', function () {
+        const buscador = document.getElementById('tablaBuscador');
+        const limpiarBtn = document.getElementById('limpiarBusqueda');
+        const resultadosInfo = document.getElementById('resultadosBusqueda');
+        const tabla = document.querySelector('.table-striped');
+        const filas = tabla ? Array.from(tabla.querySelectorAll('tbody tr')) : [];
+        let totalFilasPagina = filas.length;
 
-    // Función para actualizar el contador de resultados
-    function actualizarContadorResultados(mostrados) {
-        resultadosInfo.textContent = `Mostrando ${mostrados} de ${totalProductosGeneral} productos`;
-    }
+        // Función para actualizar el contador de resultados
+        function actualizarContadorResultados(mostrados) {
+            resultadosInfo.textContent = `Mostrando ${mostrados} de ${totalProductosGeneral} productos`;
+        }
 
-    // Inicializar el contador
-    actualizarContadorResultados(totalFilasPagina);
+        // Inicializar el contador
+        actualizarContadorResultados(totalFilasPagina);
 
-    // Función para filtrar las filas de la tabla
-    function filtrarTabla() {
-        const textoBusqueda = buscador.value.toLowerCase().trim();
-        let filasVisibles = 0;
+        // Función para filtrar las filas de la tabla
+        function filtrarTabla() {
+            const textoBusqueda = buscador.value.toLowerCase().trim();
+            let filasVisibles = 0;
 
-        // Si no hay texto de búsqueda, mostrar todas las filas
-        if (textoBusqueda === '') {
-            filas.forEach(fila => {
-                fila.style.display = '';
-                filasVisibles++;
-            });
-        } else {
-            // Filtrar filas según el texto de búsqueda
-            filas.forEach(fila => {
-                // Extraer el texto de las celdas relevantes (código, producto, marca, familia)
-                const codigo = fila.cells[0].textContent.toLowerCase();
-                const producto = fila.cells[1].textContent.toLowerCase();
-                const marca = fila.cells[2].textContent.toLowerCase();
-                const familia = fila.cells[3].textContent.toLowerCase();
-
-                // Comprobar si el texto de búsqueda está en alguna de las celdas
-                if (codigo.includes(textoBusqueda) ||
-                    producto.includes(textoBusqueda) ||
-                    marca.includes(textoBusqueda) ||
-                    familia.includes(textoBusqueda)) {
+            // Si no hay texto de búsqueda, mostrar todas las filas
+            if (textoBusqueda === '') {
+                filas.forEach(fila => {
                     fila.style.display = '';
                     filasVisibles++;
-                } else {
-                    fila.style.display = 'none';
-                }
-            });
+                });
+            } else {
+                // Filtrar filas según el texto de búsqueda
+                filas.forEach(fila => {
+                    // Extraer el texto de las celdas relevantes (código, producto, marca, familia)
+                    const codigo = fila.cells[0].textContent.toLowerCase();
+                    const producto = fila.cells[1].textContent.toLowerCase();
+                    const marca = fila.cells[2].textContent.toLowerCase();
+                    const familia = fila.cells[3].textContent.toLowerCase();
+
+                    // Comprobar si el texto de búsqueda está en alguna de las celdas
+                    if (codigo.includes(textoBusqueda) ||
+                        producto.includes(textoBusqueda) ||
+                        marca.includes(textoBusqueda) ||
+                        familia.includes(textoBusqueda)) {
+                        fila.style.display = '';
+                        filasVisibles++;
+                    } else {
+                        fila.style.display = 'none';
+                    }
+                });
+            }
+
+            // Actualizar contador de resultados
+            actualizarContadorResultados(filasVisibles);
+
+            // Mostrar/ocultar el botón de limpiar según haya texto o no
+            if (textoBusqueda === '') {
+                limpiarBtn.classList.add('d-none');
+            } else {
+                limpiarBtn.classList.remove('d-none');
+            }
         }
 
-        // Actualizar contador de resultados
-        actualizarContadorResultados(filasVisibles);
+        // Evento para filtrar al escribir en el buscador
+        buscador.addEventListener('input', filtrarTabla);
 
-        // Mostrar/ocultar el botón de limpiar según haya texto o no
-        if (textoBusqueda === '') {
-            limpiarBtn.classList.add('d-none');
-        } else {
-            limpiarBtn.classList.remove('d-none');
-        }
-    }
+        // Evento para limpiar la búsqueda
+        limpiarBtn.addEventListener('click', function () {
+            buscador.value = '';
+            filtrarTabla();
+            buscador.focus();
+        });
 
-    // Evento para filtrar al escribir en el buscador
-    buscador.addEventListener('input', filtrarTabla);
-
-    // Evento para limpiar la búsqueda
-    limpiarBtn.addEventListener('click', function() {
-        buscador.value = '';
-        filtrarTabla();
-        buscador.focus();
+        // Ocultar el botón de limpiar al inicio
+        limpiarBtn.classList.add('d-none');
     });
-
-    // Ocultar el botón de limpiar al inicio
-    limpiarBtn.classList.add('d-none');
-});
 </script>
 
 <!-- Modales para detalles de tarjetas -->
@@ -879,9 +918,10 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="modal-content">
             <div class="modal-header bg-venta text-white">
                 <h5 class="modal-title" id="modalVentaNetaLabel">
-                    <i class="fas fa-dollar-sign me-2"></i> Detalle de Venta Neta
+                    <i class="fas fa-dollar-sign me-2"></i> Detalle Total Venta Valorizada
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="table-responsive">
@@ -925,11 +965,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="modal-footer d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar estos datos directamente a Excel</span>
+                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar
+                        estos datos directamente a Excel</span>
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_venta_neta&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-venta btn-lg">
+                    <a href="exportar.php?tipo=detalle_venta_neta&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
+                        class="btn btn-venta btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -939,14 +981,16 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- Modal Detalle Unidades Vendidas -->
-<div class="modal fade" id="modalUnidadesVendidas" tabindex="-1" aria-labelledby="modalUnidadesVendidasLabel" aria-hidden="true">
+<div class="modal fade" id="modalUnidadesVendidas" tabindex="-1" aria-labelledby="modalUnidadesVendidasLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
+            <div class="modal-header bg-venta text-white">
                 <h5 class="modal-title" id="modalUnidadesVendidasLabel">
-                    <i class="fas fa-shopping-cart me-2"></i> Detalle de Unidades Vendidas
+                    <i class="fas fa-shopping-cart me-2"></i> Detalle Venta Total Toneladas
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="table-responsive">
@@ -986,11 +1030,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="modal-footer d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar estos datos directamente a Excel</span>
+                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar
+                        estos datos directamente a Excel</span>
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_unidades_vendidas&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-success btn-lg">
+                    <a href="exportar.php?tipo=detalle_unidades_vendidas&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
+                        class="btn btn-venta btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -1007,7 +1053,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h5 class="modal-title" id="modalSkuActivosLabel">
                     <i class="fas fa-box me-2"></i> Detalle de SKU Activos
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="table-responsive">
@@ -1041,11 +1088,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="modal-footer d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar estos datos directamente a Excel</span>
+                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar
+                        estos datos directamente a Excel</span>
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_sku_activos&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-info btn-lg">
+                    <a href="exportar.php?tipo=detalle_sku_activos&proveedor=<?php echo urlencode($proveedor); ?>"
+                        class="btn btn-info btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -1055,7 +1104,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- Modal Detalle Stock Unidades -->
-<div class="modal fade" id="modalStockUnidades" tabindex="-1" aria-labelledby="modalStockUnidadesLabel" aria-hidden="true">
+<div class="modal fade" id="modalStockUnidades" tabindex="-1" aria-labelledby="modalStockUnidadesLabel"
+    aria-hidden="true">
     <!-- Estilos específicos para este modal -->
     <style>
         .large-column {
@@ -1063,6 +1113,7 @@ document.addEventListener('DOMContentLoaded', function() {
             max-width: 120px !important;
             min-width: 120px !important;
         }
+
         /* Estilo para la columna Unidad */
         #modalStockUnidades .unidad-column {
             width: 80px !important;
@@ -1079,9 +1130,10 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="modal-content">
             <div class="modal-header bg-warning text-white">
                 <h5 class="modal-title" id="modalStockUnidadesLabel">
-                    <i class="fas fa-boxes me-2"></i> Detalle de Stock Unidades
+                    <i class="fas fa-boxes me-2"></i> Total Stock Toneladas
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="table-responsive">
@@ -1133,11 +1185,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="modal-footer d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar estos datos directamente a Excel</span>
+                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar
+                        estos datos directamente a Excel</span>
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_stock_unidades&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-warning btn-lg">
+                    <a href="exportar.php?tipo=detalle_stock_unidades&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
+                        class="btn btn-warning btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -1147,7 +1201,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- Modal Detalle Stock Total Valorizado -->
-<div class="modal fade" id="modalStockValorizado" tabindex="-1" aria-labelledby="modalStockValorizadoLabel" aria-hidden="true">
+<div class="modal fade" id="modalStockValorizado" tabindex="-1" aria-labelledby="modalStockValorizadoLabel"
+    aria-hidden="true">
     <!-- Estilos específicos para este modal -->
     <style>
         /* Configuración para mejor visualización de la tabla */
@@ -1156,7 +1211,7 @@ document.addEventListener('DOMContentLoaded', function() {
             margin-bottom: 0;
             table-layout: auto;
         }
-        
+
         /* Estilos para encabezados */
         #modalStockValorizado th {
             white-space: nowrap;
@@ -1169,65 +1224,65 @@ document.addEventListener('DOMContentLoaded', function() {
             vertical-align: middle;
             text-align: center;
         }
-        
+
         /* Estilos para celdas */
         #modalStockValorizado td {
             padding: 8px;
             vertical-align: middle;
             white-space: nowrap;
         }
-        
+
         /* Columnas con anchos específicos */
         #modalStockValorizado .codigo-column {
             min-width: 70px;
         }
-        
+
         #modalStockValorizado .descripcion-column {
             min-width: 180px;
         }
-        
+
         #modalStockValorizado .marca-column {
             min-width: 100px;
         }
-        
+
         #modalStockValorizado .cod-marca-column,
         #modalStockValorizado .unidad-column {
             min-width: 80px;
         }
-        
+
         #modalStockValorizado .cod-barras-column {
             min-width: 110px;
         }
-        
+
         #modalStockValorizado .categoria-column,
         #modalStockValorizado .subcategoria-column {
             min-width: 100px;
         }
-        
+
         #modalStockValorizado .cant-envase-column {
             min-width: 70px;
             text-align: center;
         }
-        
+
         /* Columnas de stock */
         #modalStockValorizado .stock-column {
             min-width: 80px;
             text-align: center;
         }
-        
+
         /* Columnas monetarias */
         #modalStockValorizado .precio-column,
         #modalStockValorizado .valor-column {
             min-width: 120px;
             text-align: right;
         }
-        
+
         /* Mejorar scroll de la tabla */
         #modalStockValorizado .modal-body {
             max-height: calc(100vh - 200px);
             overflow-y: auto;
         }
-        
+
         #modalStockValorizado .table-responsive {
             overflow-x: auto;
             max-height: calc(100vh - 220px);
@@ -1235,11 +1290,12 @@ document.addEventListener('DOMContentLoaded', function() {
     </style>
     <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
+            <div class="modal-header bg-warning text-white">
                 <h5 class="modal-title" id="modalStockValorizadoLabel">
-                    <i class="fas fa-shopping-cart me-2"></i> Detalle del Stock Total Valorizado
+                    <i class="fas fa-shopping-cart me-2"></i> Detalle Total Stock Valorizado
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="table-responsive">
@@ -1278,14 +1334,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <td><?php echo htmlspecialchars($item['DFAI'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['DSUI'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['CENV'] ?? ''); ?></td>
-                                        <td class="precio-column"><?php echo '$' . number_format($item['PRUL'] ?? 0, 0, ',', '.'); ?></td>
+                                        <td class="precio-column">
+                                            <?php echo '$' . number_format($item['PRUL'] ?? 0, 0, ',', '.'); ?>
+                                        </td>
                                         <td><?php echo htmlspecialchars($item['ST01'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['ST02'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['ST03'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['ST04'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['ST05'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['ST07'] ?? ''); ?></td>
-                                        <td class="valor-column"><?php echo '$' . number_format($item['VALO'], 0, ',', '.'); ?></td>
+                                        <td class="valor-column"><?php echo '$' . number_format($item['VALO'], 0, ',', '.'); ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -1299,11 +1358,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="modal-footer d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar estos datos directamente a Excel</span>
+                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar
+                        estos datos directamente a Excel</span>
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_stock_valorizado&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>" class="btn btn-info btn-lg">
+                    <a href="exportar.php?tipo=detalle_stock_valorizado&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
+                        class="btn btn-warning btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -1319,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', function() {
         border: none;
         border-radius: 15px;
         overflow: hidden;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
     }
 
     .modal-header {
@@ -1336,7 +1397,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     .modal-footer {
         padding: 1rem 1.5rem;
-        border-top: 1px solid rgba(0,0,0,0.05);
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .modal .table {
@@ -1361,136 +1422,140 @@ document.addEventListener('DOMContentLoaded', function() {
         transform: scale(1);
         opacity: 1;
     }
-
 </style>
 
 <!-- ApexCharts CDN -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <script>
-// Configuración del gráfico de línea - Últimos 6 meses
-let ventaNetaSeisMeses = <?php echo json_encode($ventaNetaSeisMeses); ?>;
+    // Configuración del gráfico de línea - Últimos 6 meses
+    let ventaNetaSeisMeses = <?php echo json_encode($ventaNetaSeisMeses); ?>;
 
-var lineChartOptions = {
-    series: [{
-        name: 'Ventas Netas',
-        data: ventaNetaSeisMeses.map(item => parseInt(item.TOTAL_NETO))
-    }],
-    chart: {
-        height: 350,
-        type: 'line',
-        toolbar: {
-            show: false
-        }
-    },
-    colors: ['#0d6efd'],
-    dataLabels: {
-        enabled: false
-    },
-    stroke: {
-        curve: 'smooth',
-        width: 3
-    },
-    xaxis: {
-        categories: ventaNetaSeisMeses.map(item => item.MES_PALABRA + ' ' + item.ANO)
-    },
-    yaxis: {
-        title: {
-            text: 'Monto ($)'
+    var lineChartOptions = {
+        series: [{
+            name: 'Ventas Netas',
+            data: ventaNetaSeisMeses.map(item => parseInt(item.TOTAL_NETO))
+        }],
+        chart: {
+            height: 350,
+            type: 'line',
+            toolbar: {
+                show: false
+            }
         },
-        labels: {
-            formatter: function(value) {
-                return '$' + value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-            }
-        }
-    },
-    tooltip: {
-        y: {
-            formatter: function(value) {
-                return '$' + value.toLocaleString('es-CL');
-            }
-        }
-    },
-    grid: {
-        borderColor: '#e7e7e7',
-        row: {
-            colors: ['#f3f3f3', 'transparent'],
-            opacity: 0.5
-        }
-    },
-    markers: {
-        size: 6,
         colors: ['#0d6efd'],
-        strokeColors: '#fff',
-        strokeWidth: 2,
-        hover: {
-            size: 8
-        }
-    }
-};
-
-// Configuración del gráfico de columnas - Por Definir
-var columnChartOptions = {
-    series: [{
-        name: 'Productos',
-        data: [44, 55, 57, 56, 61, 58]
-    }],
-    chart: {
-        type: 'bar',
-        height: 350,
-        toolbar: {
-            show: false
-        }
-    },
-    colors: ['#198754'],
-    plotOptions: {
-        bar: {
-            horizontal: false,
-            columnWidth: '55%',
-            endingShape: 'rounded'
-        }
-    },
-    dataLabels: {
-        enabled: false
-    },
-    stroke: {
-        show: true,
-        width: 2,
-        colors: ['transparent']
-    },
-    xaxis: {
-        categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun']
-    },
-    yaxis: {
-        title: {
-            text: 'Cantidad'
-        }
-    },
-    fill: {
-        opacity: 1
-    },
-    tooltip: {
-        y: {
-            formatter: function (val) {
-                return val + " productos"
+        dataLabels: {
+            enabled: false
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 3
+        },
+        xaxis: {
+            categories: ventaNetaSeisMeses.map(item => item.MES_PALABRA + ' ' + item.ANO)
+        },
+        yaxis: {
+            title: {
+                text: 'Monto ($)'
+            },
+            labels: {
+                formatter: function (value) {
+                    return '$' + value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                }
+            }
+        },
+        tooltip: {
+            y: {
+                formatter: function (value) {
+                    return '$' + value.toLocaleString('es-CL');
+                }
+            }
+        },
+        grid: {
+            borderColor: '#e7e7e7',
+            row: {
+                colors: ['#f3f3f3', 'transparent'],
+                opacity: 0.5
+            }
+        },
+        markers: {
+            size: 6,
+            colors: ['#0d6efd'],
+            strokeColors: '#fff',
+            strokeWidth: 2,
+            hover: {
+                size: 8
             }
         }
-    },
-    grid: {
-        borderColor: '#e7e7e7'
-    }
-};
+    };
 
-// Renderizar los gráficos cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
-    // Gráfico de línea
-    var lineChart = new ApexCharts(document.querySelector("#lineChart"), lineChartOptions);
-    lineChart.render();
-    
-    // Gráfico de columnas
-    var columnChart = new ApexCharts(document.querySelector("#columnChart"), columnChartOptions);
-    columnChart.render();
-});
+    // Configuración del gráfico de columnas - Por Definir
+    var columnChartOptions = {
+        series: [{
+            name: 'Productos',
+            data: [44, 55, 57, 56, 61, 58]
+        }],
+        chart: {
+            type: 'line',
+            height: 350,
+            toolbar: {
+                show: false
+            }
+        },
+        colors: ['#FFC107'],
+        dataLabels: {
+            enabled: false
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 3
+        },
+        xaxis: {
+            categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun']
+        },
+        yaxis: {
+            title: {
+                text: 'Cantidad'
+            }
+        },
+        fill: {
+            opacity: 1
+        },
+        tooltip: {
+            y: {
+                formatter: function (val) {
+                    return val + " productos"
+                }
+            }
+        },
+        grid: {
+            borderColor: '#e7e7e7',
+            row: {
+                colors: ['#f3f3f3', 'transparent'],
+                opacity: 0.5
+            }
+        },
+        markers: {
+            size: 6,
+            colors: ['#FFC107'],
+            strokeColors: '#fff',
+            strokeWidth: 2,
+            hover: {
+                size: 8
+            }
+        }
+    };
+
+    // Renderizar los gráficos cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function () {
+        // Gráfico de línea
+        var lineChart = new ApexCharts(document.querySelector("#lineChart"), lineChartOptions);
+        lineChart.render();
+
+        // Gráfico de columnas
+        var columnChart = new ApexCharts(document.querySelector("#columnChart"), columnChartOptions);
+        columnChart.render();
+    });
 </script>
 
 <?php

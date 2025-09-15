@@ -17,7 +17,8 @@ define('API_DISTRIBUIDOR', '001');
  * @return array|string Respuesta de la API
  * @throws Exception Si ocurre un error en la llamada
  */
-function callApi($endpoint, $data = []) {
+function callApi($endpoint, $data = [])
+{
     $url = API_BASE_URL . '/' . $endpoint;
 
     // Asegurar que siempre se envíe el distribuidor
@@ -71,7 +72,8 @@ function callApi($endpoint, $data = []) {
  * @param string $distribuidor Código del distribuidor (opcional)
  * @return array Lista de marcas
  */
-function getMarcasFromAPI($distribuidor = null) {
+function getMarcasFromAPI($distribuidor = null)
+{
     try {
         // Si se proporciona un distribuidor, usarlo; de lo contrario, usar el predeterminado
         $data = [];
@@ -108,7 +110,8 @@ function getMarcasFromAPI($distribuidor = null) {
  *
  * @return array Lista de proveedores
  */
-function getProveedoresFromAPI() {
+function getProveedoresFromAPI()
+{
     try {
         $response = callApi('get_proveedores');
 
@@ -128,7 +131,8 @@ function getProveedoresFromAPI() {
  * @param string $rut RUT del proveedor
  * @return array Lista de marcas asociadas al proveedor
  */
-function getMarcasProveedorFromAPI($rut) {
+function getMarcasProveedorFromAPI($rut)
+{
     try {
         $rutLimpio = limpiarRut($rut);
 
@@ -160,7 +164,8 @@ function getMarcasProveedorFromAPI($rut) {
  * @param string $rut RUT del proveedor
  * @return array Lista de IDs de marcas
  */
-function getMarcasIdsProveedorFromAPI($rut) {
+function getMarcasIdsProveedorFromAPI($rut)
+{
     $marcas = getMarcasProveedorFromAPI($rut);
     return array_column($marcas, 'id');
 }
@@ -173,7 +178,8 @@ function getMarcasIdsProveedorFromAPI($rut) {
  * @param string|null $marcaIdAnterior ID de la marca anterior (para actualización)
  * @return bool True si la operación fue exitosa
  */
-function asignarMarcaProveedorAPI($rut, $marcaId, $marcaIdAnterior = null) {
+function asignarMarcaProveedorAPI($rut, $marcaId, $marcaIdAnterior = null)
+{
     try {
         $rutLimpio = limpiarRut($rut);
 
@@ -202,7 +208,8 @@ function asignarMarcaProveedorAPI($rut, $marcaId, $marcaIdAnterior = null) {
  * @param string $marcaId ID de la marca a eliminar
  * @return bool True si la operación fue exitosa
  */
-function eliminarMarcaProveedorAPI($rut, $marcaId) {
+function eliminarMarcaProveedorAPI($rut, $marcaId)
+{
     try {
         $rutLimpio = limpiarRut($rut);
 
@@ -225,7 +232,8 @@ function eliminarMarcaProveedorAPI($rut, $marcaId) {
  * @param array $nuevasMarcasIds IDs de las marcas que debe tener el proveedor
  * @return bool True si la sincronización fue exitosa
  */
-function sincronizarMarcasProveedorAPI($rut, $nuevasMarcasIds) {
+function sincronizarMarcasProveedorAPI($rut, $nuevasMarcasIds)
+{
     try {
         // Obtener marcas actuales del proveedor en la API
         $marcasActualesIds = getMarcasIdsProveedorFromAPI($rut);
@@ -258,7 +266,8 @@ function sincronizarMarcasProveedorAPI($rut, $nuevasMarcasIds) {
  * @param array $marcasIds IDs de las marcas a asociar
  * @return bool True si la operación fue exitosa
  */
-function guardarMarcasProveedor($proveedorId, $marcasIds) {
+function guardarMarcasProveedor($proveedorId, $marcasIds)
+{
     // Obtener el RUT del proveedor
     $proveedor = fetchOne("SELECT rut FROM usuarios WHERE id = ?", [$proveedorId]);
     if (!$proveedor) {
@@ -283,8 +292,10 @@ function guardarMarcasProveedor($proveedorId, $marcasIds) {
         if (!empty($marcasEliminar)) {
             // Eliminar de la BD local
             $placeholders = implode(',', array_fill(0, count($marcasEliminar), '?'));
-            executeQuery("DELETE FROM proveedores_marcas WHERE proveedor_id = ? AND marca_id IN ($placeholders)",
-                         array_merge([$proveedorId], $marcasEliminar));
+            executeQuery(
+                "DELETE FROM proveedores_marcas WHERE proveedor_id = ? AND marca_id IN ($placeholders)",
+                array_merge([$proveedorId], $marcasEliminar)
+            );
         }
 
         // 4. Agregar nuevas marcas seleccionadas
@@ -326,7 +337,8 @@ function guardarMarcasProveedor($proveedorId, $marcasIds) {
  * @param int $proveedorId ID del proveedor
  * @return array IDs de las marcas asociadas
  */
-function getMarcasProveedor($proveedorId) {
+function getMarcasProveedor($proveedorId)
+{
     $marcas = fetchAll("SELECT marca_id FROM proveedores_marcas WHERE proveedor_id = ?", [$proveedorId]);
     return array_column($marcas, 'marca_id');
 }
@@ -339,7 +351,8 @@ function getMarcasProveedor($proveedorId) {
  * @param string $rutProveedor Rut del proveedor
  * @return int Monto de venta neto
  */
-function getMontoVentaNetoFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
+function getMontoVentaNetoFromAPI($fechaInicio, $fechaFin, $rutProveedor)
+{
     try {
 
         $response = callApi('kpi_venta_neta', [
@@ -369,7 +382,8 @@ function getMontoVentaNetoFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
  * @param string $rutProveedor Rut del proveedor
  * @return int Monto de venta neto
  */
-function getCantidadVendidaFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
+function getCantidadVendidaFromAPI($fechaInicio, $fechaFin, $rutProveedor)
+{
     try {
 
         $response = callApi('kpi_unidades_vendidas', [
@@ -397,7 +411,8 @@ function getCantidadVendidaFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
  * @param string $rutProveedor Rut del proveedor
  * @return int Cantidad de Sku
  */
-function getCantidadSkuActivosFromAPI($rutProveedor) {
+function getCantidadSkuActivosFromAPI($rutProveedor)
+{
     try {
 
         $response = callApi('kpi_sku_activos', ['KPRV' => $rutProveedor]);
@@ -423,7 +438,8 @@ function getCantidadSkuActivosFromAPI($rutProveedor) {
  * @param string $rutProveedor Rut del proveedor
  * @return int Monto de venta neto
  */
-function getStockUnidadesFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
+function getStockUnidadesFromAPI($fechaInicio, $fechaFin, $rutProveedor)
+{
     try {
 
         $response = callApi('kpi_total_stock_unidades', [
@@ -454,7 +470,9 @@ function getStockUnidadesFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
  * @param string $rutProveedor Rut del proveedor
  * @return int Monto de venta neto
  */
-function getDetalleVentaNeta($fechaInicio, $fechaFin, $rutProveedor) {
+function getDetalleVentaNeta($fechaInicio, $fechaFin, $rutProveedor): array
+{
+    $datos = [];
     try {
 
         $response = callApi('kpi_venta_neta_detalle', [
@@ -465,7 +483,7 @@ function getDetalleVentaNeta($fechaInicio, $fechaFin, $rutProveedor) {
 
         if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
             // Transformar el formato para que sea más fácil de usar en la aplicación
-            $datos = isset($response['datos']) ? $response['datos'] : [];
+            $datos = $response['datos'] ?? [];
 
             return $datos;
         }
@@ -473,7 +491,7 @@ function getDetalleVentaNeta($fechaInicio, $fechaFin, $rutProveedor) {
         logError("Error al obtener detalle de ventas netas para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
     }
 
-    return 0;
+    return $datos;
 }
 
 /**
@@ -484,7 +502,9 @@ function getDetalleVentaNeta($fechaInicio, $fechaFin, $rutProveedor) {
  * @param string $rutProveedor Rut del proveedor
  * @return int Monto de venta neto
  */
-function getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $rutProveedor) {
+function getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $rutProveedor): array
+{
+    $datos = [];
     try {
 
         $response = callApi('kpi_unidades_vendidas_detalle', [
@@ -495,7 +515,7 @@ function getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $rutProveedor) {
 
         if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
             // Transformar el formato para que sea más fácil de usar en la aplicación
-            $datos = isset($response['datos']) ? $response['datos'] : [];
+            $datos = $response['datos'] ?? [];
 
             return $datos;
         }
@@ -503,7 +523,7 @@ function getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $rutProveedor) {
         logError("Error al obtener detalle de unidades vendidas para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
     }
 
-    return 0;
+    return $datos;
 }
 
 /**
@@ -512,7 +532,9 @@ function getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $rutProveedor) {
  * @param string $rutProveedor Rut del proveedor
  * @return int Monto de venta neto
  */
-function getDetalleSkuActivos($rutProveedor) {
+function getDetalleSkuActivos($rutProveedor): array
+{
+    $datos = [];
     try {
 
         $response = callApi('kpi_sku_activos_detalle', [
@@ -521,15 +543,15 @@ function getDetalleSkuActivos($rutProveedor) {
 
         if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
             // Transformar el formato para que sea más fácil de usar en la aplicación
-            $datos = isset($response['datos']) ? $response['datos'] : [];
+            $datos = $response['datos'] ?? [];
 
             return $datos;
         }
     } catch (Exception $e) {
-        logError("Error al obtener detalle de sku activos para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
+        logError("Error al obtener detalle de sku activos desde API: " . $e->getMessage());
     }
 
-    return 0;
+    return [];
 }
 
 /**
@@ -540,7 +562,9 @@ function getDetalleSkuActivos($rutProveedor) {
  * @param string $rutProveedor Rut del proveedor
  * @return int Monto de venta neto
  */
-function getDetalleStockUnidadesFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
+function getDetalleStockUnidadesFromAPI($fechaInicio, $fechaFin, $rutProveedor): array
+{
+    $datos = [];
     try {
 
         $response = callApi('kpi_total_stock_unidades_detalle', [
@@ -552,7 +576,7 @@ function getDetalleStockUnidadesFromAPI($fechaInicio, $fechaFin, $rutProveedor) 
 
         if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
             // Transformar el formato para que sea más fácil de usar en la aplicación
-            $datos = isset($response['datos']) ? $response['datos'] : [];
+            $datos = $response['datos'] ?? [];
 
             return $datos;
         }
@@ -560,7 +584,7 @@ function getDetalleStockUnidadesFromAPI($fechaInicio, $fechaFin, $rutProveedor) 
         logError("Error al obtener detalle de stock unidades para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
     }
 
-    return 0;
+    return $datos;
 }
 
 /**
@@ -571,7 +595,8 @@ function getDetalleStockUnidadesFromAPI($fechaInicio, $fechaFin, $rutProveedor) 
  * @param string $rutProveedor Rut del proveedor
  * @return int Total de stock
  */
-function getTotalStockFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
+function getTotalStockFromAPI($fechaInicio, $fechaFin, $rutProveedor)
+{
     try {
 
         $response = callApi('kpi_total_stock_valor', [
@@ -602,7 +627,9 @@ function getTotalStockFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
  * @param string $rutProveedor Rut del proveedor
  * @return int Total de stock
  */
-function getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
+function getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $rutProveedor): array
+{
+    $datos = [];
     try {
 
         $response = callApi('kpi_total_stock_valor_detalle', [
@@ -614,7 +641,7 @@ function getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
 
         if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
             // Transformar el formato para que sea más fácil de usar en la aplicación
-            $datos = isset($response['datos']) ? $response['datos'] : [];
+            $datos = $response['datos'] ?? [];
 
             return $datos;
         }
@@ -622,7 +649,7 @@ function getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
         logError("Error al obtener detalle de stock unidades para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
     }
 
-    return 0;
+    return $datos;
 }
 
 
@@ -632,7 +659,8 @@ function getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $rutProveedor) {
  * @param string $rutProveedor Rut del proveedor
  * @return int Total de stock
  */
-function getVentaNetaSeisMeses($fechaFin, $rutProveedor) {
+function getVentaNetaSeisMeses($fechaFin, $rutProveedor)
+{
     try {
 
         $response = callApi('kpi_venta_neta6meses', [
