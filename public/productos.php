@@ -138,6 +138,9 @@ $detalleStockTotalValor = getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $
 // Venta neta últimos 6 meses
 $ventaNetaSeisMeses = getVentaNetaSeisMeses($fechaFin, $proveedor);
 
+// Total Stock valorizado últimos 6 meses
+$totalStockSeisMeses = getTotalStockSeisMeses($fechaFin, $proveedor);
+
 // Verificar que la respuesta sea correcta
 if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
     $productos = [];
@@ -460,12 +463,12 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             </div>
         </div>
 
-        <!-- Gráfico de columnas - Stock Tonelada Últimos 6 meses -->
+        <!-- Gráfico de columnas - Total Stock Valorizado Últimos 6 meses -->
         <div class="col-md-6">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-light">
                     <h5 class="mb-0">
-                        <i class="fas fa-chart-bar me-2 text-primary"></i>Stock Tonelada Últimos 6 meses
+                        <i class="fas fa-chart-bar me-2 text-primary"></i>Total Stock Valorizado Últimos 6 meses
                     </h5>
                 </div>
                 <div class="card-body">
@@ -1441,6 +1444,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
 <script>
     // Configuración del gráfico de línea - Últimos 6 meses
     let ventaNetaSeisMeses = <?php echo json_encode($ventaNetaSeisMeses); ?>;
+    let totalStockSeisMeses = <?php echo json_encode($totalStockSeisMeses); ?>;
 
     var lineChartOptions = {
         series: [{
@@ -1503,8 +1507,8 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
     // Configuración del gráfico de columnas - Por Definir
     var columnChartOptions = {
         series: [{
-            name: 'Productos',
-            data: [44, 55, 57, 56, 61, 58]
+            name: 'Total Stock Valorizado',
+            data: totalStockSeisMeses.map(item => parseInt(item.TOTA))
         }],
         chart: {
             type: 'line',
@@ -1522,11 +1526,21 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
             width: 3
         },
         xaxis: {
-            categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun']
+            categories: totalStockSeisMeses.map(item => {
+                const [dia, mes, anio] = item.FTER.split('-');
+                const fecha = new Date(`${anio}-${mes}-${dia}`);
+                const texto = fecha.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+                return texto.replace(' de ', ' ').replace(/\b\w/g, c => c.toUpperCase()); // Capitaliza la primera letra
+            })
         },
         yaxis: {
             title: {
-                text: 'Cantidad'
+                text: 'Valor ($)'
+            },
+            labels: {
+                formatter: function (value) {
+                    return '$' + value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                }
             }
         },
         fill: {
@@ -1535,7 +1549,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
         tooltip: {
             y: {
                 formatter: function (val) {
-                    return val + " productos"
+                    return '$' + val.toLocaleString('es-CL');
                 }
             }
         },

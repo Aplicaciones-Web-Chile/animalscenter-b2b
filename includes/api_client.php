@@ -676,3 +676,32 @@ function getVentaNetaSeisMeses($fechaFin, $rutProveedor)
 
     return 0;
 }
+
+
+/**
+ * Obtiene total stock valorizado de los últimos 6 meses
+ *
+ * @param string $rutProveedor Rut del proveedor
+ * @return array Array de datos
+ */
+function getTotalStockSeisMeses($fechaFin, $rutProveedor)
+{
+    try {
+
+        $response = callApi('kpi_total_stock_valor6meses', [
+            'FTER' => $fechaFin,
+            'KPRV_LIST' => is_array($rutProveedor) ? $rutProveedor : [$rutProveedor]
+        ]);
+
+        if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
+            // Transformar el formato para que sea más fácil de usar en la aplicación
+            $datos = $response['datos'] ?? [];
+
+            return $datos;
+        }
+    } catch (Exception $e) {
+        logError("Error al obtener venta neta de los últimos 6 meses desde API: " . $e->getMessage());
+    }
+
+    return [];
+}
