@@ -705,3 +705,59 @@ function getTotalStockSeisMeses($fechaFin, $rutProveedor)
 
     return [];
 }
+
+function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor)
+{
+    // URL y configuración de la API
+    $url = "https://api2.aplicacionesweb.cl/apiacenter/productos/vtayrepxsuc";
+    $token = "94ec33d0d75949c298f47adaa78928c2";
+
+    // Datos a enviar
+    $data = [
+        "Distribuidor" => $distribuidor,
+        "FINI" => $fechaInicio,
+        "FTER" => $fechaFin,
+        "KPRV" => $proveedor
+    ];
+
+    // Configuración de la petición
+    $options = [
+        'http' => [
+            'header' => "Authorization: $token\r\n" .
+                "Content-Type: application/json\r\n",
+            'method' => 'POST',
+            'content' => json_encode($data),
+            'timeout' => 60
+        ]
+    ];
+
+    // Crear contexto y realizar petición
+    $context = stream_context_create($options);
+
+    try {
+        // Registrar la llamada a la API en el log
+        error_log("Llamando a API: $url con datos: " . json_encode($data));
+
+        // Realizar la petición
+        $result = file_get_contents($url, false, $context);
+
+        if ($result === false) {
+            error_log("Error al obtener datos de la API: No se pudo conectar");
+            return ['estado' => 0, 'datos' => [], 'error' => 'No se pudo conectar con la API'];
+        }
+
+        // Decodificar respuesta
+        $response = json_decode($result, true);
+
+        // Verificar estructura de respuesta
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("Error al decodificar respuesta JSON: " . json_last_error_msg());
+            return ['estado' => 0, 'datos' => [], 'error' => 'Error al procesar la respuesta'];
+        }
+
+        return $response;
+    } catch (Exception $e) {
+        error_log("Excepción al llamar a la API: " . $e->getMessage());
+        return ['estado' => 0, 'datos' => [], 'error' => $e->getMessage()];
+    }
+}

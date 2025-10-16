@@ -33,73 +33,11 @@ $distribuidor = $_GET['distribuidor'] ?? '001'; // Código del distribuidor por 
 $esAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] === 'admin';
 
 // Si el usuario es admin, puede cambiar el proveedor, si no, se usa el de la sesión
-if ($esAdmin) {
-    // El admin puede filtrar por cualquier proveedor
-    $proveedor = $_GET['proveedor'] ?? '78843490'; // Código del proveedor por defecto para admin
-} else {
-    // Un proveedor solo puede ver sus propios productos
-    $proveedor = $_SESSION['rut_proveedor'] ?? '0'; // Usar el código almacenado en la sesión
-}
+$proveedor = $esAdmin ? $_GET['proveedor'] ?? '78843490' : $_SESSION['rut_proveedor'] ?? '0';
 
 // Inicializar variables para paginación
 $pagina = isset($_GET['pagina']) ? (int) $_GET['pagina'] : 1;
 $porPagina = 20;
-
-// Función para consumir la API de productos
-function obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor)
-{
-    // URL y configuración de la API
-    $url = "https://api2.aplicacionesweb.cl/apiacenter/productos/vtayrepxsuc";
-    $token = "94ec33d0d75949c298f47adaa78928c2";
-
-    // Datos a enviar
-    $data = [
-        "Distribuidor" => $distribuidor,
-        "FINI" => $fechaInicio,
-        "FTER" => $fechaFin,
-        "KPRV" => $proveedor
-    ];
-
-    // Configuración de la petición
-    $options = [
-        'http' => [
-            'header' => "Authorization: $token\r\n" .
-                "Content-Type: application/json\r\n",
-            'method' => 'POST',
-            'content' => json_encode($data)
-        ]
-    ];
-
-    // Crear contexto y realizar petición
-    $context = stream_context_create($options);
-
-    try {
-        // Registrar la llamada a la API en el log
-        error_log("Llamando a API: $url con datos: " . json_encode($data));
-
-        // Realizar la petición
-        $result = file_get_contents($url, false, $context);
-
-        if ($result === false) {
-            error_log("Error al obtener datos de la API: No se pudo conectar");
-            return ['estado' => 0, 'datos' => [], 'error' => 'No se pudo conectar con la API'];
-        }
-
-        // Decodificar respuesta
-        $response = json_decode($result, true);
-
-        // Verificar estructura de respuesta
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("Error al decodificar respuesta JSON: " . json_last_error_msg());
-            return ['estado' => 0, 'datos' => [], 'error' => 'Error al procesar la respuesta'];
-        }
-
-        return $response;
-    } catch (Exception $e) {
-        error_log("Excepción al llamar a la API: " . $e->getMessage());
-        return ['estado' => 0, 'datos' => [], 'error' => $e->getMessage()];
-    }
-}
 
 // Obtener productos desde la API
 $respuestaAPI = obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor);
