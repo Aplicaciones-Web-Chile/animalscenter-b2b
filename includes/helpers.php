@@ -9,7 +9,8 @@
  * @param string $rut RUT con formato (ej: 12.345.678-9)
  * @return string RUT sin formato (ej: 123456789)
  */
-function limpiarRut($rut) {
+function limpiarRut($rut)
+{
     return str_replace(['.', '-'], '', $rut);
 }
 
@@ -19,8 +20,10 @@ function limpiarRut($rut) {
  * @param string $rut RUT sin formato (ej: 123456789)
  * @return string RUT con formato (ej: 12.345.678-9)
  */
-function formatearRut($rut) {
-    if (empty($rut)) return '';
+function formatearRut($rut)
+{
+    if (empty($rut))
+        return '';
 
     // Primero limpiar por si acaso ya tiene formato
     $rut = limpiarRut($rut);
@@ -41,7 +44,8 @@ function formatearRut($rut) {
  * @param string $input Valor de entrada a sanear
  * @return string Valor saneado
  */
-function sanitizeInput($input) {
+function sanitizeInput($input)
+{
     return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
 }
 
@@ -51,7 +55,8 @@ function sanitizeInput($input) {
  * @param string $value Valor a verificar
  * @return bool True si está vacío
  */
-function isEmpty($value) {
+function isEmpty($value)
+{
     return trim($value) === '';
 }
 
@@ -61,7 +66,8 @@ function isEmpty($value) {
  * @param string $type Tipo de mensaje (success, error, warning, info)
  * @param string $message Contenido del mensaje
  */
-function setFlashMessage($type, $message) {
+function setFlashMessage($type, $message)
+{
     startSession();
     $_SESSION['flash_message'] = [
         'type' => $type,
@@ -74,7 +80,8 @@ function setFlashMessage($type, $message) {
  *
  * @return array|null Mensaje flash o null si no hay
  */
-function getFlashMessage() {
+function getFlashMessage()
+{
     startSession();
     if (isset($_SESSION['flash_message'])) {
         $message = $_SESSION['flash_message'];
@@ -87,7 +94,8 @@ function getFlashMessage() {
 /**
  * Muestra el mensaje flash formateado para Bootstrap
  */
-function displayFlashMessage() {
+function displayFlashMessage()
+{
     $flashMessage = getFlashMessage();
     if ($flashMessage) {
         $type = $flashMessage['type'];
@@ -105,7 +113,8 @@ function displayFlashMessage() {
  *
  * @param string $url URL de destino
  */
-function redirect($url) {
+function redirect($url)
+{
     header("Location: $url");
     exit;
 }
@@ -115,7 +124,8 @@ function redirect($url) {
  *
  * @return string Token CSRF
  */
-function generateCsrfToken() {
+function generateCsrfToken()
+{
     startSession();
     $token = bin2hex(random_bytes(32));
     $_SESSION['csrf_token'] = $token;
@@ -129,7 +139,8 @@ function generateCsrfToken() {
  * @param bool $regenerate Si es true, regenera el token después de validarlo
  * @return bool True si el token es válido
  */
-function validateCsrfToken($token, $regenerate = false) {
+function validateCsrfToken($token, $regenerate = false)
+{
     startSession();
     if (!isset($_SESSION['csrf_token'])) {
         // Si no hay token, creamos uno nuevo
@@ -154,7 +165,8 @@ function validateCsrfToken($token, $regenerate = false) {
  * @param string $format Formato deseado (default: d/m/Y H:i)
  * @return string Fecha formateada
  */
-function formatDateTime($datetime, $format = 'd/m/Y H:i') {
+function formatDateTime($datetime, $format = 'd/m/Y H:i')
+{
     $date = new DateTime($datetime);
     return $date->format($format);
 }
@@ -165,10 +177,11 @@ function formatDateTime($datetime, $format = 'd/m/Y H:i') {
  * @param float $amount Cantidad a formatear
  * @return string Cantidad formateada ($X.XXX)
  */
-function formatCurrency($amount) {
-    	if(!is_numeric($amount)) {
-		return $amount;
-	}
+function formatCurrency($amount)
+{
+    if (!is_numeric($amount)) {
+        return $amount;
+    }
 
     return '$' . number_format($amount, 0, ',', '.');
 }
@@ -178,7 +191,8 @@ function formatCurrency($amount) {
  *
  * @return string URL base
  */
-function getBaseUrl() {
+function getBaseUrl()
+{
     return rtrim(APP_URL, '/');
 }
 
@@ -187,9 +201,10 @@ function getBaseUrl() {
  *
  * @return bool True si es una petición AJAX
  */
-function isAjaxRequest() {
+function isAjaxRequest()
+{
     return isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-           strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 }
 
 /**
@@ -198,7 +213,8 @@ function isAjaxRequest() {
  * @param mixed $data Datos a convertir a JSON
  * @param int $statusCode Código de estado HTTP
  */
-function jsonResponse($data, $statusCode = 200) {
+function jsonResponse($data, $statusCode = 200)
+{
     http_response_code($statusCode);
     header('Content-Type: application/json');
     echo json_encode($data);
@@ -212,7 +228,8 @@ function jsonResponse($data, $statusCode = 200) {
  * @param int $totalPages Total de páginas
  * @param string $baseUrl URL base para los enlaces
  */
-function paginationLinks($currentPage, $totalPages, $baseUrl) {
+function paginationLinks($currentPage, $totalPages, $baseUrl)
+{
     echo '<nav aria-label="Paginación"><ul class="pagination">';
 
     // Enlace anterior
@@ -242,4 +259,37 @@ function paginationLinks($currentPage, $totalPages, $baseUrl) {
     }
 
     echo '</ul></nav>';
+}
+
+// Helpers funciones de cache
+function syncLogStart(PDO $pdo, string $endpoint, string $syncType, ?string $sinceParam): int
+{
+    $sql = "INSERT INTO api_sync_log (endpoint, sync_type, since_param, started_at, status)
+            VALUES (:endpoint, :sync_type, :since_param, NOW(), 'ok')";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        ':endpoint' => $endpoint,
+        ':sync_type' => $syncType,
+        ':since_param' => $sinceParam
+    ]);
+    return (int) $pdo->lastInsertId();
+}
+
+function syncLogFinish(PDO $pdo, int $logId, string $status, int $upserted, int $deleted = 0, ?string $errorMsg = null): void
+{
+    $sql = "UPDATE api_sync_log
+               SET finished_at = NOW(),
+                   status = :status,
+                   items_upserted = :upserted,
+                   items_deleted = :deleted,
+                   error_message = :error
+             WHERE id = :id";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        ':status' => $status,
+        ':upserted' => $upserted,
+        ':deleted' => $deleted,
+        ':error' => $errorMsg,
+        ':id' => $logId
+    ]);
 }

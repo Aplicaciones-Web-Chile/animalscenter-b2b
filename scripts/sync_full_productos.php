@@ -11,14 +11,14 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/app.php';
 require_once APP_ROOT . '/config/database.php';
 require_once APP_ROOT . '/includes/api_client.php';
+require_once APP_ROOT . '/includes/helpers.php';
+require_once APP_ROOT . '/includes/proveedores_repository.php';
 
 // === Configuración del snapshot ===
 const DISTRIBUIDOR = '001';
 
 // Proveedores a sincronizar (ajusta a tu realidad: lista fija o cargar de tu tabla de proveedores)
-$PROVEEDORES = [
-  '78843490'
-];
+$PROVEEDORES = obtenerKPRVDesdeCache();
 
 // Rango de fechas del snapshot:
 // - Si tu API requiere FINI/FTER, define acá la ventana “oficial” del corte.
@@ -26,38 +26,6 @@ $PROVEEDORES = [
 $fechaInicio = (new DateTime('yesterday 00:00:00'))->format('d/m/Y');
 $fechaFin = (new DateTime('yesterday 23:59:59'))->format('d/m/Y');
 
-// === Helpers de logging de sync ===
-function syncLogStart(PDO $pdo, string $endpoint, string $syncType, ?string $sinceParam): int
-{
-  $sql = "INSERT INTO api_sync_log (endpoint, sync_type, since_param, started_at, status)
-            VALUES (:endpoint, :sync_type, :since_param, NOW(), 'ok')";
-  $stmt = $pdo->prepare($sql);
-  $stmt->execute([
-    ':endpoint' => $endpoint,
-    ':sync_type' => $syncType,
-    ':since_param' => $sinceParam
-  ]);
-  return (int) $pdo->lastInsertId();
-}
-
-function syncLogFinish(PDO $pdo, int $logId, string $status, int $upserted, int $deleted = 0, ?string $errorMsg = null): void
-{
-  $sql = "UPDATE api_sync_log
-               SET finished_at = NOW(),
-                   status = :status,
-                   items_upserted = :upserted,
-                   items_deleted = :deleted,
-                   error_message = :error
-             WHERE id = :id";
-  $stmt = $pdo->prepare($sql);
-  $stmt->execute([
-    ':status' => $status,
-    ':upserted' => $upserted,
-    ':deleted' => $deleted,
-    ':error' => $errorMsg,
-    ':id' => $logId
-  ]);
-}
 
 // === Upsert a la tabla de caché ===
 function upsertProductoCache(PDO $pdo, string $proveedor, array $p, string $snapshotDate): bool
@@ -212,12 +180,8 @@ try {
     }
 
     // Upsert en transacción por lote
-    $pdo->beginTransaction();
     $batchUpserts = 0;
     $i = 0;
-
-    // importante: excepciones activadas
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     try {
       if (!$pdo->inTransaction()) {
@@ -251,15 +215,12 @@ try {
       throw $e; // que lo capture tu try/catch externo
     }
 
-    $pdo->commit();
     $totalUpserts += $batchUpserts;
 
     error_log("[sync_full_productos] Proveedor={$prov} upserts={$batchUpserts}");
   }
 
   syncLogFinish($pdo, $logId, 'ok', $totalUpserts, 0, null);
-  echo "[OK] Full snapshot productos finalizado. Upserts={$totalUpserts}\n";
-
 } catch (Throwable $e) {
   if ($pdo->inTransaction()) {
     $pdo->rollBack();

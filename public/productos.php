@@ -179,17 +179,17 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                         </div>
                         <?php
                         if ($esAdmin):
-                            $listaProveedores = getProveedoresFromAPI();
+                            $listaProveedores = obtenerKPRVDesdeCache(2, false, true);
                             ?>
                             <div class="col-md-3">
                                 <label for="proveedor" class="form-label">Código Proveedor</label>
 
                                 <select class="form-control" name="proveedor" id="proveedor">
                                     <?php foreach ($listaProveedores as $val):
-                                        $selected = $val['KPRV'] === $proveedor ? 'selected' : '';
+                                        $selected = $val['kprv'] === $proveedor ? 'selected' : '';
                                         ?>
-                                        <option value="<?php echo htmlspecialchars($val['KPRV']); ?>" <?php echo $selected; ?>>
-                                            <?php echo htmlspecialchars($val['RAZO']) ?>
+                                        <option value="<?php echo htmlspecialchars($val['kprv']); ?>" <?php echo $selected; ?>>
+                                            <?php echo htmlspecialchars($val['razon_social']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
