@@ -28,9 +28,8 @@ $fechaFin = (new DateTime('yesterday 23:59:59'))->format('d/m/Y');
 
 
 // === Upsert a la tabla de caché ===
-function upsertProductoCache(PDO $pdo, string $proveedor, array $p, string $snapshotDate): bool
+function upsertProductoCacheHist(PDO $pdo, string $proveedor, array $p, string $snapshotDate): bool
 {
-  // Mapear campos desde la API
   $payload = [
     'producto_codigo' => (int) ($p['PRODUCTO_CODIGO'] ?? 0),
     'codigo_de_barra' => $p['CODIGO_DE_BARRA'] ?? null,
@@ -55,7 +54,6 @@ function upsertProductoCache(PDO $pdo, string $proveedor, array $p, string $snap
     'unidad_de_medida' => $p['UNIDAD_DE_MEDIDA'] ?? null
   ];
 
-  // Hash del payload significativo para evitar updates innecesarios
   $hashFields = [
     $payload['codigo_de_barra'],
     $payload['producto_descripcion'],
@@ -80,65 +78,48 @@ function upsertProductoCache(PDO $pdo, string $proveedor, array $p, string $snap
   ];
   $sourceHash = hash('sha256', json_encode($hashFields, JSON_UNESCAPED_UNICODE));
 
-  // ¿Existe con el mismo hash?
-  $q = $pdo->prepare("SELECT source_hash FROM api_cache_productos
-                         WHERE proveedor = :prov AND producto_codigo = :cod");
-  $q->execute([':prov' => $proveedor, ':cod' => $payload['producto_codigo']]);
-  $row = $q->fetch(PDO::FETCH_ASSOC);
+  $sql = "INSERT INTO api_cache_productos_hist (
+            proveedor, producto_codigo, snapshot_date,
+            codigo_de_barra, producto_descripcion, marca_descripcion, familia_descripcion, subfamilia_descripcion,
+            venta_sucursal01, stock_bodega01, venta_sucursal02, stock_bodega02,
+            venta_sucursal03, stock_bodega03, venta_sucursal04, stock_bodega04,
+            venta_sucursal05, stock_bodega05, venta_distribucion, venta_sucursal07,
+            kg, precio_ultima_compra, unidad_de_medida,
+            updated_at_api, source_hash, last_synced_at
+          ) VALUES (
+            :proveedor, :producto_codigo, :snapshot_date,
+            :codigo_de_barra, :producto_descripcion, :marca_descripcion, :familia_descripcion, :subfamilia_descripcion,
+            :venta_sucursal01, :stock_bodega01, :venta_sucursal02, :stock_bodega02,
+            :venta_sucursal03, :stock_bodega03, :venta_sucursal04, :stock_bodega04,
+            :venta_sucursal05, :stock_bodega05, :venta_distribucion, :venta_sucursal07,
+            :kg, :precio_ultima_compra, :unidad_de_medida,
+            NOW(), :source_hash, NOW()
+          )
+          ON DUPLICATE KEY UPDATE
+            codigo_de_barra        = VALUES(codigo_de_barra),
+            producto_descripcion   = VALUES(producto_descripcion),
+            marca_descripcion      = VALUES(marca_descripcion),
+            familia_descripcion    = VALUES(familia_descripcion),
+            subfamilia_descripcion = VALUES(subfamilia_descripcion),
+            venta_sucursal01       = VALUES(venta_sucursal01),
+            stock_bodega01         = VALUES(stock_bodega01),
+            venta_sucursal02       = VALUES(venta_sucursal02),
+            stock_bodega02         = VALUES(stock_bodega02),
+            venta_sucursal03       = VALUES(venta_sucursal03),
+            stock_bodega03         = VALUES(stock_bodega03),
+            venta_sucursal04       = VALUES(venta_sucursal04),
+            stock_bodega04         = VALUES(stock_bodega04),
+            venta_sucursal05       = VALUES(venta_sucursal05),
+            stock_bodega05         = VALUES(stock_bodega05),
+            venta_distribucion     = VALUES(venta_distribucion),
+            venta_sucursal07       = VALUES(venta_sucursal07),
+            kg                     = VALUES(kg),
+            precio_ultima_compra   = VALUES(precio_ultima_compra),
+            unidad_de_medida       = VALUES(unidad_de_medida),
+            updated_at_api         = VALUES(updated_at_api),
+            source_hash            = VALUES(source_hash),
+            last_synced_at         = VALUES(last_synced_at)";
 
-  if ($row && $row['source_hash'] === $sourceHash) {
-    // Solo marca last_synced_at y snapshot_date actual
-    $pdo->prepare("UPDATE api_cache_productos
-                          SET last_synced_at = NOW(), snapshot_date = :snap
-                        WHERE proveedor = :prov AND producto_codigo = :cod")
-      ->execute([':snap' => $snapshotDate, ':prov' => $proveedor, ':cod' => $payload['producto_codigo']]);
-    return false; // no hubo cambios de contenido
-  }
-
-  // Upsert
-  $sql = "INSERT INTO api_cache_productos (
-                proveedor, producto_codigo, codigo_de_barra,
-                producto_descripcion, marca_descripcion, familia_descripcion, subfamilia_descripcion,
-                venta_sucursal01, stock_bodega01, venta_sucursal02, stock_bodega02,
-                venta_sucursal03, stock_bodega03, venta_sucursal04, stock_bodega04,
-                venta_sucursal05, stock_bodega05, venta_distribucion, venta_sucursal07,
-                kg, precio_ultima_compra, unidad_de_medida,
-                updated_at_api, snapshot_date, source_hash, last_synced_at
-            )
-            VALUES (
-                :proveedor, :producto_codigo, :codigo_de_barra,
-                :producto_descripcion, :marca_descripcion, :familia_descripcion, :subfamilia_descripcion,
-                :venta_sucursal01, :stock_bodega01, :venta_sucursal02, :stock_bodega02,
-                :venta_sucursal03, :stock_bodega03, :venta_sucursal04, :stock_bodega04,
-                :venta_sucursal05, :stock_bodega05, :venta_distribucion, :venta_sucursal07,
-                :kg, :precio_ultima_compra, :unidad_de_medida,
-                NOW(), :snapshot_date, :source_hash, NOW()
-            )
-            ON DUPLICATE KEY UPDATE
-                codigo_de_barra = VALUES(codigo_de_barra),
-                producto_descripcion = VALUES(producto_descripcion),
-                marca_descripcion = VALUES(marca_descripcion),
-                familia_descripcion = VALUES(familia_descripcion),
-                subfamilia_descripcion = VALUES(subfamilia_descripcion),
-                venta_sucursal01 = VALUES(venta_sucursal01),
-                stock_bodega01 = VALUES(stock_bodega01),
-                venta_sucursal02 = VALUES(venta_sucursal02),
-                stock_bodega02 = VALUES(stock_bodega02),
-                venta_sucursal03 = VALUES(venta_sucursal03),
-                stock_bodega03 = VALUES(stock_bodega03),
-                venta_sucursal04 = VALUES(venta_sucursal04),
-                stock_bodega04 = VALUES(stock_bodega04),
-                venta_sucursal05 = VALUES(venta_sucursal05),
-                stock_bodega05 = VALUES(stock_bodega05),
-                venta_distribucion = VALUES(venta_distribucion),
-                venta_sucursal07 = VALUES(venta_sucursal07),
-                kg = VALUES(kg),
-                precio_ultima_compra = VALUES(precio_ultima_compra),
-                unidad_de_medida = VALUES(unidad_de_medida),
-                updated_at_api = VALUES(updated_at_api),
-                snapshot_date = VALUES(snapshot_date),
-                source_hash = VALUES(source_hash),
-                last_synced_at = VALUES(last_synced_at)";
   $stmt = $pdo->prepare($sql);
 
   $params = array_merge([
@@ -148,7 +129,7 @@ function upsertProductoCache(PDO $pdo, string $proveedor, array $p, string $snap
   ], array_combine(array_map(fn($k) => ":$k", array_keys($payload)), array_values($payload)));
 
   $stmt->execute($params);
-  return true; // hubo cambio (insert o update con contenido nuevo)
+  return true; // insert o update del snapshot del día
 }
 
 // === MAIN ===
@@ -189,7 +170,7 @@ try {
       }
 
       foreach ($items as $p) {
-        $changed = upsertProductoCache($pdo, $prov, $p, $snapshotDate);
+        $changed = upsertProductoCacheHist($pdo, $prov, $p, $snapshotDate);
         if ($changed) {
           $batchUpserts++;
         }
