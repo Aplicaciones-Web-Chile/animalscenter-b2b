@@ -1,6 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/includes/productos_repository.php';
-require_once APP_ROOT . '/includes/api_client.php';
+require_once dirname(__DIR__) . '/includes/api_client.php';
 
 /**
  * Devuelve productos desde histórico por fecha_fin (snapshot <= fecha_fin).
