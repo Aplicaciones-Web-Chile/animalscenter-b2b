@@ -5,11 +5,12 @@
  */
 
 // Incluir archivos necesarios
-require_once __DIR__ . '/../config/app.php';
-require_once __DIR__ . '/../includes/session.php';
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../includes/api_client.php';
+require_once dirname(__DIR__) . '/config/app.php';
+require_once dirname(__DIR__) . '/includes/session.php';
+require_once dirname(__DIR__) . '/includes/helpers.php';
+require_once dirname(__DIR__) . '/includes/api_client.php';
+require_once dirname(__DIR__) . '/includes/proveedores_repository.php';
+require_once dirname(__DIR__) . '/includes/productos_service.php';
 
 // Iniciar sesión
 startSession();
@@ -25,23 +26,29 @@ include 'header.php';
 
 // Inicializar variables para filtros
 $busqueda = $_GET['busqueda'] ?? '';
-$fechaInicio = $_GET['fecha_inicio'] ?? date('d/m/Y'); // Por defecto el día actual
-$fechaFin = $_GET['fecha_fin'] ?? date('d/m/Y'); // Por defecto el día actual
-$distribuidor = $_GET['distribuidor'] ?? '001'; // Código del distribuidor por defecto
+$fechaInicio = $_GET['fecha_inicio'] ?? date('d/m/Y');
+$fechaFin = $_GET['fecha_fin'] ?? date('d/m/Y');
+$distribuidor = $_GET['distribuidor'] ?? '001';
 
 // Determinar el rol del usuario actual
 $esAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] === 'admin';
-
-// Si el usuario es admin, puede cambiar el proveedor, si no, se usa el de la sesión
-$proveedor = $esAdmin ? $_GET['proveedor'] ?? '78843490' : $_SESSION['rut_proveedor'] ?? '0';
+$proveedor = $esAdmin ? ($_GET['proveedor'] ?? '78843490') : ($_SESSION['rut_proveedor'] ?? '0');
 
 // Inicializar variables para paginación
 $pagina = isset($_GET['pagina']) ? (int) $_GET['pagina'] : 1;
-$porPagina = 20;
+$porPagina = 50;
 
-// Obtener productos desde la API
-$respuestaAPI = obtenerProductosAPI($distribuidor, $fechaInicio, $fechaFin, $proveedor);
+$result = obtenerProductosParaFecha(
+    $distribuidor,
+    $fechaInicio,
+    $fechaFin,
+    $proveedor,
+    $busqueda,
+    $pagina,
+    $porPagina
+);
 
+$productos = $result['items'];
 
 // Valor monto neto
 $valorNeto = getMontoVentaNetoFromAPI($fechaInicio, $fechaFin, $proveedor);
@@ -80,45 +87,17 @@ $ventaNetaSeisMeses = getVentaNetaSeisMeses($fechaFin, $proveedor);
 $totalStockSeisMeses = getTotalStockSeisMeses($fechaFin, $proveedor);
 
 // Verificar que la respuesta sea correcta
-if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
-    $productos = [];
-    $mensajeError = $respuestaAPI['error'] ?? 'Error al obtener productos de la API';
-} else {
-    $productosAPI = $respuestaAPI['datos'] ?? [];
-
-    /*
-        Guardo $productosAPI en un json con los datos de los productos en un archivo
-        físico en la carpeta tmp con un nombre descriptivo de la fecha en que se ejecutó.
-        Antes de guardarlo, lo limpio para que no tenga datos duplicados.
-    */
-    $file = file_put_contents(__DIR__ . '/tmp/productos_' . date('Y-m-d_H-i-s') . '.json', json_encode($productosAPI));
-    if ($file === false) {
-        error_log("Error al guardar productos en el archivo");
-        die('Error al guardar productos en el archivo');
-    }
-
-    // Filtrar por búsqueda si se especifica
-    if (!empty($busqueda)) {
-        $productosAPI = array_filter($productosAPI, function ($producto) use ($busqueda) {
-            return (stripos($producto['PRODUCTO_DESCRIPCION'], $busqueda) !== false) ||
-                (stripos($producto['PRODUCTO_CODIGO'], $busqueda) !== false) ||
-                (stripos($producto['MARCA_DESCRIPCION'], $busqueda) !== false);
-        });
-    }
-
-    // Contar total de productos después del filtro
-    $totalProductos = count($productosAPI);
+if (is_array($productos) && count($productos) > 0) {
+    $totalProductos = count($productos);
     $totalPaginas = ceil($totalProductos / $porPagina);
 
     // Ordenar productos según criterio
     // Por defecto ordenamos por descripción del producto
-    usort($productosAPI, function ($a, $b) {
-        return strcmp($a['PRODUCTO_DESCRIPCION'], $b['PRODUCTO_DESCRIPCION']);
-    });
+    usort($productos, fn($a, $b) => strcmp($a['producto_descripcion'], $b['producto_descripcion']));
 
     // Aplicar paginación
     $offset = ($pagina - 1) * $porPagina;
-    $productos = array_slice($productosAPI, $offset, $porPagina);
+    $productos = array_slice($productos, $offset, $porPagina);
 }
 ?>
 
@@ -473,59 +452,59 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                     <?php foreach ($productos as $producto): ?>
                                         <?php
                                         // Determinar clase para indicadores de stock
-                                        $stockClass1 = $producto['STOCK_BODEGA01'] <= 5 ? 'low' : ($producto['STOCK_BODEGA01'] <= 20 ? 'medium' : '');
-                                        $stockClass2 = $producto['STOCK_BODEGA02'] <= 5 ? 'low' : ($producto['STOCK_BODEGA02'] <= 20 ? 'medium' : '');
+                                        $stockClass1 = $producto['stock_bodega01'] <= 5 ? 'low' : ($producto['stock_bodega01'] <= 20 ? 'medium' : '');
+                                        $stockClass2 = $producto['stock_bodega02'] <= 5 ? 'low' : ($producto['stock_bodega02'] <= 20 ? 'medium' : '');
                                         ?>
                                         <tr>
-                                            <td class="fw-bold"><?php echo htmlspecialchars($producto['PRODUCTO_CODIGO']); ?>
+                                            <td class="fw-bold"><?php echo htmlspecialchars($producto['producto_codigo']); ?>
                                             </td>
                                             <td>
                                                 <div class="d-flex flex-column">
                                                     <span
-                                                        class="fw-medium"><?php echo htmlspecialchars($producto['PRODUCTO_DESCRIPCION']); ?></span>
+                                                        class="fw-medium"><?php echo htmlspecialchars($producto['producto_descripcion']); ?></span>
                                                     <?php if (!empty($producto['CODIGO_DE_BARRA'])): ?>
                                                         <small class="text-muted">COD:
                                                             <?php echo htmlspecialchars($producto['CODIGO_DE_BARRA']); ?></small>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
-                                            <td><?php echo htmlspecialchars($producto['MARCA_DESCRIPCION']); ?></td>
-                                            <td><?php echo htmlspecialchars($producto['FAMILIA_DESCRIPCION']); ?></td>
-                                            <td><?php echo htmlspecialchars($producto['VENTA_DISTRIBUCION']); ?></td>
-                                            <td><?php echo $producto['VENTA_SUCURSAL07']; ?></td>
-                                            <td><?php echo $producto['VENTA_SUCURSAL01']; ?></td>
+                                            <td><?php echo htmlspecialchars($producto['marca_descripcion']); ?></td>
+                                            <td><?php echo htmlspecialchars($producto['familia_descripcion']); ?></td>
+                                            <td><?php echo htmlspecialchars($producto['venta_distribucion']); ?></td>
+                                            <td><?php echo $producto['venta_sucursal07']; ?></td>
+                                            <td><?php echo $producto['venta_sucursal01']; ?></td>
                                             <td>
                                                 <span class="badge badge-stock <?php echo $stockClass1; ?>">
-                                                    <?php echo $producto['STOCK_BODEGA01']; ?>
+                                                    <?php echo $producto['stock_bodega01']; ?>
                                                 </span>
                                             </td>
                                             <td><?php echo $producto['VENTA_SUCURSAL02']; ?></td>
                                             <td>
                                                 <span class="badge badge-stock <?php echo $stockClass2; ?>">
-                                                    <?php echo $producto['STOCK_BODEGA02']; ?>
+                                                    <?php echo $producto['stock_bodega02']; ?>
                                                 </span>
                                             </td>
-                                            <td><?php echo $producto['VENTA_SUCURSAL03']; ?></td>
+                                            <td><?php echo $producto['venta_sucursal03']; ?></td>
                                             <td>
                                                 <span class="badge badge-stock <?php echo $stockClass3; ?>">
-                                                    <?php echo $producto['STOCK_BODEGA03']; ?>
+                                                    <?php echo $producto['stock_bodega03']; ?>
                                                 </span>
                                             </td>
-                                            <td><?php echo $producto['VENTA_SUCURSAL04']; ?></td>
+                                            <td><?php echo $producto['venta_sucursal04']; ?></td>
                                             <td>
                                                 <span class="badge badge-stock <?php echo $stockClass4; ?>">
-                                                    <?php echo $producto['STOCK_BODEGA04']; ?>
+                                                    <?php echo $producto['stock_bodega04']; ?>
                                                 </span>
                                             </td>
-                                            <td><?php echo $producto['VENTA_SUCURSAL05']; ?></td>
+                                            <td><?php echo $producto['venta_sucursal05']; ?></td>
                                             <td>
                                                 <span class="badge badge-stock <?php echo $stockClass5; ?>">
-                                                    <?php echo $producto['STOCK_BODEGA05']; ?>
+                                                    <?php echo $producto['stock_bodega05']; ?>
                                                 </span>
                                             </td>
                                             <td>
                                                 <button class="btn btn-action btn-info"
-                                                    onclick="verDetalles('<?php echo $producto['PRODUCTO_CODIGO']; ?>')"
+                                                    onclick="verDetalles('<?php echo $producto['producto_codigo']; ?>')"
                                                     data-tooltip="Ver detalles del producto">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
@@ -626,19 +605,19 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
         if (producto) {
             // Calcular el total de stock y ventas
             const totalStock = (
-                (producto.STOCK_BODEGA01 || 0) +
-                (producto.STOCK_BODEGA02 || 0) +
-                (producto.STOCK_BODEGA03 || 0) +
-                (producto.STOCK_BODEGA04 || 0) +
-                (producto.STOCK_BODEGA05 || 0)
+                (producto.stock_bodega01 || 0) +
+                (producto.stock_bodega02 || 0) +
+                (producto.stock_bodega03 || 0) +
+                (producto.stock_bodega04 || 0) +
+                (producto.stock_bodega05 || 0)
             );
 
             const totalVentas = (
-                (producto.VENTA_SUCURSAL01 || 0) +
-                (producto.VENTA_SUCURSAL02 || 0) +
-                (producto.VENTA_SUCURSAL03 || 0) +
-                (producto.VENTA_SUCURSAL04 || 0) +
-                (producto.VENTA_SUCURSAL05 || 0)
+                (producto.venta_sucursal01 || 0) +
+                (producto.venta_sucursal02 || 0) +
+                (producto.venta_sucursal03 || 0) +
+                (producto.venta_sucursal04 || 0) +
+                (producto.venta_sucursal05 || 0)
             );
 
             // Calcular la rotación
@@ -653,7 +632,7 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                 <i class="fas fa-barcode fa-2x"></i>
                             </div>
                             <div>
-                                <h3 class="mb-0">${producto.PRODUCTO_CODIGO}</h3>
+                                <h3 class="mb-0">${producto.producto_codigo}</h3>
                                 <div class="text-muted small">Código de Producto</div>
                             </div>
                         </div>
@@ -662,23 +641,23 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                             <h5 class="border-bottom pb-2">Información General</h5>
                             <div class="row mb-2">
                                 <div class="col-5 text-muted">Descripción:</div>
-                                <div class="col-7 fw-medium">${producto.PRODUCTO_DESCRIPCION}</div>
+                                <div class="col-7 fw-medium">${producto.producto_descripcion}</div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-5 text-muted">Código de Barra:</div>
-                                <div class="col-7">${producto.CODIGO_DE_BARRA || 'N/A'}</div>
+                                <div class="col-7">${producto.codigo_de_barra || 'N/A'}</div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-5 text-muted">Marca:</div>
-                                <div class="col-7">${producto.MARCA_DESCRIPCION}</div>
+                                <div class="col-7">${producto.marca_descripcion}</div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-5 text-muted">Familia:</div>
-                                <div class="col-7">${producto.FAMILIA_DESCRIPCION}</div>
+                                <div class="col-7">${producto.familia_descripcion}</div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-5 text-muted">Subfamilia:</div>
-                                <div class="col-7">${producto.SUBFAMILIA_DESCRIPCION || 'N/A'}</div>
+                                <div class="col-7">${producto.subfamilia_descripcion || 'N/A'}</div>
                             </div>
                         </div>
 
@@ -716,46 +695,46 @@ if (!isset($respuestaAPI['estado']) || $respuestaAPI['estado'] !== 1) {
                                 <tbody>
                                     <tr>
                                         <td>VERGARA</td>
-                                        <td class="text-center">${producto.VENTA_SUCURSAL01 || '0'}</td>
+                                        <td class="text-center">${producto.venta_sucursal01 || '0'}</td>
                                         <td class="text-center">
-                                            <span class="badge badge-stock ${producto.STOCK_BODEGA01 <= 5 ? 'low' : (producto.STOCK_BODEGA01 <= 20 ? 'medium' : '')}">
-                                                ${producto.STOCK_BODEGA01 || '0'}
+                                            <span class="badge badge-stock ${producto.stock_bodega01 <= 5 ? 'low' : (producto.stock_bodega01 <= 20 ? 'medium' : '')}">
+                                                ${producto.stock_bodega01 || '0'}
                                             </span>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td>LAMPA</td>
-                                        <td class="text-center">${producto.VENTA_SUCURSAL02 || '0'}</td>
+                                        <td class="text-center">${producto.venta_sucursal02 || '0'}</td>
                                         <td class="text-center">
-                                            <span class="badge badge-stock ${producto.STOCK_BODEGA02 <= 5 ? 'low' : (producto.STOCK_BODEGA02 <= 20 ? 'medium' : '')}">
-                                                ${producto.STOCK_BODEGA02 || '0'}
+                                            <span class="badge badge-stock ${producto.stock_bodega02 <= 5 ? 'low' : (producto.stock_bodega02 <= 20 ? 'medium' : '')}">
+                                                ${producto.stock_bodega02 || '0'}
                                             </span>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td>PANAMERICANA</td>
-                                        <td class="text-center">${producto.VENTA_SUCURSAL03 || '0'}</td>
+                                        <td class="text-center">${producto.venta_sucursal03 || '0'}</td>
                                         <td class="text-center">
-                                            <span class="badge badge-stock ${producto.STOCK_BODEGA03 <= 5 ? 'low' : (producto.STOCK_BODEGA03 <= 20 ? 'medium' : '')}">
-                                                ${producto.STOCK_BODEGA03 || '0'}
+                                            <span class="badge badge-stock ${producto.stock_bodega03 <= 5 ? 'low' : (producto.stock_bodega03 <= 20 ? 'medium' : '')}">
+                                                ${producto.stock_bodega03 || '0'}
                                             </span>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td>MATTA</td>
-                                        <td class="text-center">${producto.VENTA_SUCURSAL04 || '0'}</td>
+                                        <td class="text-center">${producto.venta_sucursal04 || '0'}</td>
                                         <td class="text-center">
-                                            <span class="badge badge-stock ${producto.STOCK_BODEGA04 <= 5 ? 'low' : (producto.STOCK_BODEGA04 <= 20 ? 'medium' : '')}">
-                                                ${producto.STOCK_BODEGA04 || '0'}
+                                            <span class="badge badge-stock ${producto.stock_bodega04 <= 5 ? 'low' : (producto.stock_bodega04 <= 20 ? 'medium' : '')}">
+                                                ${producto.stock_bodega04 || '0'}
                                             </span>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td>PROVIDENCIA</td>
-                                        <td class="text-center">${producto.VENTA_SUCURSAL05 || '0'}</td>
+                                        <td class="text-center">${producto.venta_sucursal05 || '0'}</td>
                                         <td class="text-center">
-                                            <span class="badge badge-stock ${producto.STOCK_BODEGA05 <= 5 ? 'low' : (producto.STOCK_BODEGA05 <= 20 ? 'medium' : '')}">
-                                                ${producto.STOCK_BODEGA05 || '0'}
+                                            <span class="badge badge-stock ${producto.stock_bodega05 <= 5 ? 'low' : (producto.stock_bodega05 <= 20 ? 'medium' : '')}">
+                                                ${producto.stock_bodega05 || '0'}
                                             </span>
                                         </td>
                                     </tr>
