@@ -1112,9 +1112,10 @@ function exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedorRut, $fecha
 
     // Incluir el archivo con la función getDetalleUnidadesVendidas
     require_once __DIR__ . '/../includes/api_client.php';
+    require_once __DIR__ . '/../includes/kpi_repository.php';
 
     // Obtener datos usando la misma función que en productos.php
-    $detalleUnidadesVendidas = getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $proveedorRut);
+    $detalleUnidadesVendidas = getDetalleUnidadesVendidasMulti($fechaInicio, $fechaFin, [$proveedorRut]);
 
     // Llenar datos
     foreach ($detalleUnidadesVendidas as $item) {

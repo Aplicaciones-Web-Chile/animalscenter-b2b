@@ -61,7 +61,7 @@ $unidadesVendidas = getCantidadVendidaMulti($fechaInicio, $fechaFin, [$proveedor
 $detalleValorNeto = getDetalleVentaNetaMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Detalle Cantidad unidades vendidas
-$detalleUnidadesVendidas = getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $proveedor);
+$detalleUnidadesVendidas = getDetalleUnidadesVendidasMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Detalle SKU activos
 $detalleSkuActivos = getDetalleSkuActivos($proveedor);
