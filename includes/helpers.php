@@ -293,3 +293,40 @@ function syncLogFinish(PDO $pdo, int $logId, string $status, int $upserted, int 
         ':id' => $logId
     ]);
 }
+
+function fechaDMYtoYMD(string $dmy): string
+{
+    $dt = DateTime::createFromFormat('d/m/Y', $dmy);
+    if (!$dt)
+        $dt = new DateTime($dmy);
+    return $dt->format('Y-m-d');
+}
+
+function isTodayOrAfter(string $ymd): bool
+{
+    $today = (new DateTime('today'))->format('Y-m-d');
+    return $ymd >= $today;
+}
+
+/**
+ * Canonicaliza un conjunto de proveedores:
+ * - string cast
+ * - trim
+ * - elimina duplicados vacíos
+ * - ordena asc
+ * - devuelve [array_normalizado, json, sha256]
+ */
+function canonicalizarKprvList(array $kprvList): array
+{
+    $norm = array_values(array_filter(array_map(function ($x) {
+        $s = trim((string) $x);
+        return $s === '' ? null : $s;
+    }, $kprvList)));
+    $norm = array_values(array_unique($norm));
+    sort($norm, SORT_STRING);
+
+    $json = json_encode($norm, JSON_UNESCAPED_UNICODE);
+    $hash = hash('sha256', $json);
+
+    return [$norm, $json, $hash];
+}

@@ -6,11 +6,12 @@
 
 // Incluir archivos necesarios
 require_once dirname(__DIR__) . '/config/app.php';
-require_once dirname(__DIR__) . '/includes/session.php';
-require_once dirname(__DIR__) . '/includes/helpers.php';
-require_once dirname(__DIR__) . '/includes/api_client.php';
-require_once dirname(__DIR__) . '/includes/proveedores_repository.php';
-require_once dirname(__DIR__) . '/includes/productos_service.php';
+require_once APP_ROOT . '/includes/session.php';
+require_once APP_ROOT . '/includes/helpers.php';
+require_once APP_ROOT . '/includes/api_client.php';
+require_once APP_ROOT . '/includes/proveedores_repository.php';
+require_once APP_ROOT . '/includes/productos_service.php';
+require_once APP_ROOT . '/includes/kpi_repository.php';
 
 // Iniciar sesión
 startSession();
@@ -51,7 +52,7 @@ $result = obtenerProductosParaFecha(
 $productos = $result['items'];
 
 // Valor monto neto
-$valorNeto = getMontoVentaNetoFromAPI($fechaInicio, $fechaFin, $proveedor);
+$valorNeto = getMontoVentaNetoMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Cantidad unidades vendidas
 $unidadesVendidas = getCantidadVendidaFromAPI($fechaInicio, $fechaFin, $proveedor);

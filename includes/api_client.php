@@ -340,37 +340,6 @@ function getMarcasProveedor($proveedorId)
 }
 
 /**
- * Obtiene el monto de venta neto de un periodo específico desde la API
- *
- * @param string $fechaInicio Fecha de inicio
- * @param string $fechaFin Fecha de término
- * @param string $rutProveedor Rut del proveedor
- * @return int Monto de venta neto
- */
-function getMontoVentaNetoFromAPI($fechaInicio, $fechaFin, $rutProveedor)
-{
-    try {
-
-        $response = callApi('kpi_venta_neta', [
-            'FINI' => $fechaInicio,
-            'FTER' => $fechaFin,
-            'KPRV' => $rutProveedor
-        ]);
-
-        if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
-            // Transformar el formato para que sea más fácil de usar en la aplicación
-            $valorNeto = isset($response['datos'][0]['NETO']) ? $response['datos'][0]['NETO'] : 0;
-
-            return $valorNeto;
-        }
-    } catch (Exception $e) {
-        logError("Error al obtener el monto de venta neto para el periodo $fechaInicio - $fechaFin desde API: " . $e->getMessage());
-    }
-
-    return 0;
-}
-
-/**
  * Obtiene la cantidad de unidades vendidas de un periodo específico desde la API
  *
  * @param string $fechaInicio Fecha de inicio
