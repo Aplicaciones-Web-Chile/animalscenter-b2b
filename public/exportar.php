@@ -52,10 +52,10 @@ function exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaI
     $row_idx++;
 
     // Incluir el archivo con la función getDetalleTotalStockFromAPI
-    require_once __DIR__ . '/../includes/api_client.php';
+    require_once __DIR__ . '/../includes/kpi_repository.php';
 
     // Obtener datos usando la misma función que en productos.php
-    $detalleStockTotalValor = getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $proveedorRut);
+    $detalleStockTotalValor = getDetalleTotalStockValorMulti($fechaInicio, $fechaFin, [$proveedorRut]);
 
     // Llenar datos
     foreach ($detalleStockTotalValor as $item) {
@@ -163,10 +163,10 @@ function exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaIni
     $row_idx++;
 
     // Incluir el archivo con la función getDetalleStockUnidadesFromAPI
-    require_once __DIR__ . '/../includes/api_client.php';
+    require_once __DIR__ . '/../includes/kpi_repository.php';
 
     // Obtener datos usando la misma función que en productos.php
-    $detalleStockUnidades = getDetalleStockUnidadesFromAPI($fechaInicio, $fechaFin, $proveedorRut);
+    $detalleStockUnidades = getDetalleStockUnidadesMulti($fechaInicio, $fechaFin, $proveedorRut);
 
     // Llenar datos
     foreach ($detalleStockUnidades as $item) {

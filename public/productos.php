@@ -64,22 +64,22 @@ $detalleValorNeto = getDetalleVentaNetaMulti($fechaInicio, $fechaFin, [$proveedo
 $detalleUnidadesVendidas = getDetalleUnidadesVendidasMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Stock unidades
-$stockUnidades = getStockUnidadesFromAPI($fechaInicio, $fechaFin, $proveedor);
+$stockUnidades = getStockUnidadesMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Detalle Total Stock Unidades
-$detalleStockUnidades = getDetalleStockUnidadesFromAPI($fechaInicio, $fechaFin, $proveedor);
+$detalleStockUnidades = getDetalleStockUnidadesMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Stock total valor
-$stockTotalValor = getTotalStockFromAPI($fechaInicio, $fechaFin, $proveedor);
+$stockTotalValor = getTotalStockValorMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Detalle Total Stock valor
-$detalleStockTotalValor = getDetalleTotalStockFromAPI($fechaInicio, $fechaFin, $proveedor);
+$detalleStockTotalValor = getDetalleTotalStockValorMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Venta neta últimos 6 meses
-$ventaNetaSeisMeses = getVentaNetaSeisMeses($fechaFin, $proveedor);
+$ventaNetaSeisMeses = getVentaNetaSeisMesesMulti($fechaFin, [$proveedor]);
 
 // Total Stock valorizado últimos 6 meses
-$totalStockSeisMeses = getTotalStockSeisMeses($fechaFin, $proveedor);
+$totalStockSeisMeses = getTotalStockValorSeisMesesMulti($fechaFin, [$proveedor]);
 
 // Verificar que la respuesta sea correcta
 if (is_array($productos) && count($productos) > 0) {
