@@ -526,3 +526,106 @@ function getDetalleUnidadesVendidasMulti(
 
   return $datos;
 }
+
+/**
+ * KPI: Detalle de SKUs activos (multi-proveedor, sin fechas).
+ * Endpoint: kpi_sku_activos_detalle
+ * Body: { KPRV_LIST: [...] }
+ * Cache: por set de KPRV con TTL (default 15 min).
+ */
+function getDetalleSkuActivosMulti(
+  array $kprvList,
+  bool $forceRefresh = false,
+  int $ttlSegundos = 900 // 15 min
+): array {
+  $pdo = getDbConnection();
+
+  // Canonicaliza set de proveedores
+  [$normList, $jsonList, $listHash] = canonicalizarKprvList($kprvList);
+  if (empty($normList))
+    return [];
+
+  // 1) Leer caché
+  if (!$forceRefresh) {
+    $sel = $pdo->prepare(
+      "SELECT payload_json, rows_count, expires_at
+         FROM api_cache_kpi_sku_activos_det_set
+        WHERE kprv_set_hash = :h
+        LIMIT 1"
+    );
+    $sel->execute([':h' => $listHash]);
+    $row = $sel->fetch(PDO::FETCH_ASSOC);
+
+    if ($row) {
+      if (empty($row['expires_at']) || (new DateTime() < new DateTime($row['expires_at']))) {
+        $payload = is_string($row['payload_json'])
+          ? json_decode($row['payload_json'], true)
+          : $row['payload_json'];
+        return is_array($payload) ? $payload : [];
+      }
+      // expirado → refrescar
+    }
+  }
+
+  // 2) Llamar API
+  try {
+    $resp = callApi('kpi_sku_activos_detalle', ['KPRV_LIST' => $normList]);
+
+    if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos']) || !is_array($resp['datos'])) {
+      if (isset($row)) {
+        $payload = is_string($row['payload_json'])
+          ? json_decode($row['payload_json'], true)
+          : $row['payload_json'];
+        return is_array($payload) ? $payload : [];
+      }
+      return [];
+    }
+  } catch (Throwable $e) {
+    error_log("[getDetalleSkuActivosMulti][API error] " . $e->getMessage());
+    if (isset($row)) {
+      $payload = is_string($row['payload_json'])
+        ? json_decode($row['payload_json'], true)
+        : $row['payload_json'];
+      return is_array($payload) ? $payload : [];
+    }
+    return [];
+  }
+
+  // 3) (Opcional) Normalizar campos numéricos del detalle si la API usa comas decimales
+  // $datos = array_map(function($it){
+  //   if (isset($it['CANT'])) $it['CANT'] = (float) normalizarNumeroLatam($it['CANT'], 3);
+  //   return $it;
+  // }, $resp['datos']);
+
+  $datos = $resp['datos']; // guardar tal cual por ahora
+  $rowsCount = count($datos);
+  $jsonPayload = json_encode($datos, JSON_UNESCAPED_UNICODE);
+
+  $expiresAt = (new DateTime("+{$ttlSegundos} seconds"))->format('Y-m-d H:i:s');
+  $sourceHash = $listHash;
+
+  // 4) Upsert caché
+  $ins = $pdo->prepare(
+    "INSERT INTO api_cache_kpi_sku_activos_det_set
+       (kprv_list_json, kprv_set_hash, payload_json, rows_count, source_hash, last_synced_at, expires_at)
+     VALUES
+       (:json, :h, :payload, :rows, :sh, NOW(), :exp)
+     ON DUPLICATE KEY UPDATE
+       kprv_list_json = VALUES(kprv_list_json),
+       payload_json   = VALUES(payload_json),
+       rows_count     = VALUES(rows_count),
+       source_hash    = VALUES(source_hash),
+       last_synced_at = VALUES(last_synced_at),
+       expires_at     = VALUES(expires_at)"
+  );
+  $ins->execute([
+    ':json' => $jsonList,
+    ':h' => $listHash,
+    ':payload' => $jsonPayload,
+    ':rows' => $rowsCount,
+    ':sh' => $sourceHash,
+    ':exp' => $expiresAt
+  ]);
+
+  return $datos;
+}

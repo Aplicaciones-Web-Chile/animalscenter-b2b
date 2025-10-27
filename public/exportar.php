@@ -1167,10 +1167,10 @@ function exportarDetalleSkuActivos($sheet, $row_idx, $proveedorRut)
     $row_idx++;
 
     // Incluir el archivo con la función getDetalleSkuActivos
-    require_once __DIR__ . '/../includes/api_client.php';
+    require_once __DIR__ . '/../includes/kpi_repository.php';
 
     // Obtener datos usando la misma función que en productos.php
-    $detalleSkuActivos = getDetalleSkuActivos($proveedorRut);
+    $detalleSkuActivos = getDetalleSkuActivosMulti([$proveedorRut]);
 
     // Llenar datos
     foreach ($detalleSkuActivos as $item) {

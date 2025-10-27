@@ -374,34 +374,6 @@ function getStockUnidadesFromAPI($fechaInicio, $fechaFin, $rutProveedor)
 /**
  * Obtiene detalle de SKUs activos desde la API
  *
- * @param string $rutProveedor Rut del proveedor
- * @return int Monto de venta neto
- */
-function getDetalleSkuActivos($rutProveedor): array
-{
-    $datos = [];
-    try {
-
-        $response = callApi('kpi_sku_activos_detalle', [
-            'KPRV' => $rutProveedor
-        ]);
-
-        if (isset($response['estado']) && $response['estado'] == 1 && isset($response['datos'])) {
-            // Transformar el formato para que sea más fácil de usar en la aplicación
-            $datos = $response['datos'] ?? [];
-
-            return $datos;
-        }
-    } catch (Exception $e) {
-        logError("Error al obtener detalle de sku activos desde API: " . $e->getMessage());
-    }
-
-    return [];
-}
-
-/**
- * Obtiene detalle de SKUs activos desde la API
- *
  * @param string $fechaInicio Fecha de inicio
  * @param string $fechaFin Fecha de término
  * @param string $rutProveedor Rut del proveedor

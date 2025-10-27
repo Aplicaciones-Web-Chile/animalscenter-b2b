@@ -63,9 +63,6 @@ $detalleValorNeto = getDetalleVentaNetaMulti($fechaInicio, $fechaFin, [$proveedo
 // Detalle Cantidad unidades vendidas
 $detalleUnidadesVendidas = getDetalleUnidadesVendidasMulti($fechaInicio, $fechaFin, [$proveedor]);
 
-// Detalle SKU activos
-$detalleSkuActivos = getDetalleSkuActivos($proveedor);
-
 // Stock unidades
 $stockUnidades = getStockUnidadesFromAPI($fechaInicio, $fechaFin, $proveedor);
 
@@ -966,64 +963,6 @@ if (is_array($productos) && count($productos) > 0) {
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
                     <a href="exportar.php?tipo=detalle_unidades_vendidas&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
                         class="btn btn-venta btn-lg">
-                        <i class="fas fa-file-excel me-2"></i>Exportar a Excel
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Detalle SKU Activos -->
-<div class="modal fade" id="modalSkuActivos" tabindex="-1" aria-labelledby="modalSkuActivosLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="modalSkuActivosLabel">
-                    <i class="fas fa-box me-2"></i> Detalle de SKU Activos
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Producto</th>
-                                <th>Código de Barra</th>
-                                <th>Marca</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (!empty($detalleSkuActivos)): ?>
-                                <?php foreach ($detalleSkuActivos as $item): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($item['PRODUCTO_CODIGO']); ?></td>
-                                        <td><?php echo htmlspecialchars($item['PRODUCTO_DESCRIPCION']); ?></td>
-                                        <td><?php echo htmlspecialchars($item['CODIGO_DE_BARRA']); ?></td>
-                                        <td><?php echo htmlspecialchars($item['MARCA_DESCRIPCION']); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="4" class="text-center">No hay datos disponibles</td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="text-muted"><i class="fas fa-info-circle me-1"></i> Haga clic en el botón para exportar
-                        estos datos directamente a Excel</span>
-                </div>
-                <div>
-                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_sku_activos&proveedor=<?php echo urlencode($proveedor); ?>"
-                        class="btn btn-info btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
