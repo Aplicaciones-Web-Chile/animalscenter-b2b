@@ -55,13 +55,10 @@ $productos = $result['items'];
 $valorNeto = getMontoVentaNetoMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Cantidad unidades vendidas
-$unidadesVendidas = getCantidadVendidaFromAPI($fechaInicio, $fechaFin, $proveedor);
-
-// SKU activos
-$skuActivos = getCantidadSkuActivosFromAPI($proveedor);
+$unidadesVendidas = getCantidadVendidaMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Detalle Valor monto neto
-$detalleValorNeto = getDetalleVentaNeta($fechaInicio, $fechaFin, $proveedor);
+$detalleValorNeto = getDetalleVentaNetaMulti($fechaInicio, $fechaFin, [$proveedor]);
 
 // Detalle Cantidad unidades vendidas
 $detalleUnidadesVendidas = getDetalleUnidadesVendidas($fechaInicio, $fechaFin, $proveedor);

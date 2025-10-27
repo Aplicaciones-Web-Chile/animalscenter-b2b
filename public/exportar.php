@@ -12,7 +12,8 @@
 /**
  * Función para exportar detalle de stock total valorizado a Excel
  */
-function exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin) {
+function exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin)
+{
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'Código');
     $sheet->setCellValue('B' . $row_idx, 'Descripción');
@@ -83,25 +84,25 @@ function exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaI
     // Dar formato a las celdas numéricas
     $lastDataRow = $row_idx - 1;
     $firstDataRow = $row_idx - count($detalleStockTotalValor);
-    
+
     if (count($detalleStockTotalValor) > 0) {
         // Formato para cantidad envase
         $sheet->getStyle('I' . $firstDataRow . ':I' . $lastDataRow)->getNumberFormat()
             ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
-        
+
         // Formato para precio última compra (moneda en pesos chilenos)
         $sheet->getStyle('J' . $firstDataRow . ':J' . $lastDataRow)->getNumberFormat()
             ->setFormatCode('"$"#,##0;-"$"#,##0');
-        
+
         // Formato para columnas de stock
         $sheet->getStyle('K' . $firstDataRow . ':P' . $lastDataRow)->getNumberFormat()
             ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
-            
+
         // Formato para valor total (moneda en pesos chilenos)
         $sheet->getStyle('Q' . $firstDataRow . ':Q' . $lastDataRow)->getNumberFormat()
             ->setFormatCode('"$"#,##0;-"$"#,##0');
     }
-    
+
     // Ajustar ancho de columnas
     $sheet->getColumnDimension('A')->setWidth(12); // Código
     $sheet->getColumnDimension('B')->setWidth(30); // Descripción
@@ -113,12 +114,12 @@ function exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaI
     $sheet->getColumnDimension('H')->setWidth(15); // Subcategoría
     $sheet->getColumnDimension('I')->setWidth(12); // Cant. Envase
     $sheet->getColumnDimension('J')->setWidth(15); // Precio Últ. Compra
-    
+
     // Columnas de stock con mismo ancho
     for ($col = 'K'; $col <= 'P'; $col++) {
         $sheet->getColumnDimension($col)->setWidth(12);
     }
-    
+
     // Valor total
     $sheet->getColumnDimension('Q')->setWidth(15);
 }
@@ -126,7 +127,8 @@ function exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaI
 /**
  * Función para exportar detalle de stock unidades a Excel
  */
-function exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin) {
+function exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin)
+{
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'Código');
     $sheet->setCellValue('B' . $row_idx, 'Descripción');
@@ -189,17 +191,17 @@ function exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaIni
     // Dar formato a las celdas numéricas (stock y cantidad envase)
     $lastDataRow = $row_idx - 1;
     $firstDataRow = $row_idx - count($detalleStockUnidades);
-    
+
     if (count($detalleStockUnidades) > 0) {
         // Formato para cantidad envase
         $sheet->getStyle('G' . $firstDataRow . ':G' . $lastDataRow)->getNumberFormat()
             ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
-        
+
         // Formato para columnas de stock
         $sheet->getStyle('H' . $firstDataRow . ':M' . $lastDataRow)->getNumberFormat()
             ->setFormatCode(PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
     }
-    
+
     // Ajustar ancho de columnas
     $sheet->getColumnDimension('A')->setWidth(12); // Código
     $sheet->getColumnDimension('B')->setWidth(30); // Descripción
@@ -208,7 +210,7 @@ function exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaIni
     $sheet->getColumnDimension('E')->setWidth(15); // Subcategoría
     $sheet->getColumnDimension('F')->setWidth(10); // Unidad
     $sheet->getColumnDimension('G')->setWidth(12); // Cant. Envase
-    
+
     // Columnas de stock con mismo ancho
     for ($col = 'H'; $col <= 'M'; $col++) {
         $sheet->getColumnDimension($col)->setWidth(12);
@@ -307,12 +309,12 @@ if (!in_array($tipo, ['productos', 'ventas', 'facturas', 'detalle_venta_neta', '
 }
 
 // Obtener fechas para filtrar (si aplica)
-$fechaInicio    = $_GET['fecha_inicio'] ?? date('d/m/Y');
-$fechaFin       = $_GET['fecha_fin'] ?? date('d/m/Y');
-$productoId     = $_GET['producto_id'] ?? '';
-$estado         = $_GET['estado'] ?? '';
+$fechaInicio = $_GET['fecha_inicio'] ?? date('d/m/Y');
+$fechaFin = $_GET['fecha_fin'] ?? date('d/m/Y');
+$productoId = $_GET['producto_id'] ?? '';
+$estado = $_GET['estado'] ?? '';
 $codigoProveedor = $_GET['proveedor'] ?? '78843490'; // Código del proveedor por defecto
-$distribuidor   = $_GET['distribuidor'] ?? '001'; // Código del distribuidor por defecto
+$distribuidor = $_GET['distribuidor'] ?? '001'; // Código del distribuidor por defecto
 
 // Nombre de archivo por defecto
 $filename = 'Exportacion_' . ucfirst($tipo) . '_' . date('Y-m-d-His') . '.xlsx';
@@ -452,7 +454,8 @@ try {
 /**
  * Función para exportar productos a Excel
  */
-function exportarProductos($sheet, $row_idx, $proveedorRut) {
+function exportarProductos($sheet, $row_idx, $proveedorRut)
+{
     global $fechaInicio, $fechaFin, $codigoProveedor, $distribuidor;
 
     // URL y configuración de la API (igual que en productos.php)
@@ -471,7 +474,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
     $options = [
         'http' => [
             'header' => "Authorization: $token\r\n" .
-                       "Content-Type: application/json\r\n",
+                "Content-Type: application/json\r\n",
             'method' => 'POST',
             'content' => json_encode($data)
         ]
@@ -527,11 +530,11 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
                 'startColor' => [
                     'rgb' => '4D7B3B',
                     'alpha' => 100,
-					'argb' => 'FF4D7B3B',
-					'indexed' => 11,
-					'color' => [
-						'argb' => 'FF4D7B3B',
-					],
+                    'argb' => 'FF4D7B3B',
+                    'indexed' => 11,
+                    'color' => [
+                        'argb' => 'FF4D7B3B',
+                    ],
                 ],
             ],
         ];
@@ -690,7 +693,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
         $sheet->getStyle('A' . $headerRow1 . ':H' . $headerRow2)->applyFromArray($columnHeaderStyle);
         $sheet->getStyle('I' . $headerRow1 . ':S' . $headerRow1)->applyFromArray($sucursalHeaderStyle);
         $sheet->getStyle('I' . $headerRow2 . ':S' . $headerRow2)->applyFromArray($columnHeaderStyle);
-        
+
         // Aplicar estilos a la sección de totales (T a Z)
         $sheet->getStyle('T' . $headerRow1 . ':Z' . $headerRow1)->applyFromArray($sucursalHeaderStyle);
         $sheet->getStyle('T' . $headerRow2 . ':Z' . $headerRow2)->applyFromArray($columnHeaderStyle);
@@ -775,8 +778,8 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
             // Calculamos directamente el valor en lugar de usar una fórmula para evitar problemas de formato
             // Aseguramos que todos los valores sean numéricos con floatval()
             $stockTotal = floatval($producto['STOCK_BODEGA01'] ?? 0) + floatval($producto['STOCK_BODEGA02'] ?? 0) +
-                        floatval($producto['STOCK_BODEGA03'] ?? 0) + floatval($producto['STOCK_BODEGA04'] ?? 0) +
-                        floatval($producto['STOCK_BODEGA05'] ?? 0);
+                floatval($producto['STOCK_BODEGA03'] ?? 0) + floatval($producto['STOCK_BODEGA04'] ?? 0) +
+                floatval($producto['STOCK_BODEGA05'] ?? 0);
             $pesoKG = floatval($producto['KG'] ?? 1);
             $pesoTotalKG = $stockTotal * $pesoKG;
             $sheet->setCellValue('U' . $row_idx, $pesoTotalKG);
@@ -842,7 +845,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
 
         // Ajustar anchos de columnas automáticamente
         foreach (range('A', 'Z') as $col) {
-            if (in_array($col, ['U','V','W','Y','Z'])) {
+            if (in_array($col, ['U', 'V', 'W', 'Y', 'Z'])) {
                 $sheet->getColumnDimension($col)->setWidth(30);
             } else {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
@@ -872,7 +875,8 @@ function exportarProductos($sheet, $row_idx, $proveedorRut) {
 /**
  * Función para exportar ventas a Excel
  */
-function exportarVentas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin, $productoId) {
+function exportarVentas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin, $productoId)
+{
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'ID');
     $sheet->setCellValue('B' . $row_idx, 'Fecha');
@@ -941,7 +945,8 @@ function exportarVentas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin
 /**
  * Función para exportar facturas a Excel
  */
-function exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin, $estado) {
+function exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin, $estado)
+{
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'ID');
     $sheet->setCellValue('B' . $row_idx, 'Fecha');
@@ -1011,7 +1016,8 @@ function exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaF
 /**
  * Función para exportar detalle de venta neta a Excel
  */
-function exportarDetalleVentaNeta($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin) {
+function exportarDetalleVentaNeta($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin)
+{
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'Tipo');
     $sheet->setCellValue('B' . $row_idx, 'Folio');
@@ -1043,9 +1049,10 @@ function exportarDetalleVentaNeta($sheet, $row_idx, $proveedorRut, $fechaInicio,
 
     // Incluir el archivo con la función getDetalleVentaNeta
     require_once __DIR__ . '/../includes/api_client.php';
+    require_once __DIR__ . '/../includes/kpi_repository.php';
 
     // Obtener datos usando la misma función que en productos.php
-    $detalleValorNeto = getDetalleVentaNeta($fechaInicio, $fechaFin, $proveedorRut);
+    $detalleValorNeto = getDetalleVentaNetaMulti($fechaInicio, $fechaFin, $proveedorRut);
 
     // Llenar datos
     foreach ($detalleValorNeto as $item) {
@@ -1074,7 +1081,8 @@ function exportarDetalleVentaNeta($sheet, $row_idx, $proveedorRut, $fechaInicio,
 /**
  * Función para exportar detalle de unidades vendidas a Excel
  */
-function exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin) {
+function exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin)
+{
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'Tipo');
     $sheet->setCellValue('B' . $row_idx, 'Folio');
@@ -1131,7 +1139,8 @@ function exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedorRut, $fecha
 /**
  * Función para exportar detalle de SKU activos a Excel
  */
-function exportarDetalleSkuActivos($sheet, $row_idx, $proveedorRut) {
+function exportarDetalleSkuActivos($sheet, $row_idx, $proveedorRut)
+{
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'Código');
     $sheet->setCellValue('B' . $row_idx, 'Producto');

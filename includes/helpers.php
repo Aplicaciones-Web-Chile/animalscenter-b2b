@@ -330,3 +330,22 @@ function canonicalizarKprvList(array $kprvList): array
 
     return [$norm, $json, $hash];
 }
+
+/**
+ * Convierte números “latam” (coma decimal y/o punto de miles) a formato “en” (punto decimal).
+ * Devuelve string normalizado (ej. "0.57") listo para DECIMAL en MySQL.
+ */
+function normalizarNumeroLatam($valor, ?int $scale = null): string
+{
+    $s = trim((string) $valor);
+    $s = str_replace([" ", "\u{00A0}"], "", $s);
+    if (str_contains($s, '.') && str_contains($s, ',')) {
+        $s = str_replace('.', '', $s);
+        $s = str_replace(',', '.', $s);
+    } elseif (str_contains($s, ',')) {
+        $s = str_replace(',', '.', $s);
+    }
+    if (!is_numeric($s))
+        return '0';
+    return $scale !== null ? number_format((float) $s, $scale, '.', '') : $s;
+}
