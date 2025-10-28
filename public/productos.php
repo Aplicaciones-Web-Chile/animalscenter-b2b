@@ -33,66 +33,74 @@ $distribuidor = $_GET['distribuidor'] ?? '001';
 
 // Determinar el rol del usuario actual
 $esAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] === 'admin';
-$proveedor = $esAdmin ? ($_GET['proveedor'] ?? '78843490') : ($_SESSION['rut_proveedor'] ?? '0');
+$proveedoresSeleccionados = $esAdmin ? ($_GET['proveedor'] ?? []) : [$_SESSION['rut_proveedor'] ?? ''];
+
+// Normalizar (string→array, trim, únicos, no vacíos)
+$proveedoresSeleccionados = array_values(array_unique(array_filter(
+    array_map('strval', (array) $proveedoresSeleccionados),
+    fn($v) => $v !== ''
+)));
 
 // Inicializar variables para paginación
 $pagina = isset($_GET['pagina']) ? (int) $_GET['pagina'] : 1;
 $porPagina = 50;
 
-$result = obtenerProductosParaFecha(
-    $distribuidor,
-    $fechaInicio,
-    $fechaFin,
-    $proveedor,
-    $busqueda,
-    $pagina,
-    $porPagina
-);
+if (!empty($proveedoresSeleccionados)) {
+    $result = obtenerProductosParaFechaMulti(
+        $distribuidor,
+        $fechaInicio,
+        $fechaFin,
+        $proveedoresSeleccionados,
+        $busqueda,
+        $pagina,
+        $porPagina
+    );
 
-$productos = $result['items'];
+    $productos = $result['items'];
 
-// Valor monto neto
-$valorNeto = getMontoVentaNetoMulti($fechaInicio, $fechaFin, [$proveedor]);
+    // Valor monto neto
+    $valorNeto = getMontoVentaNetoMulti($fechaInicio, $fechaFin, $proveedoresSeleccionados);
 
-// Cantidad unidades vendidas
-$unidadesVendidas = getCantidadVendidaMulti($fechaInicio, $fechaFin, [$proveedor]);
+    // Cantidad unidades vendidas
+    $unidadesVendidas = getCantidadVendidaMulti($fechaInicio, $fechaFin, $proveedoresSeleccionados);
 
-// Detalle Valor monto neto
-$detalleValorNeto = getDetalleVentaNetaMulti($fechaInicio, $fechaFin, [$proveedor]);
+    // Detalle Valor monto neto
+    $detalleValorNeto = getDetalleVentaNetaMulti($fechaInicio, $fechaFin, $proveedoresSeleccionados);
 
-// Detalle Cantidad unidades vendidas
-$detalleUnidadesVendidas = getDetalleUnidadesVendidasMulti($fechaInicio, $fechaFin, [$proveedor]);
+    // Detalle Cantidad unidades vendidas
+    $detalleUnidadesVendidas = getDetalleUnidadesVendidasMulti($fechaInicio, $fechaFin, $proveedoresSeleccionados);
 
-// Stock unidades
-$stockUnidades = getStockUnidadesMulti($fechaInicio, $fechaFin, [$proveedor]);
+    // Stock unidades
+    $stockUnidades = getStockUnidadesMulti($fechaInicio, $fechaFin, $proveedoresSeleccionados);
 
-// Detalle Total Stock Unidades
-$detalleStockUnidades = getDetalleStockUnidadesMulti($fechaInicio, $fechaFin, [$proveedor]);
+    // Detalle Total Stock Unidades
+    $detalleStockUnidades = getDetalleStockUnidadesMulti($fechaInicio, $fechaFin, $proveedoresSeleccionados);
 
-// Stock total valor
-$stockTotalValor = getTotalStockValorMulti($fechaInicio, $fechaFin, [$proveedor]);
+    // Stock total valor
+    $stockTotalValor = getTotalStockValorMulti($fechaInicio, $fechaFin, $proveedoresSeleccionados);
 
-// Detalle Total Stock valor
-$detalleStockTotalValor = getDetalleTotalStockValorMulti($fechaInicio, $fechaFin, [$proveedor]);
+    // Detalle Total Stock valor
+    $detalleStockTotalValor = getDetalleTotalStockValorMulti($fechaInicio, $fechaFin, $proveedoresSeleccionados);
 
-// Venta neta últimos 6 meses
-$ventaNetaSeisMeses = getVentaNetaSeisMesesMulti($fechaFin, [$proveedor]);
+    // Venta neta últimos 6 meses
+    $ventaNetaSeisMeses = getVentaNetaSeisMesesMulti($fechaFin, $proveedoresSeleccionados);
 
-// Total Stock valorizado últimos 6 meses
-$totalStockSeisMeses = getTotalStockValorSeisMesesMulti($fechaFin, [$proveedor]);
+    // Total Stock valorizado últimos 6 meses
+    $totalStockSeisMeses = getTotalStockValorSeisMesesMulti($fechaFin, $proveedoresSeleccionados);
 
-// Verificar que la respuesta sea correcta
-if (is_array($productos) && count($productos) > 0) {
-    $totalProductos = count($productos);
-    $totalPaginas = ceil($totalProductos / $porPagina);
+    // Verificar que la respuesta sea correcta
+    if (is_array($productos) && count($productos) > 0) {
+        $totalProductos = count($productos);
+        $totalPaginas = ceil($totalProductos / $porPagina);
 
-    // Ordenar productos según criterio
-    // Por defecto ordenamos por descripción del producto
-    usort($productos, fn($a, $b) => strcmp($a['producto_descripcion'], $b['producto_descripcion']));
+        // Ordenar productos según criterio
+        // Por defecto ordenamos por descripción del producto
+        usort($productos, fn($a, $b) => strcmp($a['producto_descripcion'], $b['producto_descripcion']));
 
-    // Aplicar paginación
-    $offset = ($pagina - 1) * $porPagina;
-    $productos = array_slice($productos, $offset, $porPagina);
+        // Aplicar paginación
+        $offset = ($pagina - 1) * $porPagina;
+        $productos = array_slice($productos, $offset, $porPagina);
+    }
 }
 ?>
 
@@ -104,8 +112,19 @@ if (is_array($productos) && count($productos) > 0) {
                     <i class="fas fa-boxes me-2" style="color: var(--primary-color);"></i>
                     <span>Gestión de Productos</span>
                 </h1>
-                <a href="exportar.php?tipo=productos&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
-                    class="btn btn-success">
+                <?php
+                $params = [
+                    'tipo' => 'productos',
+                    'fecha_inicio' => $fechaInicio,
+                    'fecha_fin' => $fechaFin,
+                    // clave 'proveedor' con array ⇒ genera proveedor[]=A&proveedor[]=B…
+                    'proveedor' => $proveedoresSeleccionados,
+                ];
+
+                // Usa RFC3986 para que encodee bien
+                $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+                ?>
+                <a href="exportar.php?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-success">
                     <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                 </a>
             </div>
@@ -156,21 +175,25 @@ if (is_array($productos) && count($productos) > 0) {
                             $listaProveedores = obtenerKPRVDesdeCache(2, false, true);
                             ?>
                             <div class="col-md-3">
-                                <label for="proveedor" class="form-label">Código Proveedor</label>
+                                <label for="proveedor" class="form-label">Proveedor(es)</label>
 
-                                <select class="form-control" name="proveedor" id="proveedor">
+                                <select class="form-control" name="proveedor[]" id="proveedor" multiple size="6">
                                     <?php foreach ($listaProveedores as $val):
-                                        $selected = $val['kprv'] === $proveedor ? 'selected' : '';
+                                        $k = (string) $val['kprv'];
+                                        $selected = in_array($k, $proveedoresSeleccionados, true) ? 'selected' : '';
                                         ?>
-                                        <option value="<?php echo htmlspecialchars($val['kprv']); ?>" <?php echo $selected; ?>>
-                                            <?php echo htmlspecialchars($val['razon_social']) ?>
+                                        <option value="<?php echo htmlspecialchars($k); ?>" <?php echo $selected; ?>>
+                                            <?php echo htmlspecialchars($val['razon_social'] . ' (' . $k . ')'); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                                <small class="text-muted">Mantén presionadas Ctrl/⌘ para seleccionar múltiples.</small>
+
                             </div>
                         <?php else: ?>
                             <!-- Para usuarios no administradores, enviamos el valor del proveedor como campo oculto -->
-                            <input type="hidden" name="proveedor" value="<?php echo htmlspecialchars($proveedor); ?>">
+                            <input type="hidden" name="proveedor"
+                                value="<?php echo htmlspecialchars($proveedoresSeleccionados); ?>">
                         <?php endif; ?>
 
                         <!-- Botón BUSCAR dentro del formulario -->
@@ -517,7 +540,7 @@ if (is_array($productos) && count($productos) > 0) {
                                     <?php if ($pagina > 1): ?>
                                         <li class="page-item">
                                             <a class="page-link"
-                                                href="?pagina=<?php echo ($pagina - 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
+                                                href="?pagina=<?php echo $pagina - 1; ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>">
                                                 &laquo; Anterior
                                             </a>
                                         </li>
@@ -526,7 +549,7 @@ if (is_array($productos) && count($productos) > 0) {
                                     <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
                                         <li class="page-item <?php echo $i === $pagina ? 'active' : ''; ?>">
                                             <a class="page-link"
-                                                href="?pagina=<?php echo $i; ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
+                                                href="?pagina=<?php echo $i; ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>">
                                                 <?php echo $i; ?>
                                             </a>
                                         </li>
@@ -535,7 +558,7 @@ if (is_array($productos) && count($productos) > 0) {
                                     <?php if ($pagina < $totalPaginas): ?>
                                         <li class="page-item">
                                             <a class="page-link"
-                                                href="?pagina=<?php echo ($pagina + 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>">
+                                                href="?pagina=<?php echo ($pagina + 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>">
                                                 Siguiente &raquo;
                                             </a>
                                         </li>
@@ -896,7 +919,7 @@ if (is_array($productos) && count($productos) > 0) {
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_venta_neta&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
+                    <a href="exportar.php?tipo=detalle_venta_neta&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>"
                         class="btn btn-venta btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
@@ -961,7 +984,7 @@ if (is_array($productos) && count($productos) > 0) {
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_unidades_vendidas&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
+                    <a href="exportar.php?tipo=detalle_unidades_vendidas&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>"
                         class="btn btn-venta btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
@@ -1058,7 +1081,7 @@ if (is_array($productos) && count($productos) > 0) {
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_stock_unidades&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
+                    <a href="exportar.php?tipo=detalle_stock_unidades&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>"
                         class="btn btn-warning btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
@@ -1231,7 +1254,7 @@ if (is_array($productos) && count($productos) > 0) {
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_stock_valorizado&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedor); ?>"
+                    <a href="exportar.php?tipo=detalle_stock_valorizado&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>"
                         class="btn btn-warning btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
