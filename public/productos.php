@@ -193,7 +193,7 @@ if (!empty($proveedoresSeleccionados)) {
                         <?php else: ?>
                             <!-- Para usuarios no administradores, enviamos el valor del proveedor como campo oculto -->
                             <input type="hidden" name="proveedor"
-                                value="<?php echo htmlspecialchars($proveedoresSeleccionados); ?>">
+                                value="<?php echo htmlspecialchars($proveedoresSeleccionados[0]); ?>">
                         <?php endif; ?>
 
                         <!-- Botón BUSCAR dentro del formulario -->
@@ -539,8 +539,20 @@ if (!empty($proveedoresSeleccionados)) {
                                 <ul class="pagination justify-content-center">
                                     <?php if ($pagina > 1): ?>
                                         <li class="page-item">
-                                            <a class="page-link"
-                                                href="?pagina=<?php echo $pagina - 1; ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>">
+                                            <?php
+                                            $params = [
+                                                'pagina' => $pagina - 1,
+                                                'busqueda' => $busqueda,
+                                                'fecha_inicio' => $fechaInicio,
+                                                'fecha_fin' => $fechaFin,
+                                                // clave 'proveedor' con array ⇒ genera proveedor[]=A&proveedor[]=B…
+                                                'proveedor' => $proveedoresSeleccionados,
+                                            ];
+
+                                            // Usa RFC3986 para que encodee bien
+                                            $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+                                            ?>
+                                            <a class="page-link" href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>">
                                                 &laquo; Anterior
                                             </a>
                                         </li>
@@ -548,8 +560,20 @@ if (!empty($proveedoresSeleccionados)) {
 
                                     <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
                                         <li class="page-item <?php echo $i === $pagina ? 'active' : ''; ?>">
-                                            <a class="page-link"
-                                                href="?pagina=<?php echo $i; ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>">
+                                            <?php
+                                            $params = [
+                                                'pagina' => $i,
+                                                'busqueda' => $busqueda,
+                                                'fecha_inicio' => $fechaInicio,
+                                                'fecha_fin' => $fechaFin,
+                                                // clave 'proveedor' con array ⇒ genera proveedor[]=A&proveedor[]=B…
+                                                'proveedor' => $proveedoresSeleccionados,
+                                            ];
+
+                                            // Usa RFC3986 para que encodee bien
+                                            $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+                                            ?>
+                                            <a class="page-link" href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>">
                                                 <?php echo $i; ?>
                                             </a>
                                         </li>
@@ -557,8 +581,20 @@ if (!empty($proveedoresSeleccionados)) {
 
                                     <?php if ($pagina < $totalPaginas): ?>
                                         <li class="page-item">
-                                            <a class="page-link"
-                                                href="?pagina=<?php echo ($pagina + 1); ?>&busqueda=<?php echo urlencode($busqueda); ?>&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>">
+                                            <?php
+                                            $params = [
+                                                'pagina' => $pagina + 1,
+                                                'busqueda' => $busqueda,
+                                                'fecha_inicio' => $fechaInicio,
+                                                'fecha_fin' => $fechaFin,
+                                                // clave 'proveedor' con array ⇒ genera proveedor[]=A&proveedor[]=B…
+                                                'proveedor' => $proveedoresSeleccionados,
+                                            ];
+
+                                            // Usa RFC3986 para que encodee bien
+                                            $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+                                            ?>
+                                            <a class="page-link" href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>">
                                                 Siguiente &raquo;
                                             </a>
                                         </li>
@@ -919,8 +955,20 @@ if (!empty($proveedoresSeleccionados)) {
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_venta_neta&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>"
-                        class="btn btn-venta btn-lg">
+                    <?php
+                    $params = [
+                        'tipo' => 'detalle_venta_neta',
+                        'fecha_inicio' => $fechaInicio,
+                        'fecha_fin' => $fechaFin,
+                        // clave 'proveedor' con array ⇒ genera proveedor[]=A&proveedor[]=B…
+                        'proveedor' => $proveedoresSeleccionados,
+                    ];
+
+                    // Usa RFC3986 para que encodee bien
+                    $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+
+                    ?>
+                    <a href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-venta btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -984,8 +1032,20 @@ if (!empty($proveedoresSeleccionados)) {
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_unidades_vendidas&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>"
-                        class="btn btn-venta btn-lg">
+                    <?php
+                    $params = [
+                        'tipo' => 'detalle_unidades_vendidas',
+                        'fecha_inicio' => $fechaInicio,
+                        'fecha_fin' => $fechaFin,
+                        // clave 'proveedor' con array ⇒ genera proveedor[]=A&proveedor[]=B…
+                        'proveedor' => $proveedoresSeleccionados,
+                    ];
+
+                    // Usa RFC3986 para que encodee bien
+                    $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+
+                    ?>
+                    <a href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-venta btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -1081,8 +1141,20 @@ if (!empty($proveedoresSeleccionados)) {
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_stock_unidades&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>"
-                        class="btn btn-warning btn-lg">
+                    <?php
+                    $params = [
+                        'tipo' => 'detalle_stock_unidades',
+                        'fecha_inicio' => $fechaInicio,
+                        'fecha_fin' => $fechaFin,
+                        // clave 'proveedor' con array ⇒ genera proveedor[]=A&proveedor[]=B…
+                        'proveedor' => $proveedoresSeleccionados,
+                    ];
+
+                    // Usa RFC3986 para que encodee bien
+                    $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+
+                    ?>
+                    <a href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-warning btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -1254,8 +1326,20 @@ if (!empty($proveedoresSeleccionados)) {
                 </div>
                 <div>
                     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="exportar.php?tipo=detalle_stock_valorizado&fecha_inicio=<?php echo urlencode($fechaInicio); ?>&fecha_fin=<?php echo urlencode($fechaFin); ?>&proveedor=<?php echo urlencode($proveedoresSeleccionados); ?>"
-                        class="btn btn-warning btn-lg">
+                    <?php
+                    $params = [
+                        'tipo' => 'detalle_stock_valorizado',
+                        'fecha_inicio' => $fechaInicio,
+                        'fecha_fin' => $fechaFin,
+                        // clave 'proveedor' con array ⇒ genera proveedor[]=A&proveedor[]=B…
+                        'proveedor' => $proveedoresSeleccionados,
+                    ];
+
+                    // Usa RFC3986 para que encodee bien
+                    $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+
+                    ?>
+                    <a href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-warning btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
