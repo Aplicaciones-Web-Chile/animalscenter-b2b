@@ -8,7 +8,6 @@
 require_once dirname(__DIR__) . '/config/app.php';
 require_once APP_ROOT . '/includes/session.php';
 require_once APP_ROOT . '/includes/helpers.php';
-require_once APP_ROOT . '/includes/api_client.php';
 require_once APP_ROOT . '/includes/proveedores_repository.php';
 require_once APP_ROOT . '/includes/productos_service.php';
 require_once APP_ROOT . '/includes/kpi_repository.php';
@@ -161,23 +160,29 @@ if (!empty($proveedoresSeleccionados)) {
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
-                            <input type="text" class="form-control date-input" id="fecha_inicio" name="fecha_inicio"
-                                value="<?php echo htmlspecialchars($fechaInicio); ?>" placeholder="dd/mm/yyyy">
+                            <label for="fecha_inicio_ui" class="form-label">Fecha Inicio</label>
+                            <input type="date" class="form-control" id="fecha_inicio_ui" name="fecha_inicio_ui"
+                                value="<?= htmlspecialchars(dmy_to_ymd($fechaInicio ?? date('d/m/Y'))) ?>">
+                            <!-- Campo real que tu backend ya usa (dd/mm/yyyy) -->
+                            <input type="hidden" id="fecha_inicio" name="fecha_inicio"
+                                value="<?= htmlspecialchars($fechaInicio ?? date('d/m/Y')) ?>">
                         </div>
+
                         <div class="col-md-3">
-                            <label for="fecha_fin" class="form-label">Fecha Fin</label>
-                            <input type="text" class="form-control date-input" id="fecha_fin" name="fecha_fin"
-                                value="<?php echo htmlspecialchars($fechaFin); ?>" placeholder="dd/mm/yyyy">
+                            <label for="fecha_fin_ui" class="form-label">Fecha Fin</label>
+                            <input type="date" class="form-control" id="fecha_fin_ui" name="fecha_fin_ui"
+                                value="<?= htmlspecialchars(dmy_to_ymd($fechaFin ?? date('d/m/Y'))) ?>">
+                            <!-- Campo real que tu backend ya usa (dd/mm/yyyy) -->
+                            <input type="hidden" id="fecha_fin" name="fecha_fin"
+                                value="<?= htmlspecialchars($fechaFin ?? date('d/m/Y')) ?>">
                         </div>
-                        <?php
-                        if ($esAdmin):
+                        <?php if ($esAdmin):
                             $listaProveedores = obtenerKPRVDesdeCache(2, false, true);
                             ?>
                             <div class="col-md-3">
                                 <label for="proveedor" class="form-label">Proveedor(es)</label>
 
-                                <select class="form-control" name="proveedor[]" id="proveedor" multiple size="6">
+                                <select name="proveedor[]" id="proveedor" multiple>
                                     <?php foreach ($listaProveedores as $val):
                                         $k = (string) $val['kprv'];
                                         $selected = in_array($k, $proveedoresSeleccionados, true) ? 'selected' : '';
@@ -187,12 +192,11 @@ if (!empty($proveedoresSeleccionados)) {
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <small class="text-muted">Mantén presionadas Ctrl/⌘ para seleccionar múltiples.</small>
-
                             </div>
+
                         <?php else: ?>
-                            <!-- Para usuarios no administradores, enviamos el valor del proveedor como campo oculto -->
-                            <input type="hidden" name="proveedor"
+                            <!-- Importante: mantener array [] para uniformidad -->
+                            <input type="hidden" name="proveedor[]"
                                 value="<?php echo htmlspecialchars($proveedoresSeleccionados[0]); ?>">
                         <?php endif; ?>
 
@@ -379,6 +383,43 @@ if (!empty($proveedoresSeleccionados)) {
                 opacity: 0;
                 transform: rotate(30deg) translateX(300%);
             }
+        }
+
+        /* La tarjeta de filtros crea su propio contexto de apilamiento */
+        .filtros-card {
+            position: relative;
+            z-index: 30;
+            /* por encima del contenido inferior */
+            overflow: visible;
+            /* evita recortes */
+        }
+
+        .filtros-card .card-body {
+            overflow: visible;
+        }
+
+        /* El contenedor Choices no recorta, y el dropdown queda sobre la propia card */
+        #proveedor+.choices {
+            overflow: visible !important;
+        }
+
+        .filtros-card .choices__list--dropdown,
+        .filtros-card .choices__list[aria-expanded] {
+            z-index: 40;
+            /* un poco más que la card de filtros */
+        }
+
+        /* Opcional: altura cómoda del input con pills */
+        .choices__inner {
+            min-height: 44px;
+        }
+
+        /* Asegura que las tarjetas/KPIs estén por debajo */
+        .seccion-kpis {
+            /* ver paso 2 */
+            position: relative;
+            z-index: 10;
+            /* menor que filtros-card */
         }
     </style>
 
@@ -1399,6 +1440,34 @@ if (!empty($proveedoresSeleccionados)) {
     }
 </style>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const el = document.getElementById('proveedor');
+        if (!el) return;
+
+        const choices = new Choices(el, {
+            placeholder: true,
+            placeholderValue: 'Buscar proveedor…',
+            removeItemButton: true,
+            shouldSort: false,
+            searchEnabled: true,
+            position: 'bottom',
+            loadingText: 'Cargando…',
+            noResultsText: 'Sin resultados',
+            noChoicesText: 'No hay opciones disponibles',
+            itemSelectText: 'Presiona para seleccionar'
+        });
+
+        // wrapper que contiene el resto del contenido bajo los filtros
+        if (!main) return;
+
+        // Choices dispara eventos personalizados en el elemento original
+        el.addEventListener('showDropdown', () => main.classList.add('locked'));
+        el.addEventListener('hideDropdown', () => main.classList.remove('locked'));
+    });
+</script>
+
+
 <!-- ApexCharts CDN -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
@@ -1541,6 +1610,29 @@ if (!empty($proveedoresSeleccionados)) {
         // Gráfico de columnas
         var columnChart = new ApexCharts(document.querySelector("#columnChart"), columnChartOptions);
         columnChart.render();
+    });
+</script>
+<script>
+    function ymdToDmy(ymd) {
+        if (!ymd) return '';
+        const [y, m, d] = ymd.split('-');
+        if (!y || !m || !d) return '';
+        return `${d}/${m}/${y}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const fiUI = document.getElementById('fecha_inicio_ui');
+        const ffUI = document.getElementById('fecha_fin_ui');
+        const fi = document.getElementById('fecha_inicio'); // hidden d/m/Y
+        const ff = document.getElementById('fecha_fin');    // hidden d/m/Y
+
+        // Sincronizar al cargar (por si el navegador ajusta el valor)
+        if (fiUI && fi) fi.value = ymdToDmy(fiUI.value);
+        if (ffUI && ff) ff.value = ymdToDmy(ffUI.value);
+
+        // Sincronizar en cada cambio del usuario
+        fiUI?.addEventListener('change', () => { fi.value = ymdToDmy(fiUI.value); });
+        ffUI?.addEventListener('change', () => { ff.value = ymdToDmy(ffUI.value); });
     });
 </script>
 

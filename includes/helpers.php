@@ -349,3 +349,11 @@ function normalizarNumeroLatam($valor, ?int $scale = null): string
         return '0';
     return $scale !== null ? number_format((float) $s, $scale, '.', '') : $s;
 }
+
+function dmy_to_ymd(?string $dmy): string
+{
+    if (!$dmy)
+        return date('Y-m-d');
+    $dt = DateTime::createFromFormat('d/m/Y', $dmy);
+    return $dt ? $dt->format('Y-m-d') : date('Y-m-d');
+}
