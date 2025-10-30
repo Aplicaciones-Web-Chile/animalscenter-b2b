@@ -1,6 +1,7 @@
 # Archivos de configuración
 .env
 config.php
+/config/mail.php
 
 # Dependencias
 /vendor/
