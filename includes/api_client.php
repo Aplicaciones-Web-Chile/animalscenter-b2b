@@ -8,6 +8,7 @@
 define('API_BASE_URL', 'https://api2.aplicacionesweb.cl/apiacenter/b2b');
 define('API_KEY', '94ec33d0d75949c298f47adaa78928c2');
 define('API_DISTRIBUIDOR', '001');
+require_once __DIR__ . '/alerts.php';
 
 /**
  * Realiza una llamada genérica a la API
@@ -26,44 +27,120 @@ function callApi($endpoint, $data = [])
         $data['Distribuidor'] = API_DISTRIBUIDOR;
     }
 
-    $postData = json_encode($data);
-
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    $postData = json_encode($data, JSON_UNESCAPED_UNICODE);
+    $headers = [
         'Authorization: ' . API_KEY,
         'Content-Type: application/json',
-        'Content-Length: ' . strlen($postData)
+        'Content-Length: ' . strlen($postData),
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $postData,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_CONNECTTIMEOUT => 10,   // timeout conexión
+        CURLOPT_TIMEOUT => 30,   // timeout total
+        CURLOPT_USERAGENT => 'B2B-ACenter/1.0 (+php cURL)',
     ]);
 
+    $t0 = microtime(true);
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-
+    $curlErr = curl_error($ch);
     curl_close($ch);
+    $elapsedMs = (int) round((microtime(true) - $t0) * 1000);
 
-    if ($error) {
-        logError("Error en llamada a API ($endpoint): $error");
-        throw new Exception("Error en la llamada a la API: $error");
+    // Helper para armar contexto (ocultando la API_KEY)
+    $context = static function (array $extra = []) use ($url, $headers, $postData, $httpCode, $response, $elapsedMs) {
+        // enmascara Authorization
+        $safeHeaders = array_map(function ($h) {
+            return (stripos($h, 'Authorization:') === 0) ? 'Authorization: ***MASKED***' : $h;
+        }, $headers);
+
+        // evita correos gigantes: recorta respuesta a 50k
+        $respPreview = is_string($response) ? mb_substr($response, 0, 50000, 'UTF-8') : '';
+
+        return array_merge([
+            'url' => $url,
+            'headers' => $safeHeaders,
+            'payload' => $postData,
+            'httpCode' => $httpCode,
+            'elapsed_ms' => $elapsedMs,
+            'response' => $respPreview,
+        ], $extra);
+    };
+
+    // Errores de cURL (no hubo respuesta)
+    if ($curlErr) {
+        $msg = "Error en la llamada a la API: {$curlErr}";
+        logError("[$endpoint] $msg");
+        // Notifica por mail
+        notifySyncFailure("callApi: {$endpoint}", new Exception($msg), $context());
+        throw new Exception($msg);
     }
 
+    // HTTP no-200
     if ($httpCode !== 200) {
-        logError("API respondió con código $httpCode para $endpoint: $response");
-        throw new Exception("La API respondió con código $httpCode");
+        $msg = "La API respondió con código HTTP {$httpCode}";
+        logError("[$endpoint] $msg; body={$response}");
+        // Notifica por mail
+        notifySyncFailure("callApi: {$endpoint}", new Exception($msg), $context());
+        throw new Exception($msg);
+    }
+
+    // === Validaciones de contenido (body) ===
+    if ($response === '' || $response === null || $response === 'null') {
+        $msg = "La API respondió HTTP 200 pero con body vacío o null";
+        logError("[$endpoint] $msg");
+        notifySyncFailure("callApi: {$endpoint}", new Exception($msg), $context());
+        throw new Exception($msg);
     }
 
     // Intentar decodificar como JSON
-    $decodedResponse = json_decode($response, true);
-
-    // Si es un JSON válido y tiene la estructura esperada, devolver los datos
-    if (json_last_error() === JSON_ERROR_NONE) {
-        return $decodedResponse;
+    $decoded = json_decode($response, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        // Body no es JSON válido → tratar como error (evita “200 HTML de error” silencioso)
+        $msg = "La API respondió HTTP 200 pero el body no es JSON válido: " . json_last_error_msg();
+        logError("[$endpoint] $msg");
+        notifySyncFailure("callApi: {$endpoint}", new Exception($msg), $context());
+        throw new Exception($msg);
     }
 
-    // Si no es JSON, devolver la respuesta como string
-    return $response;
+    // JSON válido pero no es objeto/array (p.ej. 'null', 'true', '123', '\"ok\"')
+    if (!is_array($decoded)) {
+        $msg = "La API respondió HTTP 200 con JSON válido pero no estructurado (tipo escalar o null)";
+        logError("[$endpoint] $msg; body={$response}");
+        notifySyncFailure("callApi: {$endpoint}", new Exception($msg), $context(['decoded' => $decoded]));
+        throw new Exception($msg);
+    }
+
+    // Si la API usa convención { estado: 1|0, datos: ... }, validamos eso también
+    if (!array_key_exists('estado', $decoded)) {
+        $msg = "La API respondió JSON sin la clave esperada 'estado'";
+        logError("[$endpoint] $msg; body={$response}");
+        notifySyncFailure("callApi: {$endpoint}", new Exception($msg), $context(['decoded' => $decoded]));
+        throw new Exception($msg);
+    }
+
+    if ((int) $decoded['estado'] !== 1) {
+        $apiMsg = isset($decoded['mensaje']) ? (string) $decoded['mensaje'] : 'Estado no OK';
+        $msg = "API respondió estado != 1 ({$decoded['estado']}): {$apiMsg}";
+        logError("[$endpoint] $msg");
+        notifySyncFailure("callApi: {$endpoint}", new Exception($msg), $context(['decoded' => $decoded]));
+        throw new Exception($msg);
+    }
+
+    // Opcional: si quieres también exigir 'datos' presente cuando estado=1
+    if (!array_key_exists('datos', $decoded)) {
+        $msg = "La API respondió estado=1 pero sin la clave 'datos'";
+        logError("[$endpoint] $msg");
+        notifySyncFailure("callApi: {$endpoint}", new Exception($msg), $context(['decoded' => $decoded]));
+        throw new Exception($msg);
+    }
+
+    return $decoded;
 }
 
 /**
