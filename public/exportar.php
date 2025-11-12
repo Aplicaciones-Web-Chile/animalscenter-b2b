@@ -12,7 +12,7 @@
 /**
  * Función para exportar detalle de stock total valorizado a Excel
  */
-function exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin)
+function exportarDetalleStockValorizado($sheet, $row_idx, array $proveedores, $fechaInicio, $fechaFin)
 {
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'Código');
@@ -55,7 +55,7 @@ function exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaI
     require_once __DIR__ . '/../includes/kpi_repository.php';
 
     // Obtener datos usando la misma función que en productos.php
-    $detalleStockTotalValor = getDetalleTotalStockValorMulti($fechaInicio, $fechaFin, [$proveedorRut]);
+    $detalleStockTotalValor = getDetalleTotalStockValorMulti($fechaInicio, $fechaFin, $proveedores);
 
     // Llenar datos
     foreach ($detalleStockTotalValor as $item) {
@@ -127,7 +127,7 @@ function exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaI
 /**
  * Función para exportar detalle de stock unidades a Excel
  */
-function exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin)
+function exportarDetalleStockUnidades($sheet, $row_idx, array $proveedores, $fechaInicio, $fechaFin)
 {
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'Código');
@@ -166,7 +166,7 @@ function exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaIni
     require_once __DIR__ . '/../includes/kpi_repository.php';
 
     // Obtener datos usando la misma función que en productos.php
-    $detalleStockUnidades = getDetalleStockUnidadesMulti($fechaInicio, $fechaFin, $proveedorRut);
+    $detalleStockUnidades = getDetalleStockUnidadesMulti($fechaInicio, $fechaFin, $proveedores);
 
     // Llenar datos
     foreach ($detalleStockUnidades as $item) {
@@ -313,8 +313,23 @@ $fechaInicio = $_GET['fecha_inicio'] ?? date('d/m/Y');
 $fechaFin = $_GET['fecha_fin'] ?? date('d/m/Y');
 $productoId = $_GET['producto_id'] ?? '';
 $estado = $_GET['estado'] ?? '';
-$codigoProveedor = $_GET['proveedor'] ?? '78843490'; // Código del proveedor por defecto
 $distribuidor = $_GET['distribuidor'] ?? '001'; // Código del distribuidor por defecto
+
+// Normalizar proveedores desde GET (puede venir string o array) y desde sesión
+$proveedores = [];
+
+// Si el usuario logueado es proveedor, forzamos su RUT como único filtro
+if (isset($_SESSION['rol']) && $_SESSION['rol'] === 'proveedor' && !empty($_SESSION['user_rut'])) {
+    $proveedores = [(string) $_SESSION['user_rut']];
+} else {
+    $rawProv = $_GET['proveedor'] ?? '';
+    if (is_array($rawProv)) {
+        // Limpiar y normalizar
+        $proveedores = array_values(array_filter(array_map('strval', $rawProv), fn($v) => $v !== ''));
+    } elseif ($rawProv !== '') {
+        $proveedores = [(string) $rawProv];
+    }
+}
 
 // Nombre de archivo por defecto
 $filename = 'Exportacion_' . ucfirst($tipo) . '_' . date('Y-m-d-His') . '.xlsx';
@@ -350,46 +365,38 @@ $sheet->getPageSetup()->setFitToHeight(0);
 // para adaptar el formato según el tipo de exportación
 
 // Preparar la consulta según el tipo de exportación
-$filtroProveedor = "";
 $params = [];
-
-// Verificar si es un proveedor logueado usando la estructura correcta de sesión
-if (isset($_SESSION['rol']) && $_SESSION['rol'] === 'proveedor' && isset($_SESSION['user_rut'])) {
-    $proveedorRut = $_SESSION['user_rut'];
-} else {
-    // Si no hay usuario en sesión o no es un proveedor, usar el código de proveedor de los parámetros GET
-    $proveedorRut = $codigoProveedor;
-}
 
 $row_idx = 5;
 
 // Exportar según el tipo seleccionado
 switch ($tipo) {
     case 'productos':
-        exportarProductos($sheet, $row_idx, $proveedorRut);
+        exportarProductos($sheet, $row_idx, $proveedores, $fechaInicio, $fechaFin);
         break;
     case 'ventas':
-        exportarVentas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin, $productoId);
+        exportarVentas($sheet, $row_idx, $proveedores, $fechaInicio, $fechaFin, $productoId);
         break;
     case 'facturas':
-        exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin, $estado);
+        exportarFacturas($sheet, $row_idx, $proveedores, $fechaInicio, $fechaFin, $estado);
         break;
     case 'detalle_venta_neta':
-        exportarDetalleVentaNeta($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin);
+        exportarDetalleVentaNeta($sheet, $row_idx, $proveedores, $fechaInicio, $fechaFin);
         break;
     case 'detalle_unidades_vendidas':
-        exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin);
+        exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedores, $fechaInicio, $fechaFin);
         break;
     case 'detalle_sku_activos':
-        exportarDetalleSkuActivos($sheet, $row_idx, $proveedorRut);
+        exportarDetalleSkuActivos($sheet, $row_idx, $proveedores);
         break;
     case 'detalle_stock_unidades':
-        exportarDetalleStockUnidades($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin);
+        exportarDetalleStockUnidades($sheet, $row_idx, $proveedores, $fechaInicio, $fechaFin);
         break;
     case 'detalle_stock_valorizado':
-        exportarDetalleStockValorizado($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin);
+        exportarDetalleStockValorizado($sheet, $row_idx, $proveedores, $fechaInicio, $fechaFin);
         break;
 }
+
 
 // Ajustar anchos de columnas automáticamente - algunas columnas ya se configuraron previamente
 foreach (range('H', 'Z') as $col) {
@@ -416,21 +423,22 @@ $writer->save($savedFile);
 
 // Crear un archivo temporal para la descarga
 $temp_file = tempnam(sys_get_temp_dir(), 'excel');
-$writer->save($temp_file);
 
-// Verificar si hay errores hasta este punto
-if (error_get_last()) {
-    // Captura el error y guardalo en un archivo de log dentro de la carpeta /public/tmp/
+try {
+    $writer->save($temp_file);
+} catch (\Throwable $e) {
+    // Error real al crear el archivo
     $logFile = __DIR__ . '/tmp/error_exportar_' . date('Y-m-d_H-i-s') . '.log';
-    file_put_contents($logFile, print_r(error_get_last(), true), FILE_APPEND);
-
+    file_put_contents($logFile, $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
     $_SESSION['error_message'] = 'Ha ocurrido un error al generar el archivo Excel. Por favor intente nuevamente.';
     header("Location: productos.php?error=1");
     exit;
 }
 
-// Asegurarse de que no se ha enviado ninguna salida antes
-ob_clean();
+// Limpiar CUALQUIER salida previa, por si quedó algo en el buffer
+if (ob_get_length()) {
+    ob_clean();
+}
 
 // Enviar el archivo al navegador para su descarga
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -454,27 +462,25 @@ try {
 /**
  * Función para exportar productos a Excel
  */
-function exportarProductos($sheet, $row_idx, $proveedorRut)
+function exportarProductos($sheet, $row_idx, array $proveedores, $fechaInicio, $fechaFin)
 {
-    global $fechaInicio, $fechaFin, $codigoProveedor, $distribuidor;
+    global $distribuidor;
 
     // URL y configuración de la API (igual que en productos.php)
     $url = "https://api2.aplicacionesweb.cl/apiacenter/productos/vtayrepxsuc";
     $token = "94ec33d0d75949c298f47adaa78928c2";
 
-    // Datos a enviar a la API
     $data = [
         "Distribuidor" => $distribuidor,
         "FINI" => $fechaInicio,
         "FTER" => $fechaFin,
-        "KPRV" => $codigoProveedor
+        "KPRV_LIST" => array_values($proveedores ?? [])
     ];
 
     // Configuración de la petición
     $options = [
         'http' => [
-            'header' => "Authorization: $token\r\n" .
-                "Content-Type: application/json\r\n",
+            'header' => "Authorization: $token\r\nContent-Type: application/json\r\n",
             'method' => 'POST',
             'content' => json_encode($data)
         ]
@@ -875,7 +881,7 @@ function exportarProductos($sheet, $row_idx, $proveedorRut)
 /**
  * Función para exportar ventas a Excel
  */
-function exportarVentas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin, $productoId)
+function exportarVentas($sheet, $row_idx, array $proveedores, $fechaInicio, $fechaFin, $productoId)
 {
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'ID');
@@ -908,9 +914,10 @@ function exportarVentas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin
         $params[] = $productoId;
     }
 
-    if ($proveedorRut) {
-        $condiciones[] = "v.proveedor_rut = ?";
-        $params[] = $proveedorRut;
+    if (!empty($proveedores)) {
+        $ph = implode(',', array_fill(0, count($proveedores), '?'));
+        $condiciones[] = "v.proveedor_rut IN ($ph)";
+        array_push($params, ...$proveedores);
     }
 
     $where = "WHERE " . implode(" AND ", $condiciones);
@@ -945,7 +952,7 @@ function exportarVentas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin
 /**
  * Función para exportar facturas a Excel
  */
-function exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin, $estado)
+function exportarFacturas($sheet, $row_idx, array $proveedores, $fechaInicio, $fechaFin, $estado)
 {
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'ID');
@@ -978,9 +985,10 @@ function exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaF
         $params[] = $estado;
     }
 
-    if ($proveedorRut) {
-        $condiciones[] = "f.proveedor_rut = ?";
-        $params[] = $proveedorRut;
+    if (!empty($proveedores)) {
+        $ph = implode(',', array_fill(0, count($proveedores), '?'));
+        $condiciones[] = "f.proveedor_rut IN ($ph)";
+        array_push($params, ...$proveedores);
     }
 
     $where = "WHERE " . implode(" AND ", $condiciones);
@@ -1016,7 +1024,7 @@ function exportarFacturas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaF
 /**
  * Función para exportar detalle de venta neta a Excel
  */
-function exportarDetalleVentaNeta($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin)
+function exportarDetalleVentaNeta($sheet, $row_idx, array $proveedores, $fechaInicio, $fechaFin)
 {
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'Tipo');
@@ -1048,11 +1056,10 @@ function exportarDetalleVentaNeta($sheet, $row_idx, $proveedorRut, $fechaInicio,
     $row_idx++;
 
     // Incluir el archivo con la función getDetalleVentaNeta
-    require_once __DIR__ . '/../includes/api_client.php';
     require_once __DIR__ . '/../includes/kpi_repository.php';
 
     // Obtener datos usando la misma función que en productos.php
-    $detalleValorNeto = getDetalleVentaNetaMulti($fechaInicio, $fechaFin, $proveedorRut);
+    $detalleValorNeto = getDetalleVentaNetaMulti($fechaInicio, $fechaFin, $proveedores);
 
     // Llenar datos
     foreach ($detalleValorNeto as $item) {
@@ -1081,7 +1088,7 @@ function exportarDetalleVentaNeta($sheet, $row_idx, $proveedorRut, $fechaInicio,
 /**
  * Función para exportar detalle de unidades vendidas a Excel
  */
-function exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedorRut, $fechaInicio, $fechaFin)
+function exportarDetalleUnidadesVendidas($sheet, $row_idx, array $proveedores, $fechaInicio, $fechaFin)
 {
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'Tipo');
@@ -1111,11 +1118,10 @@ function exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedorRut, $fecha
     $row_idx++;
 
     // Incluir el archivo con la función getDetalleUnidadesVendidas
-    require_once __DIR__ . '/../includes/api_client.php';
     require_once __DIR__ . '/../includes/kpi_repository.php';
 
     // Obtener datos usando la misma función que en productos.php
-    $detalleUnidadesVendidas = getDetalleUnidadesVendidasMulti($fechaInicio, $fechaFin, [$proveedorRut]);
+    $detalleUnidadesVendidas = getDetalleUnidadesVendidasMulti($fechaInicio, $fechaFin, $proveedores);
 
     // Llenar datos
     foreach ($detalleUnidadesVendidas as $item) {
@@ -1140,7 +1146,7 @@ function exportarDetalleUnidadesVendidas($sheet, $row_idx, $proveedorRut, $fecha
 /**
  * Función para exportar detalle de SKU activos a Excel
  */
-function exportarDetalleSkuActivos($sheet, $row_idx, $proveedorRut)
+function exportarDetalleSkuActivos($sheet, $row_idx, array $proveedores)
 {
     // Establecer encabezados de columna
     $sheet->setCellValue('A' . $row_idx, 'Código');
@@ -1170,7 +1176,7 @@ function exportarDetalleSkuActivos($sheet, $row_idx, $proveedorRut)
     require_once __DIR__ . '/../includes/kpi_repository.php';
 
     // Obtener datos usando la misma función que en productos.php
-    $detalleSkuActivos = getDetalleSkuActivosMulti([$proveedorRut]);
+    $detalleSkuActivos = getDetalleSkuActivosMulti($proveedores);
 
     // Llenar datos
     foreach ($detalleSkuActivos as $item) {

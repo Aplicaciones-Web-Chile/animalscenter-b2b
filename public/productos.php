@@ -1009,7 +1009,7 @@ if (!empty($proveedoresSeleccionados)) {
                     $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
                     ?>
-                    <a href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-venta btn-lg">
+                    <a href="/exportar.php?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-venta btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -1086,7 +1086,7 @@ if (!empty($proveedoresSeleccionados)) {
                     $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
                     ?>
-                    <a href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-venta btn-lg">
+                    <a href="/exportar.php?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-venta btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -1195,7 +1195,7 @@ if (!empty($proveedoresSeleccionados)) {
                     $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
                     ?>
-                    <a href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-warning btn-lg">
+                    <a href="/exportar.php?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-warning btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
@@ -1380,7 +1380,7 @@ if (!empty($proveedoresSeleccionados)) {
                     $qs = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
                     ?>
-                    <a href="?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-warning btn-lg">
+                    <a href="/exportar.php?<?= htmlspecialchars($qs, ENT_QUOTES) ?>" class="btn btn-warning btn-lg">
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </a>
                 </div>
