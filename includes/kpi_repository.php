@@ -1122,7 +1122,7 @@ function getVentaNetaSeisMesesMulti(
     $sel->execute([':ff' => $fterY, ':h' => $listHash]);
     $row = $sel->fetch(PDO::FETCH_ASSOC);
 
-    if ($row) {
+    if ($row && isset($row['rows_count']) && (int) $row['rows_count'] > 0) {
       if (empty($row['expires_at']) || (new DateTime() < new DateTime($row['expires_at']))) {
         $payload = is_string($row['payload_json'])
           ? json_decode($row['payload_json'], true)
@@ -1241,7 +1241,7 @@ function getTotalStockValorSeisMesesMulti(
     $sel->execute([':ff' => $fterY, ':h' => $listHash]);
     $row = $sel->fetch(PDO::FETCH_ASSOC);
 
-    if ($row) {
+    if ($row && isset($row['rows_count']) && (int) $row['rows_count'] > 0) {
       if (empty($row['expires_at']) || (new DateTime() < new DateTime($row['expires_at']))) {
         $payload = is_string($row['payload_json'])
           ? json_decode($row['payload_json'], true)
