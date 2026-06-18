@@ -177,8 +177,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             }
 
             // Actualizar usuario
-            $sql = "UPDATE usuarios SET nombre = ?, email = ?, rol = ?, rut = ? WHERE id = ?";
-            $params = [$nombre, $email, $rol, $rut, $id];
+            $sql = "UPDATE usuarios SET nombre = ?, email = ?, rol = ?, rut = ?, habilitado = ? WHERE id = ?";
+            $params = [$nombre, $email, $rol, $rut, $habilitado, $id];
 
             // Si se proporcionó una nueva contraseña, actualizarla también
             if (!empty($password)) {
@@ -188,8 +188,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                 }
 
                 $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-                $sql = "UPDATE usuarios SET nombre = ?, email = ?, password_hash = ?, rol = ?, rut = ? WHERE id = ?";
-                $params = [$nombre, $email, $passwordHash, $rol, $rut, $id];
+                $sql = "UPDATE usuarios SET nombre = ?, email = ?, password_hash = ?, rol = ?, rut = ?, habilitado = ? WHERE id = ?";
+                $params = [$nombre, $email, $passwordHash, $rol, $rut, $habilitado, $id];
             }
 
             if (executeQuery($sql, $params)) {
