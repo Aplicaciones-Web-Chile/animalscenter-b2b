@@ -26,8 +26,34 @@ include 'header.php';
 
 // Inicializar variables para filtros
 $busqueda = $_GET['busqueda'] ?? '';
-$fechaInicio = $_GET['fecha_inicio'] ?? date('d/m/Y');
-$fechaFin = $_GET['fecha_fin'] ?? date('d/m/Y');
+
+/**
+ * Resuelve una fecha del filtro priorizando el date picker nativo (campo _ui,
+ * formato Y-m-d) sobre el campo oculto (formato d/m/Y). El date picker es lo que
+ * el usuario manipula realmente; el oculto depende de JS y puede quedar
+ * desincronizado. Devuelve siempre d/m/Y para el backend.
+ */
+$resolverFechaFiltro = static function (?string $ui, ?string $legacy): string {
+    // 1) date picker nativo (yyyy-mm-dd)
+    if (!empty($ui)) {
+        $dt = DateTime::createFromFormat('Y-m-d', $ui);
+        if ($dt && $dt->format('Y-m-d') === $ui) {
+            return $dt->format('d/m/Y');
+        }
+    }
+    // 2) respaldo: campo oculto (dd/mm/yyyy)
+    if (!empty($legacy)) {
+        $dt = DateTime::createFromFormat('d/m/Y', $legacy);
+        if ($dt && $dt->format('d/m/Y') === $legacy) {
+            return $legacy;
+        }
+    }
+    // 3) por defecto: hoy
+    return date('d/m/Y');
+};
+
+$fechaInicio = $resolverFechaFiltro($_GET['fecha_inicio_ui'] ?? null, $_GET['fecha_inicio'] ?? null);
+$fechaFin = $resolverFechaFiltro($_GET['fecha_fin_ui'] ?? null, $_GET['fecha_fin'] ?? null);
 $distribuidor = $_GET['distribuidor'] ?? '001';
 
 // Determinar el rol del usuario actual
