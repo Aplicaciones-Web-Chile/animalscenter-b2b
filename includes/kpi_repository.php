@@ -57,14 +57,14 @@ function getMontoVentaNetoMulti(
       $valorNeto = (int) $resp['datos'][0]['NETO'];
     } else {
       // si la API no trae valor válido, no sobreescribir cache previo válido
-      if (isset($row)) {
+      if (!empty($row)) {
         return (int) $row['valor_neto'];
       }
       return 0;
     }
   } catch (Throwable $e) {
     error_log("[getMontoVentaNetoMulti][API error] " . $e->getMessage());
-    if (isset($row))
+    if (!empty($row))
       return (int) $row['valor_neto'];
     return 0;
   }
@@ -153,13 +153,13 @@ function getCantidadVendidaMulti(
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos'][0]['CANT'])) {
       // API sin dato válido → conservar caché previo si existe
-      if (isset($row))
+      if (!empty($row))
         return (float) $row['cantidad'];
       return 0.0;
     }
   } catch (Throwable $e) {
     error_log("[getCantidadVendidaMulti][API error] " . $e->getMessage());
-    if (isset($row))
+    if (!empty($row))
       return (float) $row['cantidad'];
     return 0.0;
   }
@@ -247,13 +247,13 @@ function getCantidadSkuActivosMulti(
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos'][0]['CANT'])) {
       // API sin dato válido → conservar cache previo, si existe
-      if (isset($row))
+      if (!empty($row))
         return (float) $row['cantidad'];
       return 0.0;
     }
   } catch (Throwable $e) {
     error_log("[getCantidadSkuActivosMulti][API error] " . $e->getMessage());
-    if (isset($row))
+    if (!empty($row))
       return (float) $row['cantidad'];
     return 0.0;
   }
@@ -348,7 +348,7 @@ function getDetalleVentaNetaMulti(
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos']) || !is_array($resp['datos'])) {
       // si la API falla o responde sin datos, usa el cache previo si existía
-      if (isset($row)) {
+      if (!empty($row)) {
         $payload = is_string($row['payload_json']) ? json_decode($row['payload_json'], true)
           : $row['payload_json'];
         return is_array($payload) ? $payload : [];
@@ -357,7 +357,7 @@ function getDetalleVentaNetaMulti(
     }
   } catch (Throwable $e) {
     error_log("[getDetalleVentaNetaMulti][API error] " . $e->getMessage());
-    if (isset($row)) {
+    if (!empty($row)) {
       $payload = is_string($row['payload_json']) ? json_decode($row['payload_json'], true)
         : $row['payload_json'];
       return is_array($payload) ? $payload : [];
@@ -462,7 +462,7 @@ function getDetalleUnidadesVendidasMulti(
     ]);
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos']) || !is_array($resp['datos'])) {
-      if (isset($row)) {
+      if (!empty($row)) {
         $payload = is_string($row['payload_json'])
           ? json_decode($row['payload_json'], true)
           : $row['payload_json'];
@@ -472,7 +472,7 @@ function getDetalleUnidadesVendidasMulti(
     }
   } catch (Throwable $e) {
     error_log("[getDetalleUnidadesVendidasMulti][API error] " . $e->getMessage());
-    if (isset($row)) {
+    if (!empty($row)) {
       $payload = is_string($row['payload_json'])
         ? json_decode($row['payload_json'], true)
         : $row['payload_json'];
@@ -572,7 +572,7 @@ function getDetalleSkuActivosMulti(
     $resp = callApi('kpi_sku_activos_detalle', ['KPRV_LIST' => $normList]);
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos']) || !is_array($resp['datos'])) {
-      if (isset($row)) {
+      if (!empty($row)) {
         $payload = is_string($row['payload_json'])
           ? json_decode($row['payload_json'], true)
           : $row['payload_json'];
@@ -582,7 +582,7 @@ function getDetalleSkuActivosMulti(
     }
   } catch (Throwable $e) {
     error_log("[getDetalleSkuActivosMulti][API error] " . $e->getMessage());
-    if (isset($row)) {
+    if (!empty($row)) {
       $payload = is_string($row['payload_json'])
         ? json_decode($row['payload_json'], true)
         : $row['payload_json'];
@@ -684,13 +684,13 @@ function getStockUnidadesMulti(
     ]);
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos'][0]['CANT'])) {
-      if (isset($row))
+      if (!empty($row))
         return (float) $row['cantidad'];
       return 0.0;
     }
   } catch (Throwable $e) {
     error_log("[getStockUnidadesMulti][API error] " . $e->getMessage());
-    if (isset($row))
+    if (!empty($row))
       return (float) $row['cantidad'];
     return 0.0;
   }
@@ -791,7 +791,7 @@ function getDetalleStockUnidadesMulti(
     ]);
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos']) || !is_array($resp['datos'])) {
-      if (isset($row)) {
+      if (!empty($row)) {
         $payload = is_string($row['payload_json'])
           ? json_decode($row['payload_json'], true)
           : $row['payload_json'];
@@ -801,7 +801,7 @@ function getDetalleStockUnidadesMulti(
     }
   } catch (Throwable $e) {
     error_log("[getDetalleStockUnidadesMulti][API error] " . $e->getMessage());
-    if (isset($row)) {
+    if (!empty($row)) {
       $payload = is_string($row['payload_json'])
         ? json_decode($row['payload_json'], true)
         : $row['payload_json'];
@@ -913,13 +913,13 @@ function getTotalStockValorMulti(
     ]);
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos'][0]['VALO'])) {
-      if (isset($row))
+      if (!empty($row))
         return (float) $row['valor'];
       return 0.0;
     }
   } catch (Throwable $e) {
     error_log("[getTotalStockValorMulti][API error] " . $e->getMessage());
-    if (isset($row))
+    if (!empty($row))
       return (float) $row['valor'];
     return 0.0;
   }
@@ -1021,7 +1021,7 @@ function getDetalleTotalStockValorMulti(
     ]);
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos']) || !is_array($resp['datos'])) {
-      if (isset($row)) {
+      if (!empty($row)) {
         $payload = is_string($row['payload_json'])
           ? json_decode($row['payload_json'], true)
           : $row['payload_json'];
@@ -1031,7 +1031,7 @@ function getDetalleTotalStockValorMulti(
     }
   } catch (Throwable $e) {
     error_log("[getDetalleTotalStockValorMulti][API error] " . $e->getMessage());
-    if (isset($row)) {
+    if (!empty($row)) {
       $payload = is_string($row['payload_json'])
         ? json_decode($row['payload_json'], true)
         : $row['payload_json'];
@@ -1142,7 +1142,7 @@ function getVentaNetaSeisMesesMulti(
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos']) || !is_array($resp['datos'])) {
       // Si falla la API, devolver caché previo si existía
-      if (isset($row)) {
+      if (!empty($row)) {
         $payload = is_string($row['payload_json'])
           ? json_decode($row['payload_json'], true)
           : $row['payload_json'];
@@ -1152,7 +1152,7 @@ function getVentaNetaSeisMesesMulti(
     }
   } catch (Throwable $e) {
     error_log("[getVentaNetaSeisMesesMulti][API error] " . $e->getMessage());
-    if (isset($row)) {
+    if (!empty($row)) {
       $payload = is_string($row['payload_json'])
         ? json_decode($row['payload_json'], true)
         : $row['payload_json'];
@@ -1260,7 +1260,7 @@ function getTotalStockValorSeisMesesMulti(
     ]);
 
     if (!isset($resp['estado']) || (int) $resp['estado'] !== 1 || !isset($resp['datos']) || !is_array($resp['datos'])) {
-      if (isset($row)) {
+      if (!empty($row)) {
         $payload = is_string($row['payload_json'])
           ? json_decode($row['payload_json'], true)
           : $row['payload_json'];
@@ -1270,7 +1270,7 @@ function getTotalStockValorSeisMesesMulti(
     }
   } catch (Throwable $e) {
     error_log("[getTotalStockValorSeisMesesMulti][API error] " . $e->getMessage());
-    if (isset($row)) {
+    if (!empty($row)) {
       $payload = is_string($row['payload_json'])
         ? json_decode($row['payload_json'], true)
         : $row['payload_json'];

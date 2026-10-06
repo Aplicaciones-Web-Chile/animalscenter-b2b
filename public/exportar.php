@@ -68,15 +68,15 @@ function exportarDetalleStockValorizado($sheet, $row_idx, array $proveedores, $f
         $sheet->setCellValue('F' . $row_idx, $item['DMAR']);
         $sheet->setCellValue('G' . $row_idx, $item['DFAI']);
         $sheet->setCellValue('H' . $row_idx, $item['DSUI']);
-        $sheet->setCellValue('I' . $row_idx, $item['CENV']);
-        $sheet->setCellValue('J' . $row_idx, $item['PRUL']);
-        $sheet->setCellValue('K' . $row_idx, $item['ST01']);
-        $sheet->setCellValue('L' . $row_idx, $item['ST02']);
-        $sheet->setCellValue('M' . $row_idx, $item['ST03']);
-        $sheet->setCellValue('N' . $row_idx, $item['ST04']);
-        $sheet->setCellValue('O' . $row_idx, $item['ST05']);
-        $sheet->setCellValue('P' . $row_idx, $item['ST07']); // ST07 corresponde a Stock Web
-        $sheet->setCellValue('Q' . $row_idx, $item['VALO']);
+        $sheet->setCellValue('I' . $row_idx, exportNum($item['CENV']));
+        $sheet->setCellValue('J' . $row_idx, exportNum($item['PRUL']));
+        $sheet->setCellValue('K' . $row_idx, exportNum($item['ST01']));
+        $sheet->setCellValue('L' . $row_idx, exportNum($item['ST02']));
+        $sheet->setCellValue('M' . $row_idx, exportNum($item['ST03']));
+        $sheet->setCellValue('N' . $row_idx, exportNum($item['ST04']));
+        $sheet->setCellValue('O' . $row_idx, exportNum($item['ST05']));
+        $sheet->setCellValue('P' . $row_idx, exportNum($item['ST07'])); // ST07 corresponde a Stock Web
+        $sheet->setCellValue('Q' . $row_idx, exportNum($item['VALO']));
 
         $row_idx++;
     }
@@ -177,13 +177,13 @@ function exportarDetalleStockUnidades($sheet, $row_idx, array $proveedores, $fec
         $sheet->setCellValue('D' . $row_idx, $item['DFAI']);
         $sheet->setCellValue('E' . $row_idx, $item['DSUI']);
         $sheet->setCellValue('F' . $row_idx, $item['UINS']);
-        $sheet->setCellValue('G' . $row_idx, $item['CENV']);
-        $sheet->setCellValue('H' . $row_idx, $item['ST01']);
-        $sheet->setCellValue('I' . $row_idx, $item['ST02']);
-        $sheet->setCellValue('J' . $row_idx, $item['ST03']);
-        $sheet->setCellValue('K' . $row_idx, $item['ST04']);
-        $sheet->setCellValue('L' . $row_idx, $item['ST05']);
-        $sheet->setCellValue('M' . $row_idx, $item['ST07']); // ST07 corresponde a Stock Web
+        $sheet->setCellValue('G' . $row_idx, exportNum($item['CENV']));
+        $sheet->setCellValue('H' . $row_idx, exportNum($item['ST01']));
+        $sheet->setCellValue('I' . $row_idx, exportNum($item['ST02']));
+        $sheet->setCellValue('J' . $row_idx, exportNum($item['ST03']));
+        $sheet->setCellValue('K' . $row_idx, exportNum($item['ST04']));
+        $sheet->setCellValue('L' . $row_idx, exportNum($item['ST05']));
+        $sheet->setCellValue('M' . $row_idx, exportNum($item['ST07'])); // ST07 corresponde a Stock Web
 
         $row_idx++;
     }
@@ -227,7 +227,17 @@ ini_set('display_errors', 0);
 // Incluir archivos necesarios
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../vendor/autoload.php';
+
+/**
+ * Convierte un número del ERP a float. La API entrega strings con coma decimal
+ * ('549324,72', ',085'); floatval() los trunca o los deja en 0.
+ */
+function exportNum($valor): float
+{
+    return (float) normalizarNumeroLatam($valor ?? 0);
+}
 
 // Iniciar sesión
 startSession();
@@ -757,36 +767,36 @@ function exportarProductos($sheet, $row_idx, array $proveedores, $fechaInicio, $
             // Sucursales y stock (usar los datos de la API o valores predeterminados si no están disponibles)
             // Venta Distribución y sucursales (usar los datos de la API o valores predeterminados si no están disponibles)
             // Convertimos todos los valores a numéricos para evitar errores
-            $sheet->setCellValue('I' . $row_idx, floatval(str_replace(',', '.', $producto['VENTA_DISTRIBUCION'] ?? 0)));
-            $sheet->setCellValue('J' . $row_idx, floatval($producto['VENTA_SUCURSAL07'] ?? 0));
-            $sheet->setCellValue('K' . $row_idx, floatval($producto['VENTA_SUCURSAL01'] ?? 0));
-            $sheet->setCellValue('L' . $row_idx, floatval($producto['STOCK_BODEGA01'] ?? 0));
-            $sheet->setCellValue('M' . $row_idx, floatval($producto['VENTA_SUCURSAL02'] ?? 0));
-            $sheet->setCellValue('N' . $row_idx, floatval($producto['STOCK_BODEGA02'] ?? 0));
-            $sheet->setCellValue('O' . $row_idx, floatval($producto['VENTA_SUCURSAL03'] ?? 0));
-            $sheet->setCellValue('P' . $row_idx, floatval($producto['STOCK_BODEGA03'] ?? 0));
-            $sheet->setCellValue('Q' . $row_idx, floatval($producto['VENTA_SUCURSAL04'] ?? 0));
-            $sheet->setCellValue('R' . $row_idx, floatval($producto['STOCK_BODEGA04'] ?? 0));
-            $sheet->setCellValue('S' . $row_idx, floatval($producto['VENTA_SUCURSAL05'] ?? 0));
-            $sheet->setCellValue('T' . $row_idx, floatval($producto['STOCK_BODEGA05'] ?? 0));
+            $sheet->setCellValue('I' . $row_idx, exportNum($producto['VENTA_DISTRIBUCION'] ?? 0));
+            $sheet->setCellValue('J' . $row_idx, exportNum($producto['VENTA_SUCURSAL07'] ?? 0));
+            $sheet->setCellValue('K' . $row_idx, exportNum($producto['VENTA_SUCURSAL01'] ?? 0));
+            $sheet->setCellValue('L' . $row_idx, exportNum($producto['STOCK_BODEGA01'] ?? 0));
+            $sheet->setCellValue('M' . $row_idx, exportNum($producto['VENTA_SUCURSAL02'] ?? 0));
+            $sheet->setCellValue('N' . $row_idx, exportNum($producto['STOCK_BODEGA02'] ?? 0));
+            $sheet->setCellValue('O' . $row_idx, exportNum($producto['VENTA_SUCURSAL03'] ?? 0));
+            $sheet->setCellValue('P' . $row_idx, exportNum($producto['STOCK_BODEGA03'] ?? 0));
+            $sheet->setCellValue('Q' . $row_idx, exportNum($producto['VENTA_SUCURSAL04'] ?? 0));
+            $sheet->setCellValue('R' . $row_idx, exportNum($producto['STOCK_BODEGA04'] ?? 0));
+            $sheet->setCellValue('S' . $row_idx, exportNum($producto['VENTA_SUCURSAL05'] ?? 0));
+            $sheet->setCellValue('T' . $row_idx, exportNum($producto['STOCK_BODEGA05'] ?? 0));
 
             // Valor unitario y datos de ventas - aseguramos que sean numéricos
-            $valorUnitario = floatval($producto['PRECIO_VENTA'] ?? 0);
-            $ventaDis = floatval($producto['VENTA_DISTRIBUCION'] ?? 0);
-            $ventaSuc1 = floatval($producto['VENTA_SUCURSAL01'] ?? 0);
-            $ventaSuc2 = floatval($producto['VENTA_SUCURSAL02'] ?? 0);
-            $ventaSuc3 = floatval($producto['VENTA_SUCURSAL03'] ?? 0);
-            $ventaSuc4 = floatval($producto['VENTA_SUCURSAL04'] ?? 0);
-            $ventaSuc5 = floatval($producto['VENTA_SUCURSAL05'] ?? 0);
-            $ventaWeb = floatval($producto['VENTA_SUCURSAL07'] ?? 0);
+            $valorUnitario = exportNum($producto['PRECIO_VENTA'] ?? 0);
+            $ventaDis = exportNum($producto['VENTA_DISTRIBUCION'] ?? 0);
+            $ventaSuc1 = exportNum($producto['VENTA_SUCURSAL01'] ?? 0);
+            $ventaSuc2 = exportNum($producto['VENTA_SUCURSAL02'] ?? 0);
+            $ventaSuc3 = exportNum($producto['VENTA_SUCURSAL03'] ?? 0);
+            $ventaSuc4 = exportNum($producto['VENTA_SUCURSAL04'] ?? 0);
+            $ventaSuc5 = exportNum($producto['VENTA_SUCURSAL05'] ?? 0);
+            $ventaWeb = exportNum($producto['VENTA_SUCURSAL07'] ?? 0);
 
             // Fórmula U: Stock valorizado (suma de stocks * unidad de compra)
             // Calculamos directamente el valor en lugar de usar una fórmula para evitar problemas de formato
             // Aseguramos que todos los valores sean numéricos con floatval()
-            $stockTotal = floatval($producto['STOCK_BODEGA01'] ?? 0) + floatval($producto['STOCK_BODEGA02'] ?? 0) +
-                floatval($producto['STOCK_BODEGA03'] ?? 0) + floatval($producto['STOCK_BODEGA04'] ?? 0) +
-                floatval($producto['STOCK_BODEGA05'] ?? 0);
-            $pesoKG = floatval($producto['KG'] ?? 1);
+            $stockTotal = exportNum($producto['STOCK_BODEGA01'] ?? 0) + exportNum($producto['STOCK_BODEGA02'] ?? 0) +
+                exportNum($producto['STOCK_BODEGA03'] ?? 0) + exportNum($producto['STOCK_BODEGA04'] ?? 0) +
+                exportNum($producto['STOCK_BODEGA05'] ?? 0);
+            $pesoKG = exportNum($producto['KG'] ?? 1);
             $pesoTotalKG = $stockTotal * $pesoKG;
             $sheet->setCellValue('U' . $row_idx, $pesoTotalKG);
 
@@ -809,10 +819,10 @@ function exportarProductos($sheet, $row_idx, array $proveedores, $fechaInicio, $
             }
 
             // Columna Y: Precio último compra
-            $sheet->setCellValue('Y' . $row_idx, floatval($producto['PRECIO_ULTIMA_COMPRA'] ?? 0));
+            $sheet->setCellValue('Y' . $row_idx, exportNum($producto['PRECIO_ULTIMA_COMPRA'] ?? 0));
 
             // Columna Z: Costo valorizado
-            $sheet->setCellValue('Z' . $row_idx, floatval($producto['PRECIO_ULTIMA_COMPRA'] * $sumaStock ?? 0));
+            $sheet->setCellValue('Z' . $row_idx, exportNum($producto['PRECIO_ULTIMA_COMPRA'] ?? 0) * $sumaStock);
             $row_idx++;
         }
 
@@ -1071,9 +1081,9 @@ function exportarDetalleVentaNeta($sheet, $row_idx, array $proveedores, $fechaIn
         $sheet->setCellValueExplicit('D' . $row_idx, $item['PRODUCTO_CODIGO'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
         $sheet->setCellValue('E' . $row_idx, $item['PRODUCTO_DESCRIPCION']);
         $sheet->setCellValue('F' . $row_idx, $item['MARCA_DESCRIPCION']);
-        $sheet->setCellValue('G' . $row_idx, $item['CANTIDAD']);
-        $sheet->setCellValue('H' . $row_idx, $item['PRECIO_UNITARIO_NETO']);
-        $sheet->setCellValue('I' . $row_idx, $item['TOTAL_NETO']);
+        $sheet->setCellValue('G' . $row_idx, exportNum($item['CANTIDAD']));
+        $sheet->setCellValue('H' . $row_idx, exportNum($item['PRECIO_UNITARIO_NETO']));
+        $sheet->setCellValue('I' . $row_idx, exportNum($item['TOTAL_NETO']));
 
         $row_idx++;
     }
@@ -1133,7 +1143,7 @@ function exportarDetalleUnidadesVendidas($sheet, $row_idx, array $proveedores, $
         $sheet->setCellValueExplicit('D' . $row_idx, $item['PRODUCTO_CODIGO'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
         $sheet->setCellValue('E' . $row_idx, $item['PRODUCTO_DESCRIPCION']);
         $sheet->setCellValue('F' . $row_idx, $item['MARCA_DESCRIPCION']);
-        $sheet->setCellValue('G' . $row_idx, $item['CANTIDAD']);
+        $sheet->setCellValue('G' . $row_idx, exportNum($item['CANTIDAD']));
 
         $row_idx++;
     }

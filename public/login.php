@@ -72,7 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Favicon -->
     <link rel="shortcut icon" href="img/favicon.ico" type="image/x-icon">
 </head>
-<body>
+<body id="login-page">
+    <video autoplay muted loop id="bg-video">
+      <source src="https://b2b.animalscenter.cl/assets/img/background-1.mp4" type="video/mp4">
+      Tu navegador no soporta el video de fondo.
+    </video>
     <div class="login-container">
         <div class="login-card card animate-fade-in">
             <div class="login-header">

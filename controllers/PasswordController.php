@@ -62,8 +62,7 @@ class PasswordController {
                 // Construir URL de restablecimiento
                 $resetUrl = 'https://' . $_SERVER['HTTP_HOST'] . '/restablecer-password.php?token=' . $token;
                 
-                // Aquí normalmente enviaríamos un correo electrónico
-                // Por ahora, simplemente mostraremos un mensaje de éxito
+                // Enviar correo electrónico de recuperación...
 
                 // Registrar el evento
                 Logger::info("Solicitud de recuperación de contraseña generada para: $email", 

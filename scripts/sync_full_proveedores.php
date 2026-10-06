@@ -17,7 +17,6 @@ require_once dirname(__DIR__) . '/config/app.php';
 require_once APP_ROOT . '/config/database.php';
 require_once APP_ROOT . '/includes/api_client.php';
 require_once APP_ROOT . '/includes/helpers.php';
-require_once APP_ROOT . '/includes/alerts.php';
 
 // --- upsert en cache ---
 /**
@@ -133,9 +132,5 @@ try {
   }
   error_log("[sync_full_proveedores][ERROR] " . $e->getMessage());
   syncLogFinish($pdo, $logId, 'error', $totalUpserts, 0, $e->getMessage());
-  notifySyncFailure('sync_full_proveedores', $e, [
-    'snapshotDate' => (new DateTime())->format('Y-m-d'),
-    'totalUpserts' => $totalUpserts ?? 0,
-  ]);
   exit(1);
 }

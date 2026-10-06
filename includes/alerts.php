@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config/app.php';
-require_once APP_ROOT . '/includes/mail_helper.php'; // tu wrapper de PHPMailer
+require_once APP_ROOT . '/includes/mailer.php'; // tu wrapper de PHPMailer
 
 // Destinatarios fijos para alertas
 const ALERT_RECIPIENTS = ['bryan@aplicacionesweb.cl', 'juan@aplicacionesweb.cl'];

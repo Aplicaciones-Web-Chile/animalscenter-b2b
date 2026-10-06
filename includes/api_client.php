@@ -89,7 +89,6 @@ function callApi($endpoint, $data = [])
         notifySyncFailure("callApi: {$endpoint}", new Exception($msg), $context());
         throw new Exception($msg);
     }
-
     // === Validaciones de contenido (body) ===
     if ($response === '' || $response === null || $response === 'null') {
         $msg = "La API respondió HTTP 200 pero con body vacío o null";
@@ -97,7 +96,6 @@ function callApi($endpoint, $data = [])
         notifySyncFailure("callApi: {$endpoint}", new Exception($msg), $context());
         throw new Exception($msg);
     }
-
     // Intentar decodificar como JSON
     $decoded = json_decode($response, true);
     if (json_last_error() !== JSON_ERROR_NONE) {

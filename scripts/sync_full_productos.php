@@ -13,7 +13,6 @@ require_once APP_ROOT . '/config/database.php';
 require_once APP_ROOT . '/includes/api_client.php';
 require_once APP_ROOT . '/includes/helpers.php';
 require_once APP_ROOT . '/includes/proveedores_repository.php';
-require_once APP_ROOT . '/includes/alerts.php';
 
 // === Configuración del snapshot ===
 const DISTRIBUIDOR = '001';
@@ -209,13 +208,6 @@ try {
   }
   error_log("[sync_full_productos][ERROR] " . $e->getMessage());
   syncLogFinish($pdo, $logId, 'error', $totalUpserts, 0, $e->getMessage());
-
-  notifySyncFailure('sync_full_productos', $e, [
-    'distribuidor' => DISTRIBUIDOR ?? '001',
-    'sinceParam' => $sinceParam ?? '',
-    'snapshotDate' => $snapshotDate ?? null,
-    'totalUpserts' => $totalUpserts ?? 0,
-    'proveedores' => $PROVEEDORES ?? [],
-  ]);
+  // Salida no cero si lo quieres capturar en cron
   exit(1);
 }

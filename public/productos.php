@@ -70,6 +70,20 @@ $proveedoresSeleccionados = array_values(array_unique(array_filter(
 $pagina = isset($_GET['pagina']) ? (int) $_GET['pagina'] : 1;
 $porPagina = 50;
 
+// Valores por defecto: sin proveedor seleccionado la vista y el JS (json_encode → .map)
+// deben recibir estructuras vacías, no variables indefinidas (null).
+$productos = [];
+$valorNeto = null;
+$unidadesVendidas = null;
+$stockUnidades = null;
+$stockTotalValor = null;
+$detalleValorNeto = [];
+$detalleUnidadesVendidas = [];
+$detalleStockUnidades = [];
+$detalleStockTotalValor = [];
+$ventaNetaSeisMeses = [];
+$totalStockSeisMeses = [];
+
 if (!empty($proveedoresSeleccionados)) {
     $result = obtenerProductosParaFechaMulti(
         $distribuidor,
@@ -239,6 +253,12 @@ if (!empty($proveedoresSeleccionados)) {
             </div>
         </div>
     </div>
+
+    <?php if ($esAdmin && empty($proveedoresSeleccionados)): ?>
+        <div class="alert alert-warning" role="alert">
+            <i class="fas fa-info-circle me-2"></i>Selecciona al menos un proveedor y presiona BUSCAR para ver los datos.
+        </div>
+    <?php endif; ?>
 
     <!-- Tarjetas de información -->
     <div class="row mb-4">
@@ -539,6 +559,9 @@ if (!empty($proveedoresSeleccionados)) {
                                         // Determinar clase para indicadores de stock
                                         $stockClass1 = $producto['stock_bodega01'] <= 5 ? 'low' : ($producto['stock_bodega01'] <= 20 ? 'medium' : '');
                                         $stockClass2 = $producto['stock_bodega02'] <= 5 ? 'low' : ($producto['stock_bodega02'] <= 20 ? 'medium' : '');
+                                        $stockClass3 = $producto['stock_bodega03'] <= 5 ? 'low' : ($producto['stock_bodega03'] <= 20 ? 'medium' : '');
+                                        $stockClass4 = $producto['stock_bodega04'] <= 5 ? 'low' : ($producto['stock_bodega04'] <= 20 ? 'medium' : '');
+                                        $stockClass5 = $producto['stock_bodega05'] <= 5 ? 'low' : ($producto['stock_bodega05'] <= 20 ? 'medium' : '');
                                         ?>
                                         <tr>
                                             <td class="fw-bold"><?php echo htmlspecialchars($producto['producto_codigo']); ?>
@@ -563,7 +586,7 @@ if (!empty($proveedoresSeleccionados)) {
                                                     <?php echo $producto['stock_bodega01']; ?>
                                                 </span>
                                             </td>
-                                            <td><?php echo $producto['VENTA_SUCURSAL02']; ?></td>
+                                            <td><?php echo $producto['venta_sucursal02']; ?></td>
                                             <td>
                                                 <span class="badge badge-stock <?php echo $stockClass2; ?>">
                                                     <?php echo $producto['stock_bodega02']; ?>
@@ -1365,7 +1388,7 @@ if (!empty($proveedoresSeleccionados)) {
                                         <td><?php echo htmlspecialchars($item['DSUI'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['CENV'] ?? ''); ?></td>
                                         <td class="precio-column">
-                                            <?php echo '$' . number_format($item['PRUL'] ?? 0, 0, ',', '.'); ?>
+                                            <?php echo '$' . number_format((float) normalizarNumeroLatam($item['PRUL'] ?? 0), 0, ',', '.'); ?>
                                         </td>
                                         <td><?php echo htmlspecialchars($item['ST01'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['ST02'] ?? ''); ?></td>
@@ -1373,7 +1396,7 @@ if (!empty($proveedoresSeleccionados)) {
                                         <td><?php echo htmlspecialchars($item['ST04'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['ST05'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['ST07'] ?? ''); ?></td>
-                                        <td class="valor-column"><?php echo '$' . number_format($item['VALO'], 0, ',', '.'); ?>
+                                        <td class="valor-column"><?php echo '$' . number_format((float) normalizarNumeroLatam($item['VALO'] ?? 0), 0, ',', '.'); ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -1483,13 +1506,6 @@ if (!empty($proveedoresSeleccionados)) {
             noChoicesText: 'No hay opciones disponibles',
             itemSelectText: 'Presiona para seleccionar'
         });
-
-        // wrapper que contiene el resto del contenido bajo los filtros
-        if (!main) return;
-
-        // Choices dispara eventos personalizados en el elemento original
-        el.addEventListener('showDropdown', () => main.classList.add('locked'));
-        el.addEventListener('hideDropdown', () => main.classList.remove('locked'));
     });
 </script>
 

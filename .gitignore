@@ -1,7 +1,6 @@
 # Archivos de configuración
 .env
 config.php
-/config/mail.php
 
 # Dependencias
 /vendor/
@@ -40,7 +39,6 @@ public/tmp/*
 
 # windsurf rules
 .windsurfrules
-cookies.txt
 
-# Backup files
-*.bak.*
+# Credenciales SMTP (no versionar)
+config/mail.php
