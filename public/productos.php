@@ -62,7 +62,7 @@ $proveedoresSeleccionados = $esAdmin ? ($_GET['proveedor'] ?? []) : [$_SESSION['
 
 // Normalizar (string→array, trim, únicos, no vacíos)
 $proveedoresSeleccionados = array_values(array_unique(array_filter(
-    array_map('strval', (array) $proveedoresSeleccionados),
+    array_map(fn($v) => trim((string) $v), (array) $proveedoresSeleccionados),
     fn($v) => $v !== ''
 )));
 
@@ -237,7 +237,7 @@ if (!empty($proveedoresSeleccionados)) {
                         <?php else: ?>
                             <!-- Importante: mantener array [] para uniformidad -->
                             <input type="hidden" name="proveedor[]"
-                                value="<?php echo htmlspecialchars($proveedoresSeleccionados[0]); ?>">
+                                value="<?php echo htmlspecialchars($proveedoresSeleccionados[0] ?? ''); ?>">
                         <?php endif; ?>
 
                         <!-- Botón BUSCAR dentro del formulario -->

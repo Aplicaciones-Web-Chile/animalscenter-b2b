@@ -297,6 +297,15 @@ if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar'])) {
 // Obtener listado de usuarios para la tabla
 $usuarios = fetchAll("SELECT id, nombre, email, rol, rut, fecha_creacion, habilitado FROM usuarios ORDER BY nombre");
 
+// Marcas de todos los proveedores en una sola consulta (antes era una consulta por fila)
+$marcasPorProveedor = [];
+foreach (fetchAll("SELECT proveedor_id, marca_id FROM proveedores_marcas") as $fila) {
+    $marcasPorProveedor[$fila['proveedor_id']][] = $fila['marca_id'];
+}
+
+// Índice id => nombre para no recorrer todas las marcas por cada usuario
+$nombresMarcas = array_column($marcasDisponibles, 'nombre', 'id');
+
 // Incluir el encabezado
 include 'header.php';
 ?>
@@ -368,27 +377,16 @@ include 'header.php';
                                     <td>
                                         <?php
                                         if ($u['rol'] === 'proveedor') {
-                                            $marcasUsuario = getMarcasProveedor($u['id']);
+                                            $marcasUsuario = $marcasPorProveedor[$u['id']] ?? [];
 
                                             if (empty($marcasUsuario)) {
                                                 echo '<span class="text-muted">Sin marcas asociadas</span>';
                                             } else {
                                                 echo '<div class="marcas-container">';
 
-                                                // Buscar nombres de las marcas
+                                                // Buscar nombres de las marcas (si no se encuentra, usar el ID)
                                                 foreach ($marcasUsuario as $marcaId) {
-                                                    $marcaNombre = '';
-                                                    foreach ($marcasDisponibles as $marca) {
-                                                        if ($marca['id'] === $marcaId) {
-                                                            $marcaNombre = $marca['nombre'];
-                                                            break;
-                                                        }
-                                                    }
-
-                                                    // Si no encontramos el nombre, usar el ID
-                                                    if (empty($marcaNombre)) {
-                                                        $marcaNombre = 'Marca ' . $marcaId;
-                                                    }
+                                                    $marcaNombre = $nombresMarcas[$marcaId] ?? ('Marca ' . $marcaId);
 
                                                     echo '<span class="badge bg-info text-dark me-1 mb-1">' . htmlspecialchars($marcaNombre) . '</span>';
                                                 }

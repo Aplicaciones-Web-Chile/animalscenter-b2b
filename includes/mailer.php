@@ -43,6 +43,9 @@ function sendMail(array $opts): array
     $mail->Password = SMTP_PASS;
     $mail->Port = SMTP_PORT;
     $mail->SMTPSecure = SMTP_SECURE; // 'ssl' o 'tls'
+    // Las alertas se envían de forma síncrona dentro de requests web (p. ej. Productos):
+    // el default de PHPMailer (300 s) puede dejar la página colgada si el SMTP no responde.
+    $mail->Timeout = 10;
     $mail->CharSet = 'UTF-8';
     $mail->isHTML(true);
 

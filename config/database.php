@@ -16,6 +16,14 @@ if (!defined('APP_ROOT')) {
  * @throws PDOException Si hay error en la conexión
  */
 function getDbConnection() {
+    // Reutilizar una única conexión por request. Abrir una conexión nueva en cada
+    // consulta agota el límite de conexiones de MySQL en Hostinger en páginas con
+    // muchas consultas (p. ej. listado de usuarios) y provoca "Error del sistema".
+    static $pdo = null;
+    if ($pdo instanceof PDO) {
+        return $pdo;
+    }
+
     // Comprobar si estamos en Hostinger utilizando la función definida en app.php
     if (function_exists('isHostinger') && isHostinger()) {
         // Estamos en Hostinger, usar credenciales de Hostinger
@@ -42,7 +50,8 @@ function getDbConnection() {
             PDO::ATTR_EMULATE_PREPARES => false,
         ];
         
-        return new PDO($dsn, $username, $password, $options);
+        $pdo = new PDO($dsn, $username, $password, $options);
+        return $pdo;
     } catch (PDOException $e) {
         // Log error
         error_log("Error de conexión a la BD: " . $e->getMessage());

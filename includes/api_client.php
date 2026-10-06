@@ -354,9 +354,13 @@ function guardarMarcasProveedor($proveedorId, $marcasIds)
     $marcasAgregar = array_diff($marcasIds, $marcasActualesIds);
     $marcasEliminar = array_diff($marcasActualesIds, $marcasIds);
 
-    // Iniciar transacción en BD local
+    // Iniciar transacción en BD local (salvo que el llamador ya tenga una abierta,
+    // p. ej. sync_usuarios.php: la conexión es compartida y PDO no anida transacciones)
     $db = getDbConnection();
-    $db->beginTransaction();
+    $transaccionPropia = !$db->inTransaction();
+    if ($transaccionPropia) {
+        $db->beginTransaction();
+    }
 
     try {
         // 3. Eliminar marcas que ya no están seleccionadas
@@ -391,12 +395,16 @@ function guardarMarcasProveedor($proveedorId, $marcasIds)
         sincronizarMarcasProveedorAPI($rutProveedor, $marcasIds);
 
         // Confirmar transacción
-        $db->commit();
+        if ($transaccionPropia) {
+            $db->commit();
+        }
         return true;
 
     } catch (Exception $e) {
         // Revertir cambios en caso de error
-        $db->rollBack();
+        if ($transaccionPropia && $db->inTransaction()) {
+            $db->rollBack();
+        }
         logError("Error al guardar marcas de proveedor: " . $e->getMessage());
         throw $e;
     }
